@@ -554,7 +554,7 @@
     const SUPABASE_URL = 'https://foqaawlemzzgarldepwh.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvcWFhd2xlbXp6Z2FybGRlcHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDQwOTQsImV4cCI6MjA4MzAyMDA5NH0.oSxWt5y55FWX21L00RFJax3Ndm4Yq_AJ5FwZjJjrr9o';
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
     // ========== ゲームデータ ==========
     var myData = {
@@ -644,14 +644,14 @@
         if (playerError) throw playerError;
         
         // ゲーム状態初期化
-        await supabase.from('game_states').insert({ team_id: team.id });
+        await db.from('game_states').insert({ team_id: team.id });
         
         // NPC状態初期化
         var npcInserts = [];
         for (var i = 0; i < 6; i++) {
           npcInserts.push({ team_id: team.id, npc_index: i });
         }
-        await supabase.from('npc_states').insert(npcInserts);
+        await db.from('npc_states').insert(npcInserts);
         
         myData.playerId = player.id;
         myData.teamId = team.id;
@@ -767,7 +767,7 @@
     
     function subscribeToTeam() {
       // プレイヤー変更を購読
-      subscription = supabase
+      subscription = db
         .channel('lobby-' + myData.teamId)
         .on('postgres_changes', {
           event: '*',
@@ -906,7 +906,7 @@
     document.getElementById('lobby-back-btn').addEventListener('click', async function() {
       // プレイヤー削除
       if (myData.playerId) {
-        await supabase.from('players').delete().eq('id', myData.playerId);
+        await db.from('players').delete().eq('id', myData.playerId);
       }
       if (subscription) subscription.unsubscribe();
       
@@ -1298,7 +1298,7 @@
         
         // DB更新
         if (myData.teamId) {
-          await supabase.rpc('solve_panel', {
+          await db.rpc('solve_panel', {
             input_team_id: myData.teamId,
             input_player_id: myData.playerId,
             panel_id: p.panelId,
@@ -1323,7 +1323,7 @@
         
         // DB更新
         if (myData.teamId) {
-          await supabase.rpc('rescue_npc', {
+          await db.rpc('rescue_npc', {
             input_team_id: myData.teamId,
             input_player_id: myData.playerId,
             input_npc_index: n.id,
