@@ -28,7 +28,658 @@
   <div id="crosshair"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-var SUPABASE_URL='https://foqaawlemzzgarldepwh.supabase.co';var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvcWFhd2xlbXp6Z2FybGRlcHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDQwOTQsImV4cCI6MjA4MzAyMDA5NH0.oSxWt5y55FWX21L00RFJax3Ndm4Yq_AJ5FwZjJjrr9o';var db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);var myData={playerId:null,teamId:null,teamCode:'',teamName:'',teamSize:5,role:null,isLeader:false};var subscription=null;function showLoading(t){document.getElementById('loading-text').textContent=t||'接続中...';document.getElementById('loading-overlay').classList.add('active')}function hideLoading(){document.getElementById('loading-overlay').classList.remove('active')}function showError(t){var e=document.getElementById('error-toast');e.textContent=t;e.classList.add('active');setTimeout(function(){e.classList.remove('active')},3000)}document.getElementById('start-title').onclick=function(){document.getElementById('title-screen').style.display='none';document.getElementById('team-screen').style.display='flex'};document.querySelectorAll('.tab-btn').forEach(function(b){b.onclick=function(){document.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active')});document.querySelectorAll('.tab-content').forEach(function(x){x.classList.remove('active')});b.classList.add('active');document.getElementById('tab-'+b.dataset.tab).classList.add('active')}});document.querySelectorAll('.member-btn').forEach(function(b){b.onclick=function(){document.querySelectorAll('.member-btn').forEach(function(x){x.classList.remove('selected')});b.classList.add('selected');myData.teamSize=parseInt(b.dataset.count)}});document.getElementById('create-team-btn').onclick=async function(){var teamName=document.getElementById('team-name-input').value.trim();if(!teamName){showError('チーム名を入力してください');return}showLoading('チーム作成中...');try{var code=String(Math.floor(1000+Math.random()*9000));var r=await db.from('teams').insert({code:code,name:teamName,size:myData.teamSize,status:'waiting'}).select().single();if(r.error)throw r.error;var team=r.data;var pr=await db.from('players').insert({team_id:team.id,name:teamName,is_leader:true}).select().single();if(pr.error)throw pr.error;await db.from('game_states').insert({team_id:team.id});var npc=[];for(var i=0;i<6;i++)npc.push({team_id:team.id,npc_index:i});await db.from('npc_states').insert(npc);myData.playerId=pr.data.id;myData.teamId=team.id;myData.teamCode=code;myData.teamName=teamName;myData.isLeader=true;hideLoading();showWaitingScreen()}catch(e){hideLoading();showError('チーム作成に失敗: '+e.message);console.error(e)}};document.getElementById('join-team-btn').onclick=async function(){var code=document.getElementById('team-code-input').value.trim();if(code.length!==4){showError('4桁のチーム番号を入力してください');return}showLoading('チーム参加中...');try{var tr=await db.from('teams').select('*').eq('code',code).eq('status','waiting').single();if(tr.error||!tr.data){hideLoading();showError('チームが見つかりません');return}var team=tr.data;var cr=await db.from('players').select('*',{count:'exact',head:true}).eq('team_id',team.id);if(cr.count>=team.size){hideLoading();showError('チームが満員です');return}var pr=await db.from('players').insert({team_id:team.id,name:'メンバー'+(cr.count+1),is_leader:false}).select().single();if(pr.error)throw pr.error;myData.playerId=pr.data.id;myData.teamId=team.id;myData.teamCode=code;myData.teamName=team.name;myData.teamSize=team.size;myData.isLeader=false;hideLoading();showLobby()}catch(e){hideLoading();showError('参加に失敗: '+e.message);console.error(e)}};function showWaitingScreen(){document.getElementById('team-screen').style.display='none';document.getElementById('waiting-screen').style.display='flex';document.getElementById('waiting-team-name').textContent=myData.teamName;document.getElementById('waiting-team-size').textContent=myData.teamSize+'人';document.getElementById('waiting-team-code').textContent=myData.teamCode}document.getElementById('go-lobby-btn').onclick=showLobby;document.getElementById('back-team-btn').onclick=function(){document.getElementById('waiting-screen').style.display='none';document.getElementById('team-screen').style.display='flex'};async function showLobby(){document.getElementById('waiting-screen').style.display='none';document.getElementById('team-screen').style.display='none';document.getElementById('lobby-screen').style.display='flex';document.getElementById('lobby-team-name').textContent=myData.teamName;document.getElementById('lobby-team-id').textContent='#'+myData.teamCode;document.getElementById('lobby-max').textContent=myData.teamSize;subscribeToTeam();await refreshLobbyData()}function subscribeToTeam(){subscription=db.channel('lobby-'+myData.teamId).on('postgres_changes',{event:'*',schema:'public',table:'players',filter:'team_id=eq.'+myData.teamId},function(){refreshLobbyData()}).on('postgres_changes',{event:'*',schema:'public',table:'teams',filter:'id=eq.'+myData.teamId},function(p){if(p.new&&p.new.status==='playing')startGame()}).subscribe()}async function refreshLobbyData(){try{var r=await db.from('players').select('*').eq('team_id',myData.teamId);if(r.error)throw r.error;var players=r.data;document.getElementById('lobby-current').textContent=players.length;var badges=document.getElementById('member-badges');badges.innerHTML='';players.forEach(function(p){var b=document.createElement('span');b.className='member-badge';if(p.id===myData.playerId)b.classList.add('you');if(p.is_ready)b.classList.add('ready');b.textContent=p.name+(p.role?' ('+getRoleName(p.role)+')':'');badges.appendChild(b)});updateRoleCards(players);var allReady=players.length>=2&&players.every(function(p){return p.role&&p.is_ready});var btn=document.getElementById('game-start-btn');if(allReady&&myData.isLeader){btn.disabled=false;btn.textContent='ゲーム開始！'}else if(allReady){btn.disabled=true;btn.textContent='リーダーの開始を待っています...'}else{btn.disabled=true;btn.textContent='準備完了を待っています...'}var st=document.getElementById('lobby-status');if(players.length>=myData.teamSize){st.classList.add('ready');st.innerHTML='<h3>全員揃いました！</h3><p>役割を選んで準備完了してください</p>'}else{st.classList.remove('ready');st.innerHTML='<h3>メンバー待機中...</h3><p>あと'+(myData.teamSize-players.length)+'人</p>'}}catch(e){console.error('Refresh error:',e)}}function getRoleName(r){var n={commander:'指揮官',rescue:'レスキュー',scout:'情報員'};return n[r]||r}function updateRoleCards(players){var taken={};players.forEach(function(p){if(p.role)taken[p.role]=p});document.querySelectorAll('.role-card').forEach(function(c){var role=c.dataset.role;var st=c.querySelector('.role-status');c.classList.remove('selected','taken');if(taken[role]){if(taken[role].id===myData.playerId){c.classList.add('selected');st.textContent='選択中'}else{c.classList.add('taken');st.textContent=taken[role].name}}else{st.textContent='待機中'}})}document.querySelectorAll('.role-card').forEach(function(c){c.onclick=async function(){if(c.classList.contains('taken'))return;try{await db.from('players').update({role:c.dataset.role,is_ready:true}).eq('id',myData.playerId);myData.role=c.dataset.role}catch(e){showError('役割選択に失敗');console.error(e)}}});document.getElementById('lobby-back-btn').onclick=async function(){if(myData.playerId)await db.from('players').delete().eq('id',myData.playerId);if(subscription)subscription.unsubscribe();document.getElementById('lobby-screen').style.display='none';document.getElementById('team-screen').style.display='flex'};document.getElementById('game-start-btn').onclick=async function(){if(!myData.isLeader)return;try{await db.from('teams').update({status:'playing',game_started_at:new Date().toISOString()}).eq('id',myData.teamId)}catch(e){showError('ゲーム開始に失敗');console.error(e)}};document.getElementById('test-start-btn').onclick=function(){startGame()};var G={time:1200,rampage:30,score:0,rescued:0,recovery:0,coopBonus:0,playing:false,over:false,locked:false,panelA:false,panelB:false,panelMain:false,interacting:false,interactProgress:0};var scene,camera,renderer,robot,visorMat,coreMat,lArmGrp,rArmGrp,headMesh,lShoulderLight,rShoulderLight;var yaw=0,pitch=0,playerPos,npcs=[],panels=[],clock;var keys={w:false,a:false,s:false,d:false,e:false};function initThreeJS(){scene=new THREE.Scene();scene.background=new THREE.Color(0x050510);scene.fog=new THREE.FogExp2(0x050510,0.012);camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);playerPos=new THREE.Vector3(0,2,35);camera.position.copy(playerPos);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;document.getElementById('game-container').appendChild(renderer.domElement);scene.add(new THREE.AmbientLight(0x111122,0.5));var s1=new THREE.SpotLight(0xffffff,3,100,Math.PI/6,0.5);s1.position.set(-30,60,-20);scene.add(s1);var t1=new THREE.Object3D();t1.position.set(0,25,-45);scene.add(t1);s1.target=t1;var s2=new THREE.SpotLight(0x00f5ff,2,80,Math.PI/5,0.3);s2.position.set(30,50,-10);scene.add(s2);scene.add(new THREE.PointLight(0x00f5ff,1.5,60)).position.set(-35,8,0);scene.add(new THREE.PointLight(0xff00ff,1.5,60)).position.set(35,8,0);var fl=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:0x0a0a15,metalness:0.9,roughness:0.2}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;scene.add(fl);var gr=new THREE.GridHelper(200,100,0x00f5ff,0x000822);gr.position.y=0.01;scene.add(gr);createRobot();createNPCs();createWalls();createPanels()}function createRobot(){robot=new THREE.Group();var m=new THREE.MeshStandardMaterial({color:0x3a3a4a,metalness:0.95,roughness:0.1});var d=new THREE.MeshStandardMaterial({color:0x2a2a3a,metalness:0.9,roughness:0.2});var lg=new THREE.BoxGeometry(4,16,4);robot.add(new THREE.Mesh(lg,m)).position.set(-4,8,0);robot.add(new THREE.Mesh(lg,m)).position.set(4,8,0);robot.add(new THREE.Mesh(new THREE.BoxGeometry(14,4,6),d)).position.set(0,18,0);robot.add(new THREE.Mesh(new THREE.BoxGeometry(14,16,8),m)).position.set(0,30,0);coreMat=new THREE.MeshBasicMaterial({color:0xffaa00});robot.add(new THREE.Mesh(new THREE.BoxGeometry(4,4,1),coreMat)).position.set(0,32,4.5);robot.add(new THREE.Mesh(new THREE.BoxGeometry(6,4,5),d)).position.set(-12,36,0);robot.add(new THREE.Mesh(new THREE.BoxGeometry(6,4,5),d)).position.set(12,36,0);lShoulderLight=new THREE.Mesh(new THREE.BoxGeometry(2,2,1),new THREE.MeshBasicMaterial({color:0xff3333}));lShoulderLight.position.set(-12,36,3);robot.add(lShoulderLight);rShoulderLight=new THREE.Mesh(new THREE.BoxGeometry(2,2,1),new THREE.MeshBasicMaterial({color:0xff3333}));rShoulderLight.position.set(12,36,3);robot.add(rShoulderLight);var ag=new THREE.BoxGeometry(3,14,3);lArmGrp=new THREE.Group();lArmGrp.add(new THREE.Mesh(ag,m)).position.y=-7;lArmGrp.position.set(-12,34,0);robot.add(lArmGrp);rArmGrp=new THREE.Group();rArmGrp.add(new THREE.Mesh(ag,m)).position.y=-7;rArmGrp.position.set(12,34,0);robot.add(rArmGrp);headMesh=new THREE.Mesh(new THREE.BoxGeometry(8,6,6),m);headMesh.position.set(0,43,0);robot.add(headMesh);visorMat=new THREE.MeshBasicMaterial({color:0xffaa00});robot.add(new THREE.Mesh(new THREE.BoxGeometry(7,2.5,1),visorMat)).position.set(0,43.5,3.5);robot.position.set(0,0,-45);scene.add(robot)}var npcData=[{x:-30,z:-15,type:'standing',hint:'制御盤Aのコードは「青」から始まる...'},{x:30,z:-15,type:'standing',hint:'制御盤Bの近くにヒントがあったはず'},{x:-25,z:20,type:'sitting',hint:'主制御盤は両方解除しないと動かない'},{x:25,z:20,type:'sitting',hint:'暴走は時間とともに加速する！急いで！'},{x:-15,z:-35,type:'fallen',hint:'緊急停止コードの一部は「7」だ...'},{x:15,z:-35,type:'fallen',hint:'主制御盤には全員で行った方がいい'}];function createNPCs(){npcData.forEach(function(d,i){var g=new THREE.Group();var sk=new THREE.MeshStandardMaterial({color:0x888899});var cl=new THREE.MeshStandardMaterial({color:0x555566});var hd=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),sk);g.add(hd);var bd=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.7,0.25),cl);g.add(bd);if(d.type==='standing'){hd.position.y=1.55;bd.position.y=0.95}else if(d.type==='sitting'){hd.position.set(0,0.9,0);bd.position.set(0,0.4,0)}else{hd.position.set(0,0.25,0.4);hd.rotation.z=Math.PI/2;bd.position.set(0,0.15,0);bd.rotation.z=Math.PI/2}g.sos=new THREE.PointLight(0xff4444,2,15);g.sos.position.y=d.type==='standing'?2.5:1.5;g.add(g.sos);g.position.set(d.x,0,d.z);g.npcType=d.type;g.rescued=false;g.needsCoop=d.type==='fallen';g.id=i;g.hint=d.hint;scene.add(g);npcs.push(g)})}function createWalls(){function w(ww,h,x,z,ry){var wm=new THREE.MeshStandardMaterial({color:0x151520,metalness:0.8});var wl=new THREE.Mesh(new THREE.BoxGeometry(ww,h,1),wm);wl.position.set(x,h/2,z);wl.rotation.y=ry||0;scene.add(wl);var lm=new THREE.MeshBasicMaterial({color:0x00f5ff});var ln=new THREE.Mesh(new THREE.BoxGeometry(ww,0.2,1.1),lm);ln.position.set(x,h-0.3,z);ln.rotation.y=ry||0;scene.add(ln)}w(120,14,0,-55,0);w(120,14,0,55,0);w(110,14,-55,0,Math.PI/2);w(110,14,55,0,Math.PI/2)}function createPanels(){function p(x,z,id){var g=new THREE.Group();g.add(new THREE.Mesh(new THREE.BoxGeometry(4,0.5,2.5),new THREE.MeshStandardMaterial({color:0x333344}))).position.y=0.25;var sm=new THREE.MeshBasicMaterial({color:0xff3333});var sc=new THREE.Mesh(new THREE.BoxGeometry(2.8,2.5,0.2),sm);sc.position.set(0,2.7,0.35);g.add(sc);g.screen=sc;var cl=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16),new THREE.MeshBasicMaterial({color:0xff6600}));cl.position.set(1.5,4.5,0);g.add(cl);g.coopLight=cl;g.position.set(x,0,z);g.panelId=id;g.done=false;scene.add(g);panels.push(g)}p(-28,-8,'A');p(28,-8,'B');p(0,-50,'main')}document.addEventListener('keydown',function(e){if(!G.playing)return;if(e.code==='KeyW')keys.w=true;if(e.code==='KeyA')keys.a=true;if(e.code==='KeyS')keys.s=true;if(e.code==='KeyD')keys.d=true;if(e.code==='KeyE')keys.e=true});document.addEventListener('keyup',function(e){if(e.code==='KeyW')keys.w=false;if(e.code==='KeyA')keys.a=false;if(e.code==='KeyS')keys.s=false;if(e.code==='KeyD')keys.d=false;if(e.code==='KeyE'){keys.e=false;G.interactProgress=0;G.interacting=false}});document.addEventListener('mousemove',function(e){if(!G.locked||!G.playing)return;yaw-=e.movementX*0.002;pitch-=e.movementY*0.002;pitch=Math.max(-Math.PI/2+0.1,Math.min(Math.PI/2-0.1,pitch))});var near=null;function checkNear(){near=null;panels.forEach(function(p){if(!p.done&&playerPos.distanceTo(p.position)<6)near={type:'panel',obj:p}});npcs.forEach(function(n){if(!n.rescued&&playerPos.distanceTo(n.position)<5)near={type:'npc',obj:n}});updateInteractionUI()}function updateInteractionUI(){var pr=document.getElementById('interaction-prompt');if(!near){pr.style.display='none';return}pr.style.display='block';if(near.type==='panel'){var p=near.obj;var can=p.panelId==='main'?(G.panelA&&G.panelB):true;if(!can)pr.innerHTML='<h3>🔒 主制御盤</h3><p>先に制御盤A・Bを解除してください</p>';else{var pg=G.interacting?G.interactProgress:0;pr.innerHTML='<h3>制御盤 '+p.panelId+'</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:'+pg+'%"></div></div><p><kbd>E</kbd> 長押しで解除</p>'}}else{var n=near.obj;var tt=n.npcType==='fallen'?'重傷の':n.npcType==='sitting'?'負傷した':'';var pg=G.interacting?G.interactProgress:0;pr.innerHTML='<h3>👤 '+tt+'研究員を発見！</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:'+pg+'%"></div></div><p><kbd>E</kbd> 長押しで救助</p>'}}function processInteraction(delta){if(!near||!keys.e){G.interacting=false;G.interactProgress=0;return}if(near.type==='panel'){var can=near.obj.panelId==='main'?(G.panelA&&G.panelB):true;if(!can)return}G.interacting=true;G.interactProgress+=delta*35;if(G.interactProgress>=100)completeInteraction()}function completeInteraction(){G.interacting=false;G.interactProgress=0;if(near.type==='panel'){var p=near.obj;p.done=true;p.screen.material.color.setHex(0x00ff88);if(p.coopLight)p.coopLight.material.color.setHex(0x00ff88);var pts=p.panelId==='main'?300:100;G.score+=pts;G.recovery++;G.coopBonus+=50;G.rampage=Math.max(0,G.rampage-15);if(p.panelId==='A'){G.panelA=true;lShoulderLight.material.color.setHex(0x00aaff);document.getElementById('status-a').classList.add('done');document.getElementById('status-a').querySelector('span:last-child').textContent='解除済';showBonus('+100 制御盤A解除！','#0f8')}else if(p.panelId==='B'){G.panelB=true;rShoulderLight.material.color.setHex(0x00aaff);document.getElementById('status-b').classList.add('done');document.getElementById('status-b').querySelector('span:last-child').textContent='解除済';showBonus('+100 制御盤B解除！','#0f8')}else{G.panelMain=true;document.getElementById('status-main').classList.add('done');document.getElementById('status-main').querySelector('span:last-child').textContent='解除済';showBonus('+300 主制御盤解除！','#0ff');setTimeout(function(){endGame(true)},1000)}}else{var n=near.obj;n.rescued=true;n.visible=false;G.rescued++;var pts=n.needsCoop?300:(n.npcType==='sitting'?200:150);G.score+=pts;showBonus('+'+pts+' 救助成功！','#00f5ff');setTimeout(function(){showBonus('💬 "'+n.hint+'"','#fc0')},600);if(n.needsCoop)G.coopBonus+=50;if(G.rescued>=npcs.length){G.score+=500;showBonus('+500 全員救助！','#f0f')}}updateGameUI()}function showBonus(t,c){var el=document.createElement('div');el.className='bonus-popup';el.textContent=t;el.style.color=c;document.body.appendChild(el);setTimeout(function(){el.remove()},2500)}function updateGameUI(){var m=Math.floor(G.time/60),s=Math.floor(G.time%60);document.getElementById('timer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');document.getElementById('rampage-level').textContent=Math.round(G.rampage)+'%';document.querySelector('.rampage-bar-inner').style.width=G.rampage+'%';document.getElementById('alert-overlay').classList.toggle('active',G.rampage>80);document.getElementById('score-display').textContent=G.score.toLocaleString();document.getElementById('rescued').textContent=G.rescued;document.getElementById('recovery').textContent=G.recovery;document.getElementById('coop-score').textContent=G.coopBonus}function updateRobotAppearance(time){var r=G.rampage/100;var ec;if(G.panelMain)ec=0x00aaff;else if(r<0.3)ec=0xffaa00;else if(r<0.5)ec=0xff6600;else if(r<0.7)ec=0xff0000;else ec=Math.sin(time*12)>0?0xff0000:0x440000;visorMat.color.setHex(ec);coreMat.color.setHex(G.panelMain?0x00ff88:ec);if(!G.panelA){lArmGrp.rotation.x=Math.sin(time*3)*0.7*r;lArmGrp.rotation.z=Math.sin(time*2.5)*0.5*r-0.2}if(!G.panelB){rArmGrp.rotation.x=Math.sin(time*3+Math.PI)*0.7*r;rArmGrp.rotation.z=-Math.sin(time*2.5)*0.5*r+0.2}if(!G.panelMain){headMesh.rotation.y=Math.sin(time*4)*0.3*r;robot.position.y=Math.sin(time*5)*0.3*r}}function endGame(win){G.playing=false;G.over=true;document.exitPointerLock();if(win){G.score+=1000;G.score+=Math.floor(G.time*5)}var r=document.getElementById('result-screen');r.style.display='flex';r.className=win?'success':'failure';r.querySelector('h1').textContent=win?'🎉 MISSION COMPLETE!':'💥 MISSION FAILED';document.getElementById('final-score').textContent=G.score.toLocaleString();document.getElementById('final-rescued').textContent=G.rescued+'/'+npcs.length;document.getElementById('final-coop').textContent='+'+G.coopBonus;var m=Math.floor(G.time/60),s=Math.floor(G.time%60);document.getElementById('final-time').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');document.getElementById('restart-btn').onclick=function(){location.reload()}}function animate(){requestAnimationFrame(animate);var delta=clock.getDelta();var time=clock.getElapsedTime();if(G.playing&&!G.over){G.time-=delta;if(G.time<=0){G.time=0;endGame(false)}G.rampage+=delta*(0.3+G.rampage*0.002);if(G.rampage>=100)endGame(false);var fwd=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);var rt=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);if(keys.w)playerPos.addScaledVector(fwd,0.28);if(keys.s)playerPos.addScaledVector(fwd,-0.28);if(keys.a)playerPos.addScaledVector(rt,-0.28);if(keys.d)playerPos.addScaledVector(rt,0.28);playerPos.x=Math.max(-50,Math.min(50,playerPos.x));playerPos.z=Math.max(-50,Math.min(50,playerPos.z));camera.position.set(playerPos.x,2,playerPos.z);camera.rotation.set(pitch,yaw,0);checkNear();processInteraction(delta*60);updateGameUI()}updateRobotAppearance(time);npcs.forEach(function(n){if(!n.rescued&&n.sos)n.sos.intensity=1.5+Math.sin(time*8+n.id*2)*1.2});renderer.render(scene,camera)}function startGame(){if(subscription)subscription.unsubscribe();document.getElementById('lobby-screen').style.display='none';document.getElementById('hud').style.display='flex';document.getElementById('bottom-hud').style.display='flex';document.getElementById('controls-help').style.display='block';document.getElementById('crosshair').style.display='block';document.getElementById('robot-status').style.display='block';if(!scene){initThreeJS();clock=new THREE.Clock();renderer.domElement.onclick=function(){if(G.playing&&!G.locked)renderer.domElement.requestPointerLock()};document.addEventListener('pointerlockchange',function(){G.locked=document.pointerLockElement===renderer.domElement});window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});animate()}G.playing=true;renderer.domElement.requestPointerLock()}
+// Supabase
+var SUPABASE_URL = 'https://foqaawlemzzgarldepwh.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvcWFhd2xlbXp6Z2FybGRlcHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDQwOTQsImV4cCI6MjA4MzAyMDA5NH0.oSxWt5y55FWX21L00RFJax3Ndm4Yq_AJ5FwZjJjrr9o';
+var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+var myData = { playerId: null, teamId: null, teamCode: '', teamName: '', teamSize: 5, role: null, isLeader: false };
+var subscription = null;
+
+// UI
+function showLoading(t) {
+  document.getElementById('loading-text').textContent = t || '接続中...';
+  document.getElementById('loading-overlay').classList.add('active');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
+function showError(t) {
+  var e = document.getElementById('error-toast');
+  e.textContent = t;
+  e.classList.add('active');
+  setTimeout(function() { e.classList.remove('active'); }, 3000);
+}
+
+// Title
+document.getElementById('start-title').onclick = function() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'flex';
+};
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(function(b) {
+  b.onclick = function() {
+    document.querySelectorAll('.tab-btn').forEach(function(x) { x.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    document.getElementById('tab-' + b.dataset.tab).classList.add('active');
+  };
+});
+
+// Member buttons
+document.querySelectorAll('.member-btn').forEach(function(b) {
+  b.onclick = function() {
+    document.querySelectorAll('.member-btn').forEach(function(x) { x.classList.remove('selected'); });
+    b.classList.add('selected');
+    myData.teamSize = parseInt(b.dataset.count);
+  };
+});
+
+// Create team
+document.getElementById('create-team-btn').onclick = async function() {
+  var teamName = document.getElementById('team-name-input').value.trim();
+  if (!teamName) { showError('チーム名を入力してください'); return; }
+  
+  showLoading('チーム作成中...');
+  try {
+    var code = String(Math.floor(1000 + Math.random() * 9000));
+    var r = await db.from('teams').insert({ code: code, name: teamName, size: myData.teamSize, status: 'waiting' }).select().single();
+    if (r.error) throw r.error;
+    var team = r.data;
+    
+    var pr = await db.from('players').insert({ team_id: team.id, name: teamName, is_leader: true }).select().single();
+    if (pr.error) throw pr.error;
+    
+    await db.from('game_states').insert({ team_id: team.id });
+    
+    var npc = [];
+    for (var i = 0; i < 6; i++) npc.push({ team_id: team.id, npc_index: i });
+    await db.from('npc_states').insert(npc);
+    
+    myData.playerId = pr.data.id;
+    myData.teamId = team.id;
+    myData.teamCode = code;
+    myData.teamName = teamName;
+    myData.isLeader = true;
+    
+    hideLoading();
+    showWaitingScreen();
+  } catch (e) {
+    hideLoading();
+    showError('チーム作成に失敗: ' + e.message);
+    console.error(e);
+  }
+};
+
+// Join team
+document.getElementById('join-team-btn').onclick = async function() {
+  var code = document.getElementById('team-code-input').value.trim();
+  if (code.length !== 4) { showError('4桁のチーム番号を入力してください'); return; }
+  
+  showLoading('チーム参加中...');
+  try {
+    var tr = await db.from('teams').select('*').eq('code', code).eq('status', 'waiting').single();
+    if (tr.error || !tr.data) { hideLoading(); showError('チームが見つかりません'); return; }
+    var team = tr.data;
+    
+    var cr = await db.from('players').select('*', { count: 'exact', head: true }).eq('team_id', team.id);
+    if (cr.count >= team.size) { hideLoading(); showError('チームが満員です'); return; }
+    
+    var pr = await db.from('players').insert({ team_id: team.id, name: 'メンバー' + (cr.count + 1), is_leader: false }).select().single();
+    if (pr.error) throw pr.error;
+    
+    myData.playerId = pr.data.id;
+    myData.teamId = team.id;
+    myData.teamCode = code;
+    myData.teamName = team.name;
+    myData.teamSize = team.size;
+    myData.isLeader = false;
+    
+    hideLoading();
+    showLobby();
+  } catch (e) {
+    hideLoading();
+    showError('参加に失敗: ' + e.message);
+    console.error(e);
+  }
+};
+
+function showWaitingScreen() {
+  document.getElementById('team-screen').style.display = 'none';
+  document.getElementById('waiting-screen').style.display = 'flex';
+  document.getElementById('waiting-team-name').textContent = myData.teamName;
+  document.getElementById('waiting-team-size').textContent = myData.teamSize + '人';
+  document.getElementById('waiting-team-code').textContent = myData.teamCode;
+}
+
+document.getElementById('go-lobby-btn').onclick = showLobby;
+document.getElementById('back-team-btn').onclick = function() {
+  document.getElementById('waiting-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'flex';
+};
+
+// Lobby
+async function showLobby() {
+  document.getElementById('waiting-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'none';
+  document.getElementById('lobby-screen').style.display = 'flex';
+  document.getElementById('lobby-team-name').textContent = myData.teamName;
+  document.getElementById('lobby-team-id').textContent = '#' + myData.teamCode;
+  document.getElementById('lobby-max').textContent = myData.teamSize;
+  subscribeToTeam();
+  await refreshLobbyData();
+}
+
+function subscribeToTeam() {
+  subscription = db.channel('lobby-' + myData.teamId)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: 'team_id=eq.' + myData.teamId }, function() { refreshLobbyData(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'teams', filter: 'id=eq.' + myData.teamId }, function(p) {
+      if (p.new && p.new.status === 'playing') startGame();
+    })
+    .subscribe();
+}
+
+async function refreshLobbyData() {
+  try {
+    var r = await db.from('players').select('*').eq('team_id', myData.teamId);
+    if (r.error) throw r.error;
+    var players = r.data;
+    
+    document.getElementById('lobby-current').textContent = players.length;
+    
+    var badges = document.getElementById('member-badges');
+    badges.innerHTML = '';
+    players.forEach(function(p) {
+      var b = document.createElement('span');
+      b.className = 'member-badge';
+      if (p.id === myData.playerId) b.classList.add('you');
+      if (p.is_ready) b.classList.add('ready');
+      b.textContent = p.name + (p.role ? ' (' + getRoleName(p.role) + ')' : '');
+      badges.appendChild(b);
+    });
+    
+    updateRoleCards(players);
+    
+    var allReady = players.length >= 2 && players.every(function(p) { return p.role && p.is_ready; });
+    var btn = document.getElementById('game-start-btn');
+    if (allReady && myData.isLeader) { btn.disabled = false; btn.textContent = 'ゲーム開始！'; }
+    else if (allReady) { btn.disabled = true; btn.textContent = 'リーダーの開始を待っています...'; }
+    else { btn.disabled = true; btn.textContent = '準備完了を待っています...'; }
+    
+    var st = document.getElementById('lobby-status');
+    if (players.length >= myData.teamSize) {
+      st.classList.add('ready');
+      st.innerHTML = '<h3>全員揃いました！</h3><p>役割を選んで準備完了してください</p>';
+    } else {
+      st.classList.remove('ready');
+      st.innerHTML = '<h3>メンバー待機中...</h3><p>あと' + (myData.teamSize - players.length) + '人</p>';
+    }
+  } catch (e) { console.error('Refresh error:', e); }
+}
+
+function getRoleName(r) {
+  var n = { commander: '指揮官', rescue: 'レスキュー', scout: '情報員' };
+  return n[r] || r;
+}
+
+function updateRoleCards(players) {
+  var taken = {};
+  players.forEach(function(p) { if (p.role) taken[p.role] = p; });
+  
+  document.querySelectorAll('.role-card').forEach(function(c) {
+    var role = c.dataset.role;
+    var st = c.querySelector('.role-status');
+    c.classList.remove('selected', 'taken');
+    if (taken[role]) {
+      if (taken[role].id === myData.playerId) { c.classList.add('selected'); st.textContent = '選択中'; }
+      else { c.classList.add('taken'); st.textContent = taken[role].name; }
+    } else { st.textContent = '待機中'; }
+  });
+}
+
+document.querySelectorAll('.role-card').forEach(function(c) {
+  c.onclick = async function() {
+    if (c.classList.contains('taken')) return;
+    try {
+      await db.from('players').update({ role: c.dataset.role, is_ready: true }).eq('id', myData.playerId);
+      myData.role = c.dataset.role;
+    } catch (e) { showError('役割選択に失敗'); console.error(e); }
+  };
+});
+
+document.getElementById('lobby-back-btn').onclick = async function() {
+  if (myData.playerId) await db.from('players').delete().eq('id', myData.playerId);
+  if (subscription) subscription.unsubscribe();
+  document.getElementById('lobby-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'flex';
+};
+
+document.getElementById('game-start-btn').onclick = async function() {
+  if (!myData.isLeader) return;
+  try { await db.from('teams').update({ status: 'playing', game_started_at: new Date().toISOString() }).eq('id', myData.teamId); }
+  catch (e) { showError('ゲーム開始に失敗'); console.error(e); }
+};
+
+document.getElementById('test-start-btn').onclick = function() { startGame(); };
+
+// ========== GAME ==========
+var G = { time: 1200, rampage: 30, score: 0, rescued: 0, recovery: 0, coopBonus: 0, playing: false, over: false, locked: false, panelA: false, panelB: false, panelMain: false, interacting: false, interactProgress: 0 };
+var scene, camera, renderer, robot, visorMat, coreMat, lArmGrp, rArmGrp, headMesh, lShoulderLight, rShoulderLight;
+var yaw = 0, pitch = 0, playerPos, npcs = [], panels = [], clock;
+var keys = { w: false, a: false, s: false, d: false, e: false };
+
+var PLAYER_HEIGHT = 1.7;
+
+function initThreeJS() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050510);
+  scene.fog = new THREE.FogExp2(0x050510, 0.012);
+  
+  camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+  
+  // プレイヤー初期位置: 床の上、手前側
+  playerPos = new THREE.Vector3(0, 0, 35);
+  camera.position.set(playerPos.x, PLAYER_HEIGHT, playerPos.z);
+  
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true;
+  document.getElementById('game-container').appendChild(renderer.domElement);
+  
+  // Lights
+  scene.add(new THREE.AmbientLight(0x111122, 0.5));
+  var s1 = new THREE.SpotLight(0xffffff, 3, 100, Math.PI / 6, 0.5);
+  s1.position.set(-30, 60, -20);
+  scene.add(s1);
+  var t1 = new THREE.Object3D();
+  t1.position.set(0, 25, -45);
+  scene.add(t1);
+  s1.target = t1;
+  var s2 = new THREE.SpotLight(0x00f5ff, 2, 80, Math.PI / 5, 0.3);
+  s2.position.set(30, 50, -10);
+  scene.add(s2);
+  scene.add(new THREE.PointLight(0x00f5ff, 1.5, 60)).position.set(-35, 8, 0);
+  scene.add(new THREE.PointLight(0xff00ff, 1.5, 60)).position.set(35, 8, 0);
+  
+  // Floor
+  var fl = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0x0a0a15, metalness: 0.9, roughness: 0.2 }));
+  fl.rotation.x = -Math.PI / 2;
+  fl.position.y = 0;
+  fl.receiveShadow = true;
+  scene.add(fl);
+  
+  var gr = new THREE.GridHelper(200, 100, 0x00f5ff, 0x000822);
+  gr.position.y = 0.01;
+  scene.add(gr);
+  
+  createRobot();
+  createNPCs();
+  createWalls();
+  createPanels();
+}
+
+function createRobot() {
+  robot = new THREE.Group();
+  var m = new THREE.MeshStandardMaterial({ color: 0x3a3a4a, metalness: 0.95, roughness: 0.1 });
+  var d = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.9, roughness: 0.2 });
+  var lg = new THREE.BoxGeometry(4, 16, 4);
+  robot.add(new THREE.Mesh(lg, m)).position.set(-4, 8, 0);
+  robot.add(new THREE.Mesh(lg, m)).position.set(4, 8, 0);
+  robot.add(new THREE.Mesh(new THREE.BoxGeometry(14, 4, 6), d)).position.set(0, 18, 0);
+  robot.add(new THREE.Mesh(new THREE.BoxGeometry(14, 16, 8), m)).position.set(0, 30, 0);
+  coreMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+  robot.add(new THREE.Mesh(new THREE.BoxGeometry(4, 4, 1), coreMat)).position.set(0, 32, 4.5);
+  robot.add(new THREE.Mesh(new THREE.BoxGeometry(6, 4, 5), d)).position.set(-12, 36, 0);
+  robot.add(new THREE.Mesh(new THREE.BoxGeometry(6, 4, 5), d)).position.set(12, 36, 0);
+  lShoulderLight = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+  lShoulderLight.position.set(-12, 36, 3);
+  robot.add(lShoulderLight);
+  rShoulderLight = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+  rShoulderLight.position.set(12, 36, 3);
+  robot.add(rShoulderLight);
+  var ag = new THREE.BoxGeometry(3, 14, 3);
+  lArmGrp = new THREE.Group();
+  lArmGrp.add(new THREE.Mesh(ag, m)).position.y = -7;
+  lArmGrp.position.set(-12, 34, 0);
+  robot.add(lArmGrp);
+  rArmGrp = new THREE.Group();
+  rArmGrp.add(new THREE.Mesh(ag, m)).position.y = -7;
+  rArmGrp.position.set(12, 34, 0);
+  robot.add(rArmGrp);
+  headMesh = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 6), m);
+  headMesh.position.set(0, 43, 0);
+  robot.add(headMesh);
+  visorMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+  robot.add(new THREE.Mesh(new THREE.BoxGeometry(7, 2.5, 1), visorMat)).position.set(0, 43.5, 3.5);
+  robot.position.set(0, 0, -45);
+  scene.add(robot);
+}
+
+var npcData = [
+  { x: -30, z: -15, type: 'standing', hint: '制御盤Aのコードは「青」から始まる...' },
+  { x: 30, z: -15, type: 'standing', hint: '制御盤Bの近くにヒントがあったはず' },
+  { x: -25, z: 20, type: 'sitting', hint: '主制御盤は両方解除しないと動かない' },
+  { x: 25, z: 20, type: 'sitting', hint: '暴走は時間とともに加速する！急いで！' },
+  { x: -15, z: -35, type: 'fallen', hint: '緊急停止コードの一部は「7」だ...' },
+  { x: 15, z: -35, type: 'fallen', hint: '主制御盤には全員で行った方がいい' }
+];
+
+function createNPCs() {
+  npcData.forEach(function(d, i) {
+    var g = new THREE.Group();
+    var sk = new THREE.MeshStandardMaterial({ color: 0x888899 });
+    var cl = new THREE.MeshStandardMaterial({ color: 0x555566 });
+    var hd = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), sk);
+    g.add(hd);
+    var bd = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.25), cl);
+    g.add(bd);
+    if (d.type === 'standing') { hd.position.y = 1.55; bd.position.y = 0.95; }
+    else if (d.type === 'sitting') { hd.position.set(0, 0.9, 0); bd.position.set(0, 0.4, 0); }
+    else { hd.position.set(0, 0.25, 0.4); hd.rotation.z = Math.PI / 2; bd.position.set(0, 0.15, 0); bd.rotation.z = Math.PI / 2; }
+    g.sos = new THREE.PointLight(0xff4444, 2, 15);
+    g.sos.position.y = d.type === 'standing' ? 2.5 : 1.5;
+    g.add(g.sos);
+    g.position.set(d.x, 0, d.z);
+    g.npcType = d.type;
+    g.rescued = false;
+    g.needsCoop = d.type === 'fallen';
+    g.id = i;
+    g.hint = d.hint;
+    scene.add(g);
+    npcs.push(g);
+  });
+}
+
+function createWalls() {
+  function w(ww, h, x, z, ry) {
+    var wm = new THREE.MeshStandardMaterial({ color: 0x151520, metalness: 0.8 });
+    var wl = new THREE.Mesh(new THREE.BoxGeometry(ww, h, 1), wm);
+    wl.position.set(x, h / 2, z);
+    wl.rotation.y = ry || 0;
+    scene.add(wl);
+    var lm = new THREE.MeshBasicMaterial({ color: 0x00f5ff });
+    var ln = new THREE.Mesh(new THREE.BoxGeometry(ww, 0.2, 1.1), lm);
+    ln.position.set(x, h - 0.3, z);
+    ln.rotation.y = ry || 0;
+    scene.add(ln);
+  }
+  w(120, 14, 0, -55, 0);
+  w(120, 14, 0, 55, 0);
+  w(110, 14, -55, 0, Math.PI / 2);
+  w(110, 14, 55, 0, Math.PI / 2);
+}
+
+function createPanels() {
+  function p(x, z, id) {
+    var g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 2.5), new THREE.MeshStandardMaterial({ color: 0x333344 }))).position.y = 0.25;
+    var sm = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+    var sc = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.5, 0.2), sm);
+    sc.position.set(0, 2.7, 0.35);
+    g.add(sc);
+    g.screen = sc;
+    var cl = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0xff6600 }));
+    cl.position.set(1.5, 4.5, 0);
+    g.add(cl);
+    g.coopLight = cl;
+    g.position.set(x, 0, z);
+    g.panelId = id;
+    g.done = false;
+    scene.add(g);
+    panels.push(g);
+  }
+  p(-28, -8, 'A');
+  p(28, -8, 'B');
+  p(0, -50, 'main');
+}
+
+// Input
+document.addEventListener('keydown', function(e) {
+  if (!G.playing) return;
+  if (e.code === 'KeyW') keys.w = true;
+  if (e.code === 'KeyA') keys.a = true;
+  if (e.code === 'KeyS') keys.s = true;
+  if (e.code === 'KeyD') keys.d = true;
+  if (e.code === 'KeyE') keys.e = true;
+});
+document.addEventListener('keyup', function(e) {
+  if (e.code === 'KeyW') keys.w = false;
+  if (e.code === 'KeyA') keys.a = false;
+  if (e.code === 'KeyS') keys.s = false;
+  if (e.code === 'KeyD') keys.d = false;
+  if (e.code === 'KeyE') { keys.e = false; G.interactProgress = 0; G.interacting = false; }
+});
+document.addEventListener('mousemove', function(e) {
+  if (!G.locked || !G.playing) return;
+  yaw -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+  pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+});
+
+// 距離計算（XZ平面のみ）
+function distXZ(a, b) {
+  var dx = a.x - b.x;
+  var dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dz * dz);
+}
+
+var near = null;
+function checkNear() {
+  near = null;
+  panels.forEach(function(p) {
+    if (!p.done && distXZ(playerPos, p.position) < 6) near = { type: 'panel', obj: p };
+  });
+  npcs.forEach(function(n) {
+    if (!n.rescued && distXZ(playerPos, n.position) < 5) near = { type: 'npc', obj: n };
+  });
+  updateInteractionUI();
+}
+
+function updateInteractionUI() {
+  var pr = document.getElementById('interaction-prompt');
+  if (!near) { pr.style.display = 'none'; return; }
+  pr.style.display = 'block';
+  if (near.type === 'panel') {
+    var p = near.obj;
+    var can = p.panelId === 'main' ? (G.panelA && G.panelB) : true;
+    if (!can) pr.innerHTML = '<h3>🔒 主制御盤</h3><p>先に制御盤A・Bを解除してください</p>';
+    else {
+      var pg = G.interacting ? G.interactProgress : 0;
+      pr.innerHTML = '<h3>制御盤 ' + p.panelId + '</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + pg + '%"></div></div><p><kbd>E</kbd> 長押しで解除</p>';
+    }
+  } else {
+    var n = near.obj;
+    var tt = n.npcType === 'fallen' ? '重傷の' : n.npcType === 'sitting' ? '負傷した' : '';
+    var pg = G.interacting ? G.interactProgress : 0;
+    pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + pg + '%"></div></div><p><kbd>E</kbd> 長押しで救助</p>';
+  }
+}
+
+function processInteraction(delta) {
+  if (!near || !keys.e) { G.interacting = false; G.interactProgress = 0; return; }
+  if (near.type === 'panel') {
+    var can = near.obj.panelId === 'main' ? (G.panelA && G.panelB) : true;
+    if (!can) return;
+  }
+  G.interacting = true;
+  G.interactProgress += delta * 35;
+  if (G.interactProgress >= 100) completeInteraction();
+}
+
+function completeInteraction() {
+  G.interacting = false;
+  G.interactProgress = 0;
+  if (near.type === 'panel') {
+    var p = near.obj;
+    p.done = true;
+    p.screen.material.color.setHex(0x00ff88);
+    if (p.coopLight) p.coopLight.material.color.setHex(0x00ff88);
+    var pts = p.panelId === 'main' ? 300 : 100;
+    G.score += pts;
+    G.recovery++;
+    G.coopBonus += 50;
+    G.rampage = Math.max(0, G.rampage - 15);
+    if (p.panelId === 'A') {
+      G.panelA = true;
+      lShoulderLight.material.color.setHex(0x00aaff);
+      document.getElementById('status-a').classList.add('done');
+      document.getElementById('status-a').querySelector('span:last-child').textContent = '解除済';
+      showBonus('+100 制御盤A解除！', '#0f8');
+    } else if (p.panelId === 'B') {
+      G.panelB = true;
+      rShoulderLight.material.color.setHex(0x00aaff);
+      document.getElementById('status-b').classList.add('done');
+      document.getElementById('status-b').querySelector('span:last-child').textContent = '解除済';
+      showBonus('+100 制御盤B解除！', '#0f8');
+    } else {
+      G.panelMain = true;
+      document.getElementById('status-main').classList.add('done');
+      document.getElementById('status-main').querySelector('span:last-child').textContent = '解除済';
+      showBonus('+300 主制御盤解除！', '#0ff');
+      setTimeout(function() { endGame(true); }, 1000);
+    }
+  } else {
+    var n = near.obj;
+    n.rescued = true;
+    n.visible = false;
+    G.rescued++;
+    var pts = n.needsCoop ? 300 : (n.npcType === 'sitting' ? 200 : 150);
+    G.score += pts;
+    showBonus('+' + pts + ' 救助成功！', '#00f5ff');
+    setTimeout(function() { showBonus('💬 "' + n.hint + '"', '#fc0'); }, 600);
+    if (n.needsCoop) G.coopBonus += 50;
+    if (G.rescued >= npcs.length) { G.score += 500; showBonus('+500 全員救助！', '#f0f'); }
+  }
+  updateGameUI();
+}
+
+function showBonus(t, c) {
+  var el = document.createElement('div');
+  el.className = 'bonus-popup';
+  el.textContent = t;
+  el.style.color = c;
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, 2500);
+}
+
+function updateGameUI() {
+  var m = Math.floor(G.time / 60), s = Math.floor(G.time % 60);
+  document.getElementById('timer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  document.getElementById('rampage-level').textContent = Math.round(G.rampage) + '%';
+  document.querySelector('.rampage-bar-inner').style.width = G.rampage + '%';
+  document.getElementById('alert-overlay').classList.toggle('active', G.rampage > 80);
+  document.getElementById('score-display').textContent = G.score.toLocaleString();
+  document.getElementById('rescued').textContent = G.rescued;
+  document.getElementById('recovery').textContent = G.recovery;
+  document.getElementById('coop-score').textContent = G.coopBonus;
+}
+
+function updateRobotAppearance(time) {
+  var r = G.rampage / 100;
+  var ec;
+  if (G.panelMain) ec = 0x00aaff;
+  else if (r < 0.3) ec = 0xffaa00;
+  else if (r < 0.5) ec = 0xff6600;
+  else if (r < 0.7) ec = 0xff0000;
+  else ec = Math.sin(time * 12) > 0 ? 0xff0000 : 0x440000;
+  visorMat.color.setHex(ec);
+  coreMat.color.setHex(G.panelMain ? 0x00ff88 : ec);
+  if (!G.panelA) {
+    lArmGrp.rotation.x = Math.sin(time * 3) * 0.7 * r;
+    lArmGrp.rotation.z = Math.sin(time * 2.5) * 0.5 * r - 0.2;
+  }
+  if (!G.panelB) {
+    rArmGrp.rotation.x = Math.sin(time * 3 + Math.PI) * 0.7 * r;
+    rArmGrp.rotation.z = -Math.sin(time * 2.5) * 0.5 * r + 0.2;
+  }
+  if (!G.panelMain) {
+    headMesh.rotation.y = Math.sin(time * 4) * 0.3 * r;
+    robot.position.y = Math.sin(time * 5) * 0.3 * r;
+  }
+}
+
+function endGame(win) {
+  G.playing = false;
+  G.over = true;
+  document.exitPointerLock();
+  if (win) { G.score += 1000; G.score += Math.floor(G.time * 5); }
+  var r = document.getElementById('result-screen');
+  r.style.display = 'flex';
+  r.className = win ? 'success' : 'failure';
+  r.querySelector('h1').textContent = win ? '🎉 MISSION COMPLETE!' : '💥 MISSION FAILED';
+  document.getElementById('final-score').textContent = G.score.toLocaleString();
+  document.getElementById('final-rescued').textContent = G.rescued + '/' + npcs.length;
+  document.getElementById('final-coop').textContent = '+' + G.coopBonus;
+  var m = Math.floor(G.time / 60), s = Math.floor(G.time % 60);
+  document.getElementById('final-time').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  document.getElementById('restart-btn').onclick = function() { location.reload(); };
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  var delta = clock.getDelta();
+  var time = clock.getElapsedTime();
+  
+  if (G.playing && !G.over) {
+    G.time -= delta;
+    if (G.time <= 0) { G.time = 0; endGame(false); }
+    G.rampage += delta * (0.3 + G.rampage * 0.002);
+    if (G.rampage >= 100) endGame(false);
+    
+    var fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    var rt = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    if (keys.w) playerPos.addScaledVector(fwd, 0.28);
+    if (keys.s) playerPos.addScaledVector(fwd, -0.28);
+    if (keys.a) playerPos.addScaledVector(rt, -0.28);
+    if (keys.d) playerPos.addScaledVector(rt, 0.28);
+    playerPos.x = Math.max(-50, Math.min(50, playerPos.x));
+    playerPos.z = Math.max(-50, Math.min(50, playerPos.z));
+    
+    camera.position.set(playerPos.x, PLAYER_HEIGHT, playerPos.z);
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+    
+    checkNear();
+    processInteraction(delta * 60);
+    updateGameUI();
+  }
+  
+  updateRobotAppearance(time);
+  npcs.forEach(function(n) {
+    if (!n.rescued && n.sos) n.sos.intensity = 1.5 + Math.sin(time * 8 + n.id * 2) * 1.2;
+  });
+  renderer.render(scene, camera);
+}
+
+function startGame() {
+  if (subscription) subscription.unsubscribe();
+  document.getElementById('lobby-screen').style.display = 'none';
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('bottom-hud').style.display = 'flex';
+  document.getElementById('controls-help').style.display = 'block';
+  document.getElementById('crosshair').style.display = 'block';
+  document.getElementById('robot-status').style.display = 'block';
+  
+  if (!scene) {
+    initThreeJS();
+    clock = new THREE.Clock();
+    renderer.domElement.onclick = function() {
+      if (G.playing && !G.locked) renderer.domElement.requestPointerLock();
+    };
+    document.addEventListener('pointerlockchange', function() {
+      G.locked = document.pointerLockElement === renderer.domElement;
+    });
+    window.addEventListener('resize', function() {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+    animate();
+  }
+  
+  G.playing = true;
+  renderer.domElement.requestPointerLock();
+}
   </script>
 </body>
 </html>
