@@ -669,12 +669,24 @@ function startGame() {
   if (!scene) {
     initThreeJS();
     clock = new THREE.Clock();
-    renderer.domElement.onclick = function() {
-      if (G.playing && !G.locked) renderer.domElement.requestPointerLock();
-    };
+    
+    // ポインターロック設定
     document.addEventListener('pointerlockchange', function() {
       G.locked = document.pointerLockElement === renderer.domElement;
+      console.log('Pointer lock changed:', G.locked);
     });
+    document.addEventListener('pointerlockerror', function() {
+      console.error('Pointer lock error!');
+    });
+    
+    // クリックでポインターロック
+    document.body.addEventListener('click', function() {
+      if (G.playing && !G.locked && renderer && renderer.domElement) {
+        console.log('Requesting pointer lock...');
+        renderer.domElement.requestPointerLock();
+      }
+    });
+    
     window.addEventListener('resize', function() {
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
@@ -684,7 +696,14 @@ function startGame() {
   }
   
   G.playing = true;
-  renderer.domElement.requestPointerLock();
+  console.log('Game started! Click anywhere to enable mouse look.');
+  
+  // 少し遅延してポインターロック
+  setTimeout(function() {
+    if (renderer && renderer.domElement) {
+      renderer.domElement.requestPointerLock();
+    }
+  }, 100);
 }
   </script>
 </body>
