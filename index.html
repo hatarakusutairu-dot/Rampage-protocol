@@ -277,14 +277,21 @@ function initThreeJS() {
   camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
   camera.rotation.order = 'YXZ';
   
-  // プレイヤー初期位置: 床の上、手前側
+  // プレイヤー初期位置
   playerPos = new THREE.Vector3(0, 0, 35);
-  camera.position.set(0, PLAYER_HEIGHT, 35);
-  camera.lookAt(0, PLAYER_HEIGHT, 0); // 前方を向く
   
-  // yawとpitchを初期化
+  // カメラ位置設定
+  camera.position.set(0, PLAYER_HEIGHT, 35);
+  
+  // yaw=0で-Z方向（前方）を向く、pitch=0で水平
   yaw = 0;
   pitch = 0;
+  
+  // カメラの向きを直接設定
+  camera.rotation.set(0, 0, 0);
+  
+  console.log('Camera initialized at:', camera.position.x, camera.position.y, camera.position.z);
+  console.log('Initial yaw:', yaw, 'pitch:', pitch);
   
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(innerWidth, innerHeight);
@@ -644,6 +651,11 @@ function animate() {
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yaw;
     camera.rotation.x = pitch;
+    
+    // デバッグ：最初の1秒だけログ出力
+    if (time < 1) {
+      console.log('Frame - Y:', camera.position.y.toFixed(2), 'pitch:', pitch.toFixed(3), 'yaw:', yaw.toFixed(3));
+    }
     
     checkNear();
     processInteraction(delta * 60);
