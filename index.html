@@ -115,6 +115,91 @@
     .coop-warning{position:fixed;top:40%;left:50%;transform:translateX(-50%);background:rgba(255,100,0,.9);color:#fff;padding:15px 30px;border-radius:8px;z-index:250;display:none;font-family:Orbitron;text-align:center}
     .bonus-popup{position:fixed;left:50%;top:30%;transform:translateX(-50%);pointer-events:none;z-index:300;font-family:Orbitron;font-size:1.3rem;animation:floatup 2.5s forwards;padding:10px 20px;background:rgba(0,0,0,.5);border-radius:5px}
     @keyframes floatup{to{opacity:0;transform:translateX(-50%) translateY(-100px)}}
+    #admin-btn{position:absolute;bottom:20px;left:20px;background:rgba(100,100,100,.8);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 15px;font-size:.85rem;cursor:pointer;border-radius:4px}
+    #admin-btn:hover{background:rgba(150,150,150,.8)}
+    #admin-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:none;flex-direction:column;z-index:2000;overflow:hidden}
+    #admin-screen.active{display:flex}
+    .admin-header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;background:rgba(0,0,0,.5);border-bottom:2px solid #ffa500}
+    .admin-header h1{font-family:Orbitron;color:#ffa500;font-size:1.5rem}
+    .admin-header-btns{display:flex;gap:10px}
+    .admin-close-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:10px 20px;cursor:pointer;border-radius:4px}
+    .admin-reset-btn{background:#ff3333;border:none;color:#fff;padding:10px 20px;cursor:pointer;border-radius:4px;font-weight:bold}
+    .admin-reset-btn:hover{background:#ff5555}
+    .admin-content{flex:1;display:flex;gap:20px;padding:20px;overflow:hidden}
+    .admin-panel{flex:1;background:rgba(20,30,50,.95);border:1px solid rgba(0,245,255,.3);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+    .admin-panel h2{font-family:Orbitron;color:#00f5ff;font-size:1rem;padding:15px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(0,245,255,.3)}
+    .admin-panel-content{flex:1;overflow-y:auto;padding:15px}
+    .team-card{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:15px;margin-bottom:10px}
+    .team-card.playing{border-color:#ffa500;animation:pulse-border 2s infinite}
+    .team-card.finished-success{border-color:#00ff88}
+    .team-card.finished-fail{border-color:#ff3333}
+    @keyframes pulse-border{0%,100%{box-shadow:0 0 5px rgba(255,165,0,.5)}50%{box-shadow:0 0 15px rgba(255,165,0,.8)}}
+    .team-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .team-card-name{font-family:Orbitron;color:#fff;font-size:1.1rem}
+    .team-card-code{color:rgba(255,255,255,.5);font-size:.8rem}
+    .team-card-status{padding:4px 10px;border-radius:12px;font-size:.7rem;font-weight:bold}
+    .team-card-status.waiting{background:rgba(255,165,0,.3);color:#ffa500}
+    .team-card-status.playing{background:rgba(0,245,255,.3);color:#00f5ff}
+    .team-card-status.success{background:rgba(0,255,136,.3);color:#00ff88}
+    .team-card-status.fail{background:rgba(255,51,51,.3);color:#ff3333}
+    .team-card-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+    .team-stat{text-align:center}
+    .team-stat-label{font-size:.65rem;color:rgba(255,255,255,.5)}
+    .team-stat-value{font-family:Orbitron;font-size:.9rem;color:#fff}
+    .team-progress{display:flex;gap:5px;margin-top:10px}
+    .team-progress-item{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px}
+    .team-progress-item.done{background:#00ff88}
+    .team-progress-item.active{background:#ffa500}
+    .ranking-item{display:flex;align-items:center;gap:15px;background:rgba(0,0,0,.3);border-radius:8px;padding:15px;margin-bottom:10px}
+    .ranking-position{font-family:Orbitron;font-size:1.5rem;width:40px;text-align:center}
+    .ranking-position.gold{color:#ffd700}
+    .ranking-position.silver{color:#c0c0c0}
+    .ranking-position.bronze{color:#cd7f32}
+    .ranking-info{flex:1}
+    .ranking-name{font-family:Orbitron;color:#fff;font-size:1rem}
+    .ranking-details{color:rgba(255,255,255,.5);font-size:.75rem;margin-top:3px}
+    .ranking-score{font-family:Orbitron;font-size:1.3rem;color:#00f5ff}
+    .no-teams{color:rgba(255,255,255,.5);text-align:center;padding:30px}
+    #password-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;z-index:3000}
+    .password-box{background:rgba(20,30,50,.98);border:2px solid #ffa500;padding:30px;border-radius:8px;text-align:center;min-width:300px}
+    .password-box h3{font-family:Orbitron;color:#ffa500;margin-bottom:20px}
+    .password-box input{width:100%;padding:15px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1rem;text-align:center;margin-bottom:15px;border-radius:4px}
+    .password-box-btns{display:flex;gap:10px}
+    .password-box-btns button{flex:1;padding:12px;border-radius:4px;cursor:pointer}
+    .password-cancel{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff}
+    .password-submit{background:#ffa500;border:none;color:#000;font-weight:bold}
+    .admin-tabs{display:flex;gap:5px;padding:15px 20px;background:rgba(0,0,0,.3)}
+    .admin-tab{flex:1;padding:12px;border:none;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;border-radius:4px;font-family:Orbitron;font-size:.85rem}
+    .admin-tab.active{background:#ffa500;color:#000}
+    .admin-tab:hover:not(.active){background:rgba(255,255,255,.2)}
+    .admin-content{flex:1;overflow-y:auto;padding:20px}
+    .admin-content h3{font-family:Orbitron;color:#00f5ff;margin-bottom:15px;font-size:1rem}
+    .admin-footer{padding:15px 20px;background:rgba(0,0,0,.3);display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.1)}
+    .admin-footer button{padding:12px 25px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:.85rem}
+    #admin-refresh-btn{background:rgba(0,245,255,.2);border:1px solid #00f5ff;color:#00f5ff}
+    #admin-refresh-btn:hover{background:rgba(0,245,255,.3)}
+    #admin-reset-btn{background:#ff3333;border:none;color:#fff}
+    #admin-reset-btn:hover{background:#ff5555}
+    #admin-close-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:10px 20px;border-radius:4px;cursor:pointer}
+    #admin-close-btn:hover{background:rgba(255,255,255,.1)}
+    .team-card-panels{display:flex;gap:8px;margin-top:10px}
+    .panel-status{background:rgba(255,255,255,.1);padding:4px 10px;border-radius:4px;font-size:.75rem;color:rgba(255,255,255,.6)}
+    .panel-status.done{background:rgba(0,255,136,.3);color:#00ff88}
+    .ranking-item .rank{font-family:Orbitron;font-size:1.2rem;min-width:40px}
+    .ranking-item .name{flex:1;color:#fff}
+    .ranking-item .name small{color:rgba(255,255,255,.5)}
+    .ranking-item .score{font-family:Orbitron;color:#00f5ff;font-size:1.1rem}
+    .ranking-item .rescued{color:rgba(255,255,255,.6);font-size:.9rem}
+    .ranking-item.gold{background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.4)}
+    .ranking-item.silver{background:rgba(192,192,192,.15);border:1px solid rgba(192,192,192,.4)}
+    .ranking-item.bronze{background:rgba(205,127,50,.15);border:1px solid rgba(205,127,50,.4)}
+    .password-buttons{display:flex;gap:10px}
+    .password-buttons button{flex:1;padding:12px;border-radius:4px;cursor:pointer}
+    #password-submit{background:#ffa500;border:none;color:#000;font-weight:bold}
+    #password-cancel{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff}
+    .result-buttons{display:flex;gap:15px;justify-content:center;flex-wrap:wrap}
+    #ranking-btn{background:rgba(255,215,0,.2);border:2px solid #ffd700;color:#ffd700;padding:15px 30px;font-size:1rem;border-radius:8px;cursor:pointer;font-family:Orbitron}
+    #ranking-btn:hover{background:rgba(255,215,0,.4)}
   </style>
 </head>
 <body>
@@ -124,18 +209,53 @@
   <div id="title-screen"><h1>RAMPAGE PROTOCOL</h1><p class="subtitle">巨大ロボ暴走停止ミッション</p><div class="start-text" id="start-title">▶ CLICK TO START ◀</div></div>
   <div id="team-screen"><div class="team-container"><div class="tab-buttons"><button class="tab-btn active" data-tab="create">チーム作成</button><button class="tab-btn" data-tab="join">チーム参加</button></div><div class="tab-content active" id="tab-create"><div class="form-group"><label>チーム名</label><input type="text" id="team-name-input" placeholder="チーム名を入力" maxlength="10"></div><div class="form-group"><label>チーム人数</label><div class="member-select"><button class="member-btn" data-count="2">2人</button><button class="member-btn" data-count="3">3人</button><button class="member-btn" data-count="4">4人</button><button class="member-btn selected" data-count="5">5人</button></div></div><button class="btn-primary" id="create-team-btn">チーム作成</button></div><div class="tab-content" id="tab-join"><div class="form-group"><label>チーム番号（4桁）</label><input type="text" id="team-code-input" placeholder="0000" maxlength="4" style="font-size:2rem;letter-spacing:10px;font-family:Orbitron"></div><button class="btn-primary" id="join-team-btn">チーム参加</button></div></div></div>
   <div id="waiting-screen"><div class="waiting-container"><h2 style="font-family:Orbitron;color:#00f5ff;margin-bottom:30px">待機室</h2><div><label style="color:rgba(255,255,255,.6)">チーム名</label><div id="waiting-team-name" style="font-size:1.2rem">-</div></div><div style="margin-top:15px"><label style="color:rgba(255,255,255,.6)">チーム人数</label><div id="waiting-team-size">-</div></div><div class="team-code-display"><label style="color:#00f5ff">チーム番号</label><div class="code" id="waiting-team-code">0000</div></div><div class="waiting-buttons"><button class="btn-primary" id="go-lobby-btn">ロビーに入る →</button><button class="btn-secondary" id="back-team-btn">← 戻る</button></div></div></div>
-  <div id="lobby-screen"><div class="lobby-header"><div><div class="team-name" id="lobby-team-name">チーム名</div><div style="color:rgba(255,255,255,.5)" id="lobby-team-id">#0000</div></div><div style="text-align:right"><div style="color:rgba(255,255,255,.6)">参加者</div><div style="font-family:Orbitron;font-size:1.5rem"><span id="lobby-current">1</span>/<span id="lobby-max">5</span>名</div></div></div><div class="lobby-status" id="lobby-status"><h3>メンバー待機中...</h3><p>全員揃ったら役割を選べます</p></div><div class="role-grid"><div class="role-card" data-role="commander"><div class="role-icon commander">🎖️</div><div style="flex:1"><h4>指揮官</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">指揮・情報統合</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="rescue"><div class="role-icon rescue">🚑</div><div style="flex:1"><h4>レスキュー</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">救助・回復</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="scout"><div class="role-icon scout">🔍</div><div style="flex:1"><h4>情報員</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">探索・情報収集</p></div><div class="role-status">待機中</div></div></div><div style="background:rgba(20,30,50,.95);border:1px solid rgba(255,255,255,.2);padding:15px;border-radius:8px"><h4 style="color:rgba(255,255,255,.6);margin-bottom:10px">メンバー状況</h4><div class="member-badges" id="member-badges"></div></div><div class="lobby-footer"><button class="btn-secondary" id="lobby-back-btn">← 戻る</button><button class="btn-primary" id="game-start-btn" disabled>準備完了を待っています...</button></div><button class="test-btn" id="test-start-btn">🔧 テスト：1人でゲーム開始</button></div>
+  <div id="lobby-screen"><div class="lobby-header"><div><div class="team-name" id="lobby-team-name">チーム名</div><div style="color:rgba(255,255,255,.5)" id="lobby-team-id">#0000</div></div><div style="text-align:right"><div style="color:rgba(255,255,255,.6)">参加者</div><div style="font-family:Orbitron;font-size:1.5rem"><span id="lobby-current">1</span>/<span id="lobby-max">5</span>名</div></div></div><div class="lobby-status" id="lobby-status"><h3>メンバー待機中...</h3><p>全員揃ったら役割を選べます</p></div><div class="role-grid"><div class="role-card" data-role="commander"><div class="role-icon commander">🎖️</div><div style="flex:1"><h4>指揮官</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">指揮・情報統合</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="rescue"><div class="role-icon rescue">🚑</div><div style="flex:1"><h4>レスキュー</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">救助・回復</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="scout"><div class="role-icon scout">🔍</div><div style="flex:1"><h4>情報員</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">探索・情報収集</p></div><div class="role-status">待機中</div></div></div><div style="background:rgba(20,30,50,.95);border:1px solid rgba(255,255,255,.2);padding:15px;border-radius:8px"><h4 style="color:rgba(255,255,255,.6);margin-bottom:10px">メンバー状況</h4><div class="member-badges" id="member-badges"></div></div><div class="lobby-footer"><button class="btn-secondary" id="lobby-back-btn">← 戻る</button><button class="btn-primary" id="game-start-btn" disabled>準備完了を待っています...</button></div><button class="test-btn" id="test-start-btn">🔧 テスト：1人でゲーム開始</button><button id="admin-btn">⚙️ 管理画面</button></div>
   <div id="hud"><div class="hud-panel"><h3>残り時間</h3><div id="timer" class="hud-value">20:00</div></div><div class="hud-panel"><h3>暴走レベル</h3><div id="rampage-level" class="hud-value">30%</div><div class="rampage-bar"><div class="rampage-bar-inner" style="width:30%"></div></div></div><div class="hud-panel"><h3>スコア</h3><div id="score-display" class="hud-value">0</div></div><div class="hud-panel" id="team-mode-panel" style="background:rgba(10,10,20,.7);border-color:rgba(255,255,255,.3)"><h3>チーム</h3><div id="team-mode" class="hud-value" style="font-size:1rem;color:#ffa500">-人</div></div></div>
   <div id="robot-status"><h4>🤖 ロボット状態</h4><div class="status-item" id="status-a"><span>制御盤A:</span><span>未解除</span></div><div class="status-item" id="status-b"><span>制御盤B:</span><span>未解除</span></div><div class="status-item" id="status-main"><span>主制御盤:</span><span>ロック中</span></div></div>
   <div id="bottom-hud"><div class="stats-panel"><div class="stat-item"><h4>救助</h4><div class="value"><span id="rescued">0</span>/6</div></div><div class="stat-item"><h4>復旧</h4><div class="value"><span id="recovery">0</span>/3</div></div><div class="stat-item"><h4>協力</h4><div class="value">+<span id="coop-score">0</span></div></div></div></div>
   <div id="controls-help"><h4>操作方法</h4><p><kbd>WASD</kbd> 移動</p><p><kbd>クリック</kbd> 視点ロック</p><p><kbd>E長押し</kbd> アクション</p></div>
   <div id="interaction-prompt"></div>
-  <div id="result-screen"><h1>MISSION COMPLETE</h1><div class="result-stats"><div class="result-stat"><h4>最終スコア</h4><div class="value" id="final-score">0</div></div><div class="result-stat"><h4>救助</h4><div class="value" id="final-rescued">0/6</div></div><div class="result-stat"><h4>協力</h4><div class="value" id="final-coop">+0</div></div><div class="result-stat"><h4>残り時間</h4><div class="value" id="final-time">00:00</div></div></div><button id="restart-btn">もう一度プレイ</button></div>
+  <div id="result-screen"><h1>MISSION COMPLETE</h1><div class="result-stats"><div class="result-stat"><h4>最終スコア</h4><div class="value" id="final-score">0</div></div><div class="result-stat"><h4>救助</h4><div class="value" id="final-rescued">0/6</div></div><div class="result-stat"><h4>協力</h4><div class="value" id="final-coop">+0</div></div><div class="result-stat"><h4>残り時間</h4><div class="value" id="final-time">00:00</div></div></div><div class="result-buttons"><button id="restart-btn">もう一度プレイ</button><button id="ranking-btn">🏆 ランキング表示</button></div></div>
   <div id="alert-overlay"></div>
   <div id="crosshair"></div>
   <div id="minimap"><span id="minimap-title">🎖️ 指揮官マップ</span><canvas id="minimap-canvas"></canvas></div>
   <div id="role-ability"></div>
   <div class="coop-warning" id="coop-warning">⚠️ あと1人必要！</div>
+  <div id="admin-screen">
+    <div class="admin-panel">
+      <div class="admin-header">
+        <h2>📊 管理画面</h2>
+        <button id="admin-close-btn">✕ 閉じる</button>
+      </div>
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="progress">進捗状況</button>
+        <button class="admin-tab" data-tab="ranking">ランキング</button>
+      </div>
+      <div class="admin-content" id="progress-tab">
+        <h3>🎮 全チーム進捗状況</h3>
+        <div id="teams-progress"></div>
+      </div>
+      <div class="admin-content" id="ranking-tab" style="display:none">
+        <h3>🏆 ランキング</h3>
+        <div id="ranking-list"></div>
+      </div>
+      <div class="admin-footer">
+        <button id="admin-refresh-btn">🔄 更新</button>
+        <button id="admin-reset-btn">⚠️ 全データリセット</button>
+      </div>
+    </div>
+  </div>
+  <div id="password-modal">
+    <div class="password-box">
+      <h3>🔒 パスワード入力</h3>
+      <input type="password" id="admin-password" placeholder="パスワードを入力">
+      <div class="password-buttons">
+        <button id="password-submit">確認</button>
+        <button id="password-cancel">キャンセル</button>
+      </div>
+      <div id="password-error" style="color:#ff4444;font-size:.8rem;margin-top:10px;display:none">パスワードが違います</div>
+    </div>
+  </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
 // ============================================
@@ -1639,6 +1759,16 @@ function endGame(win) {
     G.score += 1000;
     G.score += Math.floor(G.time * 5);
   }
+  // チームステータスを「完了」に更新
+  if (myData.teamId) {
+    db.from('teams').update({ status: 'finished' }).eq('id', myData.teamId);
+    // 最終スコアを保存
+    db.from('game_states').update({
+      score: G.score,
+      rescued: G.rescued,
+      rampage: G.rampage
+    }).eq('team_id', myData.teamId);
+  }
   var r = document.getElementById('result-screen');
   r.style.display = 'flex';
   r.className = win ? 'success' : 'failure';
@@ -1817,6 +1947,262 @@ function cleanupMultiplayer() {
   }
   otherPlayers = {};
 }
+
+// ============================================
+// Admin Panel Functions
+// ============================================
+
+var adminAuthenticated = false;
+var adminRefreshInterval = null;
+
+// Admin password check
+function checkAdminPassword(password) {
+  return password === 'admin123';
+}
+
+// Show password modal
+function showPasswordModal() {
+  document.getElementById('password-modal').style.display = 'flex';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('password-error').style.display = 'none';
+  document.getElementById('admin-password').focus();
+}
+
+// Hide password modal
+function hidePasswordModal() {
+  document.getElementById('password-modal').style.display = 'none';
+}
+
+// Open admin panel
+function openAdminPanel() {
+  if (!adminAuthenticated) {
+    showPasswordModal();
+    return;
+  }
+  document.getElementById('admin-screen').classList.add('active');
+  refreshAdminData();
+  // Auto refresh every 3 seconds
+  adminRefreshInterval = setInterval(refreshAdminData, 3000);
+}
+
+// Close admin panel
+function closeAdminPanel() {
+  document.getElementById('admin-screen').classList.remove('active');
+  if (adminRefreshInterval) {
+    clearInterval(adminRefreshInterval);
+    adminRefreshInterval = null;
+  }
+}
+
+// Fetch and display all teams data
+async function refreshAdminData() {
+  try {
+    // Fetch all teams with game states
+    var { data: teams, error: teamsError } = await db
+      .from('teams')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (teamsError) throw teamsError;
+
+    // Fetch all game states
+    var { data: gameStates, error: gsError } = await db
+      .from('game_states')
+      .select('*');
+
+    if (gsError) throw gsError;
+
+    // Map game states by team_id
+    var gameStateMap = {};
+    (gameStates || []).forEach(function(gs) {
+      gameStateMap[gs.team_id] = gs;
+    });
+
+    // Fetch player counts
+    var { data: players, error: playersError } = await db
+      .from('players')
+      .select('team_id');
+
+    if (playersError) throw playersError;
+
+    var playerCounts = {};
+    (players || []).forEach(function(p) {
+      playerCounts[p.team_id] = (playerCounts[p.team_id] || 0) + 1;
+    });
+
+    // Display progress
+    displayTeamsProgress(teams || [], gameStateMap, playerCounts);
+
+    // Display ranking
+    displayRanking(teams || [], gameStateMap);
+
+  } catch (err) {
+    console.error('Admin data fetch error:', err);
+  }
+}
+
+// Display teams progress
+function displayTeamsProgress(teams, gameStateMap, playerCounts) {
+  var container = document.getElementById('teams-progress');
+  if (!teams.length) {
+    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">チームがありません</p>';
+    return;
+  }
+
+  var html = '';
+  teams.forEach(function(team) {
+    var gs = gameStateMap[team.id] || {};
+    var playerCount = playerCounts[team.id] || 0;
+    var status = team.status || 'waiting';
+    var statusText = status === 'playing' ? '🎮 プレイ中' :
+                     status === 'finished' ? '✅ 完了' : '⏳ 待機中';
+    var statusClass = status === 'playing' ? 'playing' :
+                      status === 'finished' ? 'finished' : '';
+
+    var rampage = gs.rampage || 30;
+    var rescued = gs.rescued || 0;
+    var panelA = gs.panel_a || 0;
+    var panelB = gs.panel_b || 0;
+    var panelMain = gs.panel_main || 0;
+    var score = gs.score || 0;
+
+    html += '<div class="team-card ' + statusClass + '">';
+    html += '<div class="team-card-header">';
+    html += '<span class="team-card-name">' + (team.name || 'チーム') + '</span>';
+    html += '<span class="team-card-code">#' + team.code + '</span>';
+    html += '</div>';
+    html += '<div class="team-card-status">' + statusText + '</div>';
+    html += '<div class="team-card-stats">';
+    html += '<div class="stat"><span>👥 ' + playerCount + '/' + team.max_players + '</span></div>';
+    html += '<div class="stat"><span>⚡ 暴走 ' + Math.round(rampage) + '%</span></div>';
+    html += '<div class="stat"><span>🚑 救助 ' + rescued + '/6</span></div>';
+    html += '<div class="stat"><span>🎯 スコア ' + score + '</span></div>';
+    html += '</div>';
+    html += '<div class="team-card-panels">';
+    html += '<span class="panel-status ' + (panelA >= 100 ? 'done' : '') + '">A: ' + Math.round(panelA) + '%</span>';
+    html += '<span class="panel-status ' + (panelB >= 100 ? 'done' : '') + '">B: ' + Math.round(panelB) + '%</span>';
+    html += '<span class="panel-status ' + (panelMain >= 100 ? 'done' : '') + '">Main: ' + Math.round(panelMain) + '%</span>';
+    html += '</div>';
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+// Display ranking
+function displayRanking(teams, gameStateMap) {
+  var container = document.getElementById('ranking-list');
+
+  // Create ranking data
+  var rankingData = teams.map(function(team) {
+    var gs = gameStateMap[team.id] || {};
+    return {
+      name: team.name || 'チーム',
+      code: team.code,
+      score: gs.score || 0,
+      rescued: gs.rescued || 0,
+      status: team.status || 'waiting'
+    };
+  });
+
+  // Sort by score descending
+  rankingData.sort(function(a, b) { return b.score - a.score; });
+
+  if (!rankingData.length) {
+    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">ランキングデータがありません</p>';
+    return;
+  }
+
+  var html = '';
+  rankingData.forEach(function(item, index) {
+    var rank = index + 1;
+    var rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+    var medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank + '.';
+
+    html += '<div class="ranking-item ' + rankClass + '">';
+    html += '<span class="rank">' + medal + '</span>';
+    html += '<span class="name">' + item.name + ' <small>#' + item.code + '</small></span>';
+    html += '<span class="score">' + item.score + 'pt</span>';
+    html += '<span class="rescued">🚑' + item.rescued + '</span>';
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+// Reset all data
+async function resetAllData() {
+  if (!confirm('全てのチーム・プレイヤー・ゲームデータを削除します。\n本当にリセットしますか？')) {
+    return;
+  }
+
+  try {
+    showError('リセット中...');
+
+    // Delete in order: npc_states, game_states, players, teams
+    await db.from('npc_states').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await db.from('game_states').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await db.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await db.from('teams').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    showError('リセット完了！');
+    refreshAdminData();
+  } catch (err) {
+    console.error('Reset error:', err);
+    showError('リセットエラー: ' + err.message);
+  }
+}
+
+// Admin event listeners
+document.getElementById('admin-btn').addEventListener('click', openAdminPanel);
+document.getElementById('admin-close-btn').addEventListener('click', closeAdminPanel);
+document.getElementById('admin-refresh-btn').addEventListener('click', refreshAdminData);
+document.getElementById('admin-reset-btn').addEventListener('click', resetAllData);
+
+document.getElementById('password-submit').addEventListener('click', function() {
+  var password = document.getElementById('admin-password').value;
+  if (checkAdminPassword(password)) {
+    adminAuthenticated = true;
+    hidePasswordModal();
+    openAdminPanel();
+  } else {
+    document.getElementById('password-error').style.display = 'block';
+  }
+});
+
+document.getElementById('password-cancel').addEventListener('click', hidePasswordModal);
+
+document.getElementById('admin-password').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('password-submit').click();
+  }
+});
+
+// Admin tab switching
+document.querySelectorAll('.admin-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.admin-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    var tabName = tab.getAttribute('data-tab');
+    document.getElementById('progress-tab').style.display = tabName === 'progress' ? 'block' : 'none';
+    document.getElementById('ranking-tab').style.display = tabName === 'ranking' ? 'block' : 'none';
+  });
+});
+
+// Public ranking view (no password needed for viewing after game)
+document.getElementById('ranking-btn').addEventListener('click', function() {
+  // Switch to ranking tab directly
+  document.querySelectorAll('.admin-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelector('.admin-tab[data-tab="ranking"]').classList.add('active');
+  document.getElementById('progress-tab').style.display = 'none';
+  document.getElementById('ranking-tab').style.display = 'block';
+  // Open admin panel without authentication for ranking view
+  document.getElementById('admin-screen').classList.add('active');
+  refreshAdminData();
+  // Auto refresh every 3 seconds
+  if (adminRefreshInterval) clearInterval(adminRefreshInterval);
+  adminRefreshInterval = setInterval(refreshAdminData, 3000);
+});
   </script>
 </body>
 </html>
