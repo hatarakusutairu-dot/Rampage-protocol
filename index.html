@@ -921,6 +921,75 @@ function createParticleEffect(x, y, z, color, count) {
   }
 }
 
+// NPC歩行AI更新
+function updateNPCWalking(delta, rampageLevel) {
+  npcs.forEach(function(npc) {
+    if (!npc.canWalk || npc.rescued) return;
+
+    // パニックレベルを暴走レベルに応じて設定
+    npc.panicLevel = Math.min(1, rampageLevel / 80);
+
+    var speed = npc.walkSpeed * (1 + npc.panicLevel * 2); // パニック時は速く動く
+    var wanderRadius = 8 + npc.panicLevel * 15; // パニック時は広範囲を動く
+
+    if (!npc.isWalking) {
+      // 待機中
+      npc.walkTimer -= delta;
+      if (npc.walkTimer <= 0) {
+        // 新しい目標地点を設定
+        var angle = Math.random() * Math.PI * 2;
+        var dist = Math.random() * wanderRadius;
+        npc.targetX = npc.homeX + Math.cos(angle) * dist;
+        npc.targetZ = npc.homeZ + Math.sin(angle) * dist;
+        // 壁の範囲内に制限
+        npc.targetX = Math.max(-55, Math.min(55, npc.targetX));
+        npc.targetZ = Math.max(-50, Math.min(50, npc.targetZ));
+        npc.isWalking = true;
+      }
+    } else {
+      // 歩行中
+      var dx = npc.targetX - npc.position.x;
+      var dz = npc.targetZ - npc.position.z;
+      var dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < 0.5) {
+        // 目標に到着
+        npc.isWalking = false;
+        npc.walkTimer = 1 + Math.random() * 3 * (1 - npc.panicLevel); // パニック時は休憩短い
+      } else {
+        // 移動
+        var moveX = (dx / dist) * speed * delta;
+        var moveZ = (dz / dist) * speed * delta;
+        npc.position.x += moveX;
+        npc.position.z += moveZ;
+
+        // 進行方向を向く
+        npc.rotation.y = Math.atan2(dx, dz);
+
+        // 歩行アニメーション
+        npc.walkTime += delta * (8 + npc.panicLevel * 8);
+        var swing = Math.sin(npc.walkTime) * (0.5 + npc.panicLevel * 0.3);
+        npc.leftArm.rotation.x = swing;
+        npc.rightArm.rotation.x = -swing;
+        npc.leftLeg.rotation.x = -swing * 0.7;
+        npc.rightLeg.rotation.x = swing * 0.7;
+      }
+    }
+
+    // 待機中のアニメーション（周りを見回す）
+    if (!npc.isWalking && npc.leftArm) {
+      npc.leftArm.rotation.x *= 0.9;
+      npc.rightArm.rotation.x *= 0.9;
+      npc.leftLeg.rotation.x *= 0.9;
+      npc.rightLeg.rotation.x *= 0.9;
+      // パニック時は体を揺らす
+      if (npc.panicLevel > 0.3) {
+        npc.rotation.y += Math.sin(npc.walkTime * 3) * 0.02 * npc.panicLevel;
+      }
+    }
+  });
+}
+
 function updateParticles(delta) {
   for (var i = particles.length - 1; i >= 0; i--) {
     var p = particles[i];
@@ -1569,6 +1638,21 @@ function createNPCs() {
     g.needsCoop = d.type === 'fallen';
     g.id = i;
     g.hint = d.hint;
+
+    // 歩行AI用のプロパティ（立っているNPCのみ）
+    if (d.type === 'standing') {
+      g.canWalk = true;
+      g.homeX = d.x;
+      g.homeZ = d.z;
+      g.targetX = d.x;
+      g.targetZ = d.z;
+      g.walkSpeed = 1.5 + Math.random() * 1.0; // 1.5〜2.5
+      g.walkTimer = Math.random() * 3; // 次の移動までの待機時間
+      g.isWalking = false;
+      g.walkTime = Math.random() * Math.PI * 2;
+      g.panicLevel = 0; // パニック度（暴走レベルに応じて上昇）
+    }
+
     scene.add(g);
     npcs.push(g);
   });
@@ -1974,6 +2058,9 @@ function animate() {
   // Update particles
   updateParticles(delta);
 
+  // Update NPC walking
+  updateNPCWalking(delta, G.rampage);
+
   // Update visuals
   updateRobotAppearance(time);
   npcs.forEach(function(n) {
@@ -1983,11 +2070,19 @@ function animate() {
       if (n.helpMark) {
         n.helpMark.visible = true;
         n.helpDot.visible = true;
-        n.helpMark.position.y += Math.sin(time * 4 + n.id) * 0.003;
+        // ヘルプマークを上下に揺らす（ただしy位置はリセットしない）
+        var baseY = n.npcType === 'fallen' ? 1.2 : 2.3;
+        n.helpMark.position.y = baseY + Math.sin(time * 4 + n.id) * 0.1;
+        n.helpDot.position.y = (n.npcType === 'fallen' ? 0.7 : 2.0) + Math.sin(time * 4 + n.id) * 0.1;
       }
-      // 倒れていないNPCは少し震える
-      if (n.npcType !== 'fallen' && n.leftArm) {
-        n.leftArm.rotation.z = Math.sin(time * 10 + n.id * 3) * 0.1;
+      // 座っているNPCは腕を震わせる（立っているNPCは歩行AIが制御）
+      if (n.npcType === 'sitting' && n.leftArm) {
+        n.leftArm.rotation.z = Math.sin(time * 10 + n.id * 3) * 0.15;
+        n.rightArm.rotation.z = Math.sin(time * 10 + n.id * 3 + 1) * 0.1;
+      }
+      // 倒れているNPCは苦しそうに動く
+      if (n.npcType === 'fallen' && n.leftArm) {
+        n.leftArm.rotation.x = Math.sin(time * 2 + n.id) * 0.2;
       }
     } else {
       // 救助済み：手を振るアニメーション
@@ -1996,7 +2091,11 @@ function animate() {
         n.helpMark.visible = false;
         n.helpDot.visible = false;
       }
-      if (n.rightArm) {
+      // 歩行可能NPCは歩き回る、それ以外は手を振る
+      if (n.canWalk) {
+        // 歩行NPCは救助後も歩き続ける（パニックなし）
+        n.panicLevel = 0;
+      } else if (n.rightArm) {
         n.rightArm.rotation.x = -Math.PI / 4 + Math.sin(time * 6 + n.id) * 0.3;
         n.rightArm.rotation.z = -0.5;
       }
