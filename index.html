@@ -212,7 +212,7 @@
   <div id="lobby-screen"><div class="lobby-header"><div><div class="team-name" id="lobby-team-name">チーム名</div><div style="color:rgba(255,255,255,.5)" id="lobby-team-id">#0000</div></div><div style="text-align:right"><div style="color:rgba(255,255,255,.6)">参加者</div><div style="font-family:Orbitron;font-size:1.5rem"><span id="lobby-current">1</span>/<span id="lobby-max">5</span>名</div></div></div><div class="lobby-status" id="lobby-status"><h3>メンバー待機中...</h3><p>全員揃ったら役割を選べます</p></div><div class="role-grid"><div class="role-card" data-role="commander"><div class="role-icon commander">🎖️</div><div style="flex:1"><h4>指揮官</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">指揮・情報統合</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="rescue"><div class="role-icon rescue">🚑</div><div style="flex:1"><h4>レスキュー</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">救助・回復</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="scout"><div class="role-icon scout">🔍</div><div style="flex:1"><h4>情報員</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">探索・情報収集</p></div><div class="role-status">待機中</div></div></div><div style="background:rgba(20,30,50,.95);border:1px solid rgba(255,255,255,.2);padding:15px;border-radius:8px"><h4 style="color:rgba(255,255,255,.6);margin-bottom:10px">メンバー状況</h4><div class="member-badges" id="member-badges"></div></div><div class="lobby-footer"><button class="btn-secondary" id="lobby-back-btn">← 戻る</button><button class="btn-primary" id="game-start-btn" disabled>準備完了を待っています...</button></div><button class="test-btn" id="test-start-btn">🔧 テスト：1人でゲーム開始</button><button id="admin-btn">⚙️ 管理画面</button></div>
   <div id="hud"><div class="hud-panel"><h3>残り時間</h3><div id="timer" class="hud-value">20:00</div></div><div class="hud-panel"><h3>暴走レベル</h3><div id="rampage-level" class="hud-value">30%</div><div class="rampage-bar"><div class="rampage-bar-inner" style="width:30%"></div></div></div><div class="hud-panel"><h3>スコア</h3><div id="score-display" class="hud-value">0</div></div><div class="hud-panel" id="team-mode-panel" style="background:rgba(10,10,20,.7);border-color:rgba(255,255,255,.3)"><h3>チーム</h3><div id="team-mode" class="hud-value" style="font-size:1rem;color:#ffa500">-人</div></div></div>
   <div id="robot-status"><h4>🤖 ロボット状態</h4><div class="status-item" id="status-a"><span>制御盤A:</span><span>未解除</span></div><div class="status-item" id="status-b"><span>制御盤B:</span><span>未解除</span></div><div class="status-item" id="status-main"><span>主制御盤:</span><span>ロック中</span></div></div>
-  <div id="bottom-hud"><div class="stats-panel"><div class="stat-item"><h4>救助</h4><div class="value"><span id="rescued">0</span>/6</div></div><div class="stat-item"><h4>復旧</h4><div class="value"><span id="recovery">0</span>/3</div></div><div class="stat-item"><h4>協力</h4><div class="value">+<span id="coop-score">0</span></div></div></div></div>
+  <div id="bottom-hud"><div class="stats-panel"><div class="stat-item"><h4>救助</h4><div class="value"><span id="rescued">0</span>/<span id="rescue-total">6</span></div></div><div class="stat-item"><h4>復旧</h4><div class="value"><span id="recovery">0</span>/3</div></div><div class="stat-item"><h4>協力</h4><div class="value">+<span id="coop-score">0</span></div></div></div></div>
   <div id="controls-help"><h4>操作方法</h4><p><kbd>WASD</kbd> 移動</p><p><kbd>クリック</kbd> 視点ロック</p><p><kbd>E長押し</kbd> アクション</p></div>
   <div id="interaction-prompt"></div>
   <div id="result-screen"><h1>MISSION COMPLETE</h1><div class="result-stats"><div class="result-stat"><h4>最終スコア</h4><div class="value" id="final-score">0</div></div><div class="result-stat"><h4>救助</h4><div class="value" id="final-rescued">0/6</div></div><div class="result-stat"><h4>協力</h4><div class="value" id="final-coop">+0</div></div><div class="result-stat"><h4>残り時間</h4><div class="value" id="final-time">00:00</div></div></div><div class="result-buttons"><button id="restart-btn">もう一度プレイ</button><button id="ranking-btn">🏆 ランキング表示</button></div></div>
@@ -415,8 +415,8 @@ var gameSubscription = null;
 var positionUpdateInterval = null;
 var POSITION_SYNC_INTERVAL = 200; // ms
 
-// NPC Data
-var npcData = [
+// NPC Data - 救助対象（ヒントを持っている）
+var rescueNpcData = [
   { x: -30, z: -15, type: 'standing', hint: '制御盤Aのコードは「青」から始まる...' },
   { x: 30, z: -15, type: 'standing', hint: '制御盤Bの近くにヒントがあったはず' },
   { x: -25, z: 20, type: 'sitting', hint: '主制御盤は両方解除しないと動かない' },
@@ -424,6 +424,40 @@ var npcData = [
   { x: -15, z: -35, type: 'fallen', hint: '緊急停止コードの一部は「7」だ...' },
   { x: 15, z: -35, type: 'fallen', hint: '主制御盤には全員で行った方がいい' }
 ];
+
+// 邪魔な研究員のセリフ（救助不要、話しかけるとセリフを言うだけ）
+var distractionDialogues = [
+  'ロボットが暴走してる！早く何とかしてくれ！',
+  '私は大丈夫だから、他の人を助けて！',
+  'こんな時に限って...データのバックアップが...',
+  '制御室はあっちの方だったような...',
+  '怖い怖い怖い！でも逃げられない！',
+  '誰かー！助けてー！...あ、君か。私は平気だよ',
+  'システムエラー発生中...手動で対処しないと',
+  '非常口はどこだ？！...いや、まず止めないと',
+  'マニュアル通りにやれば...マニュアルどこだっけ',
+  '博士の研究が台無しになる前に何とか...',
+  '電源を落とせば止まる？いや、それじゃダメだ',
+  '冷却システムが...いや、今はそれどころじゃない',
+  'あのロボット、昨日まで普通だったのに...',
+  '警報がうるさい！集中できない！',
+  '避難？いや、ここで何とかしないと！'
+];
+
+// 邪魔な研究員の配置候補位置
+var distractionPositions = [
+  { x: -45, z: 0 }, { x: 45, z: 0 }, { x: 0, z: 30 },
+  { x: -35, z: -30 }, { x: 35, z: -30 }, { x: -20, z: 10 },
+  { x: 20, z: 10 }, { x: -40, z: 25 }, { x: 40, z: 25 },
+  { x: 0, z: -20 }, { x: -50, z: -20 }, { x: 50, z: -20 },
+  { x: -10, z: 40 }, { x: 10, z: 40 }, { x: -30, z: 40 }
+];
+
+// チーム人数に応じた邪魔な研究員の数
+var distractionCountByTeamSize = { 1: 2, 2: 3, 3: 5, 4: 7, 5: 9 };
+
+// 実際のNPCデータ（ゲーム開始時に生成）
+var npcData = [];
 
 // ============================================
 // UI Helper Functions
@@ -925,10 +959,13 @@ function createParticleEffect(x, y, z, color, count) {
 // NPC歩行AI更新
 function updateNPCWalking(delta, rampageLevel) {
   npcs.forEach(function(npc) {
-    if (!npc.canWalk || npc.rescued) return;
+    if (!npc.canWalk) return;
 
-    // パニックレベルを暴走レベルに応じて設定
-    npc.panicLevel = Math.min(1, rampageLevel / 80);
+    // 救助対象は救助後、邪魔な研究員は話しかけ後も歩行継続
+    var isCalm = npc.needsRescue ? npc.rescued : npc.talked;
+
+    // パニックレベルを暴走レベルに応じて設定（落ち着いたNPCはパニックなし）
+    npc.panicLevel = isCalm ? 0 : Math.min(1, rampageLevel / 80);
 
     var speed = npc.walkSpeed * (1 + npc.panicLevel * 2); // パニック時は速く動く
     var wanderRadius = 8 + npc.panicLevel * 15; // パニック時は広範囲を動く
@@ -1520,6 +1557,9 @@ function initThreeJS() {
 
   // Create game objects
   createRobot();
+  // NPCデータを生成（チーム人数に応じて邪魔な研究員を追加）
+  var teamSize = myData.teamSize || 3;
+  generateNpcData(teamSize);
   createNPCs();
   createWalls();
   createPanels();
@@ -1623,13 +1663,47 @@ function createRobot() {
   scene.add(robot);
 }
 
+// NPCデータを生成（チーム人数に応じて邪魔な研究員を追加）
+function generateNpcData(teamSize) {
+  npcData = [];
+
+  // 救助対象NPCを追加
+  rescueNpcData.forEach(function(d) {
+    npcData.push({
+      x: d.x, z: d.z, type: d.type,
+      hint: d.hint,
+      needsRescue: true
+    });
+  });
+
+  // 邪魔な研究員を追加（チーム人数に応じた数）
+  var distractionCount = distractionCountByTeamSize[teamSize] || 5;
+  var shuffledPositions = distractionPositions.slice().sort(function() { return Math.random() - 0.5; });
+  var shuffledDialogues = distractionDialogues.slice().sort(function() { return Math.random() - 0.5; });
+
+  for (var i = 0; i < distractionCount && i < shuffledPositions.length; i++) {
+    var pos = shuffledPositions[i];
+    npcData.push({
+      x: pos.x, z: pos.z, type: 'standing',
+      dialogue: shuffledDialogues[i % shuffledDialogues.length],
+      needsRescue: false
+    });
+  }
+
+  // NPCデータをシャッフル（救助対象と邪魔な研究員を混ぜる）
+  npcData.sort(function() { return Math.random() - 0.5; });
+}
+
 function createNPCs() {
   // 研究員の白衣カラーバリエーション
   var labCoatColors = [0xeeeeee, 0xddddee, 0xeeeedd, 0xddeedd, 0xeeddee, 0xddeeff];
   var skinColors = [0xffdbac, 0xf5d0a9, 0xd4a574, 0xc68642, 0xffcd94, 0xeac086];
+  // 邪魔な研究員用の色（少し違う色合い）
+  var distractionCoatColors = [0xdddddd, 0xccccdd, 0xddddcc, 0xccddcc, 0xddccdd, 0xccddee];
 
   npcData.forEach(function(d, i) {
-    var labCoatColor = labCoatColors[i % labCoatColors.length];
+    var isRescue = d.needsRescue;
+    var labCoatColor = isRescue ? labCoatColors[i % labCoatColors.length] : distractionCoatColors[i % distractionCoatColors.length];
     var skinColor = skinColors[i % skinColors.length];
 
     var g = createMinecraftCharacter(labCoatColor, skinColor, false);
@@ -1649,45 +1723,35 @@ function createNPCs() {
 
     // ポーズ設定
     if (d.type === 'standing') {
-      // 立っている - そのまま
       g.leftArm.rotation.x = 0.1;
       g.rightArm.rotation.x = -0.1;
     } else if (d.type === 'sitting') {
-      // 座っている
       g.position.y = -0.4;
       g.leftLeg.rotation.x = -Math.PI / 2;
       g.rightLeg.rotation.x = -Math.PI / 2;
       g.leftArm.rotation.x = -0.5;
       g.rightArm.rotation.x = -0.5;
-    } else {
-      // 倒れている
+    } else if (d.type === 'fallen') {
       g.rotation.z = Math.PI / 2;
       g.position.y = 0.5;
     }
 
-    // SOSライト
-    g.sos = new THREE.PointLight(0xff4444, 2, 15);
-    g.sos.position.y = d.type === 'standing' ? 2.5 : (d.type === 'sitting' ? 1.8 : 1.5);
-    g.add(g.sos);
-
-    // ヘルプマーク（！）
-    var helpMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
-    var helpMark = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.05), helpMat);
-    helpMark.position.set(0, d.type === 'fallen' ? 1.2 : 2.3, 0);
-    g.add(helpMark);
-    var helpDot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), helpMat);
-    helpDot.position.set(0, d.type === 'fallen' ? 0.7 : 2.0, 0);
-    g.add(helpDot);
-    g.helpMark = helpMark;
-    g.helpDot = helpDot;
+    // 救助対象のみSOSライト（弱めに）
+    if (isRescue) {
+      g.sos = new THREE.PointLight(0xff4444, 1, 10);
+      g.sos.position.y = d.type === 'standing' ? 2.5 : (d.type === 'sitting' ? 1.8 : 1.5);
+      g.add(g.sos);
+    }
 
     g.position.x = d.x;
     g.position.z = d.z;
     g.npcType = d.type;
+    g.needsRescue = isRescue;
     g.rescued = false;
     g.needsCoop = d.type === 'fallen';
     g.id = i;
-    g.hint = d.hint;
+    g.hint = d.hint || null;
+    g.dialogue = d.dialogue || null;
 
     // 歩行AI用のプロパティ（立っているNPCのみ）
     if (d.type === 'standing') {
@@ -1696,11 +1760,11 @@ function createNPCs() {
       g.homeZ = d.z;
       g.targetX = d.x;
       g.targetZ = d.z;
-      g.walkSpeed = 1.5 + Math.random() * 1.0; // 1.5〜2.5
-      g.walkTimer = Math.random() * 3; // 次の移動までの待機時間
+      g.walkSpeed = 1.5 + Math.random() * 1.0;
+      g.walkTimer = Math.random() * 3;
       g.isWalking = false;
       g.walkTime = Math.random() * Math.PI * 2;
-      g.panicLevel = 0; // パニック度（暴走レベルに応じて上昇）
+      g.panicLevel = 0;
     }
 
     scene.add(g);
@@ -1826,7 +1890,9 @@ function checkNear() {
     }
   });
   npcs.forEach(function(n) {
-    if (!n.rescued && distXZ(playerPos, n.position) < 5) {
+    // 救助対象：未救助の場合のみ、邪魔な研究員：話してない場合のみ
+    var canInteract = n.needsRescue ? !n.rescued : !n.talked;
+    if (canInteract && distXZ(playerPos, n.position) < 5) {
       near = { type: 'npc', obj: n };
     }
   });
@@ -1850,8 +1916,14 @@ function updateInteractionUI() {
     }
   } else {
     var n = near.obj;
-    var tt = n.npcType === 'fallen' ? '重傷の' : n.npcType === 'sitting' ? '負傷した' : '';
-    pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助</p>';
+    if (n.needsRescue) {
+      // 救助対象NPC
+      var tt = n.npcType === 'fallen' ? '重傷の' : n.npcType === 'sitting' ? '負傷した' : '';
+      pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助</p>';
+    } else {
+      // 邪魔な研究員
+      pr.innerHTML = '<h3>👤 研究員を発見</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで話しかける</p>';
+    }
   }
 }
 
@@ -1880,8 +1952,8 @@ function processInteraction(delta) {
     }
   }
 
-  // NPC救助関連のチェック
-  if (near.type === 'npc') {
+  // NPC救助関連のチェック（救助対象のみ）
+  if (near.type === 'npc' && near.obj.needsRescue) {
     var n = near.obj;
     // 重傷者は2人必要（レスキューは1人でOK）
     if (n.needsCoop && !abilities.canRescueFallenAlone) {
@@ -1943,24 +2015,35 @@ function completeInteraction() {
     }
   } else {
     var n = near.obj;
-    n.rescued = true;
-    n.visible = false;
-    G.rescued++;
 
-    // 救助エフェクト
-    playRescueEffect(n);
+    if (n.needsRescue) {
+      // 救助対象NPC
+      n.rescued = true;
+      G.rescued++;
 
-    var pts = n.needsCoop ? 300 : (n.npcType === 'sitting' ? 200 : 150);
-    G.score += pts;
-    showBonus('+' + pts + ' 救助成功！', '#00f5ff');
-    setTimeout(function() { showBonus('💬 "' + n.hint + '"', '#fc0'); }, 600);
-    if (n.needsCoop) G.coopBonus += 50;
-    if (G.rescued >= npcs.length) {
-      G.score += 500;
-      showBonus('+500 全員救助！', '#f0f');
+      // 救助エフェクト
+      playRescueEffect(n);
+
+      var pts = n.needsCoop ? 300 : (n.npcType === 'sitting' ? 200 : 150);
+      G.score += pts;
+      showBonus('+' + pts + ' 救助成功！', '#00f5ff');
+      setTimeout(function() { showBonus('💬 "' + n.hint + '"', '#fc0'); }, 600);
+      if (n.needsCoop) G.coopBonus += 50;
+
+      // 救助対象NPCの数を数えて全員救助チェック
+      var rescueNpcCount = npcs.filter(function(npc) { return npc.needsRescue; }).length;
+      if (G.rescued >= rescueNpcCount) {
+        G.score += 500;
+        showBonus('+500 全員救助！', '#f0f');
+      }
+      // マルチプレイヤー同期
+      syncNpcRescue(n.id);
+    } else {
+      // 邪魔な研究員 - 話しかけるだけ
+      n.talked = true;
+      playSound('click');
+      showBonus('💬 "' + n.dialogue + '"', '#aaa');
     }
-    // マルチプレイヤー同期
-    syncNpcRescue(n.id);
   }
   updateGameUI();
   // ゲーム状態をサーバーに同期
@@ -1976,6 +2059,9 @@ function updateGameUI() {
   document.getElementById('alert-overlay').classList.toggle('active', G.rampage > 80);
   document.getElementById('score-display').textContent = G.score.toLocaleString();
   document.getElementById('rescued').textContent = G.rescued;
+  // 救助対象NPCの総数を表示
+  var rescueNpcCount = npcs.filter(function(npc) { return npc.needsRescue; }).length;
+  document.getElementById('rescue-total').textContent = rescueNpcCount || 6;
   document.getElementById('recovery').textContent = G.recovery;
   document.getElementById('coop-score').textContent = G.coopBonus;
 }
@@ -2058,7 +2144,8 @@ function endGame(win) {
   r.className = win ? 'success' : 'failure';
   r.querySelector('h1').textContent = win ? '🎉 MISSION COMPLETE!' : '💥 MISSION FAILED';
   document.getElementById('final-score').textContent = G.score.toLocaleString();
-  document.getElementById('final-rescued').textContent = G.rescued + '/' + npcs.length;
+  var rescueNpcCount = npcs.filter(function(npc) { return npc.needsRescue; }).length;
+  document.getElementById('final-rescued').textContent = G.rescued + '/' + rescueNpcCount;
   document.getElementById('final-coop').textContent = '+' + G.coopBonus;
   var m = Math.floor(G.time / 60);
   var s = Math.floor(G.time % 60);
@@ -2135,46 +2222,43 @@ function animate() {
   // Update visuals
   updateRobotAppearance(time);
   npcs.forEach(function(n) {
-    if (!n.rescued) {
-      // 未救助：SOSライト点滅＆ヘルプマーク揺れ
-      if (n.sos) n.sos.intensity = 1.5 + Math.sin(time * 8 + n.id * 2) * 1.2;
-      if (n.helpMark) {
-        n.helpMark.visible = true;
-        n.helpDot.visible = true;
-        // ヘルプマークを上下に揺らす（ただしy位置はリセットしない）
-        var baseY = n.npcType === 'fallen' ? 1.2 : 2.3;
-        n.helpMark.position.y = baseY + Math.sin(time * 4 + n.id) * 0.1;
-        n.helpDot.position.y = (n.npcType === 'fallen' ? 0.7 : 2.0) + Math.sin(time * 4 + n.id) * 0.1;
-      }
-      // 座っているNPCは腕を震わせる（立っているNPCは歩行AIが制御）
-      if (n.npcType === 'sitting' && n.leftArm) {
-        n.leftArm.rotation.z = Math.sin(time * 10 + n.id * 3) * 0.15;
-        n.rightArm.rotation.z = Math.sin(time * 10 + n.id * 3 + 1) * 0.1;
-      }
-      // 倒れているNPCは苦しそうに動く
-      if (n.npcType === 'fallen' && n.leftArm) {
-        n.leftArm.rotation.x = Math.sin(time * 2 + n.id) * 0.2;
+    if (n.needsRescue) {
+      // 救助対象NPC
+      if (!n.rescued) {
+        // 未救助：SOSライト点滅
+        if (n.sos) n.sos.intensity = 1 + Math.sin(time * 8 + n.id * 2) * 0.8;
+        // 座っているNPCは腕を震わせる
+        if (n.npcType === 'sitting' && n.leftArm) {
+          n.leftArm.rotation.z = Math.sin(time * 10 + n.id * 3) * 0.15;
+          n.rightArm.rotation.z = Math.sin(time * 10 + n.id * 3 + 1) * 0.1;
+        }
+        // 倒れているNPCは苦しそうに動く
+        if (n.npcType === 'fallen' && n.leftArm) {
+          n.leftArm.rotation.x = Math.sin(time * 2 + n.id) * 0.2;
+        }
+      } else {
+        // 救助済み：手を振るアニメーション
+        if (n.sos) n.sos.intensity = 0;
+        // 歩行可能NPCは歩き回る、それ以外は手を振る
+        if (n.canWalk) {
+          n.panicLevel = 0;
+        } else if (n.rightArm) {
+          n.rightArm.rotation.x = -Math.PI / 4 + Math.sin(time * 6 + n.id) * 0.3;
+          n.rightArm.rotation.z = -0.5;
+        }
+        // 倒れていたNPCは起き上がる
+        if (n.npcType === 'fallen' && n.rotation.z > 0.01) {
+          n.rotation.z *= 0.95;
+          n.position.y = 0.5 * n.rotation.z / (Math.PI / 2);
+        }
       }
     } else {
-      // 救助済み：手を振るアニメーション
-      if (n.sos) n.sos.intensity = 0;
-      if (n.helpMark) {
-        n.helpMark.visible = false;
-        n.helpDot.visible = false;
-      }
-      // 歩行可能NPCは歩き回る、それ以外は手を振る
-      if (n.canWalk) {
-        // 歩行NPCは救助後も歩き続ける（パニックなし）
+      // 邪魔な研究員（救助不要）
+      if (n.talked) {
+        // 話しかけ済み：落ち着いて歩く
         n.panicLevel = 0;
-      } else if (n.rightArm) {
-        n.rightArm.rotation.x = -Math.PI / 4 + Math.sin(time * 6 + n.id) * 0.3;
-        n.rightArm.rotation.z = -0.5;
       }
-      // 倒れていたNPCは起き上がる
-      if (n.npcType === 'fallen' && n.rotation.z > 0.01) {
-        n.rotation.z *= 0.95;
-        n.position.y = 0.5 * n.rotation.z / (Math.PI / 2);
-      }
+      // 歩行AIが制御するのでここでは何もしない
     }
   });
 
