@@ -125,7 +125,7 @@
   <div id="team-screen"><div class="team-container"><div class="tab-buttons"><button class="tab-btn active" data-tab="create">チーム作成</button><button class="tab-btn" data-tab="join">チーム参加</button></div><div class="tab-content active" id="tab-create"><div class="form-group"><label>チーム名</label><input type="text" id="team-name-input" placeholder="チーム名を入力" maxlength="10"></div><div class="form-group"><label>チーム人数</label><div class="member-select"><button class="member-btn" data-count="2">2人</button><button class="member-btn" data-count="3">3人</button><button class="member-btn" data-count="4">4人</button><button class="member-btn selected" data-count="5">5人</button></div></div><button class="btn-primary" id="create-team-btn">チーム作成</button></div><div class="tab-content" id="tab-join"><div class="form-group"><label>チーム番号（4桁）</label><input type="text" id="team-code-input" placeholder="0000" maxlength="4" style="font-size:2rem;letter-spacing:10px;font-family:Orbitron"></div><button class="btn-primary" id="join-team-btn">チーム参加</button></div></div></div>
   <div id="waiting-screen"><div class="waiting-container"><h2 style="font-family:Orbitron;color:#00f5ff;margin-bottom:30px">待機室</h2><div><label style="color:rgba(255,255,255,.6)">チーム名</label><div id="waiting-team-name" style="font-size:1.2rem">-</div></div><div style="margin-top:15px"><label style="color:rgba(255,255,255,.6)">チーム人数</label><div id="waiting-team-size">-</div></div><div class="team-code-display"><label style="color:#00f5ff">チーム番号</label><div class="code" id="waiting-team-code">0000</div></div><div class="waiting-buttons"><button class="btn-primary" id="go-lobby-btn">ロビーに入る →</button><button class="btn-secondary" id="back-team-btn">← 戻る</button></div></div></div>
   <div id="lobby-screen"><div class="lobby-header"><div><div class="team-name" id="lobby-team-name">チーム名</div><div style="color:rgba(255,255,255,.5)" id="lobby-team-id">#0000</div></div><div style="text-align:right"><div style="color:rgba(255,255,255,.6)">参加者</div><div style="font-family:Orbitron;font-size:1.5rem"><span id="lobby-current">1</span>/<span id="lobby-max">5</span>名</div></div></div><div class="lobby-status" id="lobby-status"><h3>メンバー待機中...</h3><p>全員揃ったら役割を選べます</p></div><div class="role-grid"><div class="role-card" data-role="commander"><div class="role-icon commander">🎖️</div><div style="flex:1"><h4>指揮官</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">指揮・情報統合</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="rescue"><div class="role-icon rescue">🚑</div><div style="flex:1"><h4>レスキュー</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">救助・回復</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="scout"><div class="role-icon scout">🔍</div><div style="flex:1"><h4>情報員</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">探索・情報収集</p></div><div class="role-status">待機中</div></div></div><div style="background:rgba(20,30,50,.95);border:1px solid rgba(255,255,255,.2);padding:15px;border-radius:8px"><h4 style="color:rgba(255,255,255,.6);margin-bottom:10px">メンバー状況</h4><div class="member-badges" id="member-badges"></div></div><div class="lobby-footer"><button class="btn-secondary" id="lobby-back-btn">← 戻る</button><button class="btn-primary" id="game-start-btn" disabled>準備完了を待っています...</button></div><button class="test-btn" id="test-start-btn">🔧 テスト：1人でゲーム開始</button></div>
-  <div id="hud"><div class="hud-panel"><h3>残り時間</h3><div id="timer" class="hud-value">20:00</div></div><div class="hud-panel"><h3>暴走レベル</h3><div id="rampage-level" class="hud-value">30%</div><div class="rampage-bar"><div class="rampage-bar-inner" style="width:30%"></div></div></div><div class="hud-panel"><h3>スコア</h3><div id="score-display" class="hud-value">0</div></div></div>
+  <div id="hud"><div class="hud-panel"><h3>残り時間</h3><div id="timer" class="hud-value">20:00</div></div><div class="hud-panel"><h3>暴走レベル</h3><div id="rampage-level" class="hud-value">30%</div><div class="rampage-bar"><div class="rampage-bar-inner" style="width:30%"></div></div></div><div class="hud-panel"><h3>スコア</h3><div id="score-display" class="hud-value">0</div></div><div class="hud-panel" id="team-mode-panel" style="background:rgba(10,10,20,.7);border-color:rgba(255,255,255,.3)"><h3>チーム</h3><div id="team-mode" class="hud-value" style="font-size:1rem;color:#ffa500">-人</div></div></div>
   <div id="robot-status"><h4>🤖 ロボット状態</h4><div class="status-item" id="status-a"><span>制御盤A:</span><span>未解除</span></div><div class="status-item" id="status-b"><span>制御盤B:</span><span>未解除</span></div><div class="status-item" id="status-main"><span>主制御盤:</span><span>ロック中</span></div></div>
   <div id="bottom-hud"><div class="stats-panel"><div class="stat-item"><h4>救助</h4><div class="value"><span id="rescued">0</span>/6</div></div><div class="stat-item"><h4>復旧</h4><div class="value"><span id="recovery">0</span>/3</div></div><div class="stat-item"><h4>協力</h4><div class="value">+<span id="coop-score">0</span></div></div></div></div>
   <div id="controls-help"><h4>操作方法</h4><p><kbd>WASD</kbd> 移動</p><p><kbd>クリック</kbd> 視点ロック</p><p><kbd>E長押し</kbd> アクション</p></div>
@@ -175,6 +175,100 @@ var G = {
   interacting: false,
   interactProgress: 0
 };
+
+// ============================================
+// Difficulty Scaling System
+// ============================================
+// 目標: 2人でも5人でも15-20分でクリアできる難易度
+
+var DifficultyConfig = {
+  // 基準値（3人プレイを基準）
+  basePlayerCount: 3,
+
+  // 人数別の暴走レベル上昇倍率
+  // 人数が少ない → 暴走が遅い（時間に余裕）
+  // 人数が多い → 暴走が速い（分担して効率化必要）
+  rampageMultiplier: {
+    1: 0.5,   // テスト用
+    2: 0.7,   // 2人: 暴走遅め
+    3: 1.0,   // 3人: 基準
+    4: 1.2,   // 4人: やや速い
+    5: 1.4    // 5人: 速い
+  },
+
+  // 人数別のインタラクション時間倍率
+  // 人数が少ない → 操作が速い（1人で複数対応）
+  // 人数が多い → 操作が遅い（分担前提）
+  interactionMultiplier: {
+    1: 0.5,   // テスト用
+    2: 0.7,   // 2人: 速い
+    3: 1.0,   // 3人: 基準
+    4: 1.15,  // 4人: やや遅い
+    5: 1.3    // 5人: 遅い
+  },
+
+  // 人数別の必要協力人数（主制御盤）
+  requiredCoopPlayers: {
+    1: 1,     // テスト用
+    2: 2,     // 2人: 2人必要
+    3: 2,     // 3人: 2人必要
+    4: 3,     // 4人: 3人必要
+    5: 3      // 5人: 3人必要
+  },
+
+  // 初期暴走レベル（人数が多いほど高めスタート）
+  initialRampage: {
+    1: 20,
+    2: 25,
+    3: 30,
+    4: 35,
+    5: 40
+  }
+};
+
+// 現在の難易度設定を取得
+function getDifficultySettings() {
+  var playerCount = myData.teamSize || 1;
+  // 実際のプレイヤー数をカウント（接続中のプレイヤー）
+  var actualPlayers = 1 + Object.keys(otherPlayers).length;
+  // より大きい方を使用（途中参加を考慮）
+  playerCount = Math.max(playerCount, actualPlayers);
+  // 範囲を1-5に制限
+  playerCount = Math.max(1, Math.min(5, playerCount));
+
+  return {
+    playerCount: playerCount,
+    rampageMultiplier: DifficultyConfig.rampageMultiplier[playerCount],
+    interactionMultiplier: DifficultyConfig.interactionMultiplier[playerCount],
+    requiredCoopPlayers: DifficultyConfig.requiredCoopPlayers[playerCount],
+    initialRampage: DifficultyConfig.initialRampage[playerCount]
+  };
+}
+
+// 暴走レベルの上昇率を計算（人数補正込み）
+function calculateRampageIncrease(delta, currentRampage) {
+  var settings = getDifficultySettings();
+  // 基本上昇率: 0.3 + 現在レベル×0.002（加速）
+  var baseRate = 0.25 + currentRampage * 0.0015;
+  return delta * baseRate * settings.rampageMultiplier;
+}
+
+// インタラクション速度を計算（役割＋人数補正）
+function calculateInteractionSpeed(isRescue) {
+  var settings = getDifficultySettings();
+  var abilities = getRoleAbilities();
+
+  // 基本速度
+  var baseSpeed = 35;
+  // 人数補正（人数が多いほど遅くなる）
+  var adjustedSpeed = baseSpeed / settings.interactionMultiplier;
+  // 役割補正（レスキューは救助が速い）
+  if (isRescue && abilities.rescueSpeedMultiplier) {
+    adjustedSpeed *= abilities.rescueSpeedMultiplier;
+  }
+
+  return adjustedSpeed;
+}
 
 // Three.js Variables
 var scene, camera, renderer, clock;
@@ -1392,11 +1486,12 @@ function processInteraction(delta) {
     var p = near.obj;
     // 主制御盤は制御盤A・Bが必要
     if (p.panelId === 'main' && !(G.panelA && G.panelB)) return;
-    // 主制御盤は2人以上必要
+    // 主制御盤は人数に応じた協力が必要
     if (p.panelId === 'main') {
+      var settings = getDifficultySettings();
       var nearbyCount = countNearbyPlayers(8);
-      if (nearbyCount < 2) {
-        showCoopWarning('主制御盤には2人以上必要！');
+      if (nearbyCount < settings.requiredCoopPlayers) {
+        showCoopWarning('主制御盤には' + settings.requiredCoopPlayers + '人以上必要！');
         return;
       }
     }
@@ -1417,9 +1512,9 @@ function processInteraction(delta) {
 
   G.interacting = true;
 
-  // 救助速度に役割補正を適用
-  var speedMultiplier = (near.type === 'npc') ? abilities.rescueSpeedMultiplier : 1.0;
-  G.interactProgress += delta * 35 * speedMultiplier;
+  // 難易度＋役割補正込みのインタラクション速度
+  var interactionSpeed = calculateInteractionSpeed(near.type === 'npc');
+  G.interactProgress += delta * interactionSpeed;
 
   if (G.interactProgress >= 100) completeInteraction();
 }
@@ -1575,7 +1670,8 @@ function animate() {
       endGame(false);
     }
     var prevRampage = G.rampage;
-    G.rampage += delta * (0.3 + G.rampage * 0.002);
+    // 難易度補正付きの暴走レベル上昇
+    G.rampage += calculateRampageIncrease(delta, G.rampage);
     // 暴走レベル80%突破時にアラーム
     if (prevRampage < 80 && G.rampage >= 80) {
       playSound('alarm');
@@ -1685,6 +1781,15 @@ function startGame() {
 
   // オーディオ初期化
   initAudio();
+
+  // 人数に応じた初期暴走レベルを設定
+  var settings = getDifficultySettings();
+  G.rampage = settings.initialRampage;
+  // HUDにチームモードを表示
+  document.getElementById('team-mode').textContent = settings.playerCount + '人';
+  console.log('難易度設定:', settings.playerCount + '人モード',
+    '暴走倍率:' + settings.rampageMultiplier,
+    '操作倍率:' + settings.interactionMultiplier);
 
   // Start the game
   G.playing = true;
