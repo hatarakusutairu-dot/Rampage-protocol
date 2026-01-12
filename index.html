@@ -101,6 +101,18 @@
     #crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(0,245,255,.8)}
     #crosshair::before{width:2px;height:100%;left:50%;transform:translateX(-50%)}
     #crosshair::after{width:100%;height:2px;top:50%;transform:translateY(-50%)}
+    #minimap{position:fixed;top:80px;right:20px;width:180px;height:180px;background:rgba(10,10,30,.9);border:2px solid #ffa500;border-radius:8px;z-index:100;display:none;overflow:hidden}
+    #minimap-canvas{width:100%;height:100%}
+    #minimap-title{position:absolute;top:-25px;left:0;color:#ffa500;font-family:Orbitron;font-size:.7rem}
+    #role-ability{position:fixed;top:80px;right:20px;background:rgba(10,10,30,.9);border:1px solid rgba(255,255,255,.3);padding:10px 15px;border-radius:8px;z-index:100;display:none;font-size:.75rem}
+    #role-ability h4{margin-bottom:5px}
+    #role-ability.commander{border-color:#ffa500}
+    #role-ability.commander h4{color:#ffa500}
+    #role-ability.rescue{border-color:#00ff88}
+    #role-ability.rescue h4{color:#00ff88}
+    #role-ability.scout{border-color:#00f5ff}
+    #role-ability.scout h4{color:#00f5ff}
+    .coop-warning{position:fixed;top:40%;left:50%;transform:translateX(-50%);background:rgba(255,100,0,.9);color:#fff;padding:15px 30px;border-radius:8px;z-index:250;display:none;font-family:Orbitron;text-align:center}
     .bonus-popup{position:fixed;left:50%;top:30%;transform:translateX(-50%);pointer-events:none;z-index:300;font-family:Orbitron;font-size:1.3rem;animation:floatup 2.5s forwards;padding:10px 20px;background:rgba(0,0,0,.5);border-radius:5px}
     @keyframes floatup{to{opacity:0;transform:translateX(-50%) translateY(-100px)}}
   </style>
@@ -121,63 +133,1585 @@
   <div id="result-screen"><h1>MISSION COMPLETE</h1><div class="result-stats"><div class="result-stat"><h4>最終スコア</h4><div class="value" id="final-score">0</div></div><div class="result-stat"><h4>救助</h4><div class="value" id="final-rescued">0/6</div></div><div class="result-stat"><h4>協力</h4><div class="value" id="final-coop">+0</div></div><div class="result-stat"><h4>残り時間</h4><div class="value" id="final-time">00:00</div></div></div><button id="restart-btn">もう一度プレイ</button></div>
   <div id="alert-overlay"></div>
   <div id="crosshair"></div>
+  <div id="minimap"><span id="minimap-title">🎖️ 指揮官マップ</span><canvas id="minimap-canvas"></canvas></div>
+  <div id="role-ability"></div>
+  <div class="coop-warning" id="coop-warning">⚠️ あと1人必要！</div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-var SUPABASE_URL='https://foqaawlemzzgarldepwh.supabase.co';
-var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvcWFhd2xlbXp6Z2FybGRlcHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDQwOTQsImV4cCI6MjA4MzAyMDA5NH0.oSxWt5y55FWX21L00RFJax3Ndm4Yq_AJ5FwZjJjrr9o';
-var db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-var myData={playerId:null,teamId:null,teamCode:'',teamName:'',teamSize:5,role:null,isLeader:false};
-var subscription=null;
-function showLoading(t){document.getElementById('loading-text').textContent=t||'接続中...';document.getElementById('loading-overlay').classList.add('active')}
-function hideLoading(){document.getElementById('loading-overlay').classList.remove('active')}
-function showError(t){var e=document.getElementById('error-toast');e.textContent=t;e.classList.add('active');setTimeout(function(){e.classList.remove('active')},3000)}
-document.getElementById('start-title').onclick=function(){document.getElementById('title-screen').style.display='none';document.getElementById('team-screen').style.display='flex'};
-document.querySelectorAll('.tab-btn').forEach(function(b){b.onclick=function(){document.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active')});document.querySelectorAll('.tab-content').forEach(function(x){x.classList.remove('active')});b.classList.add('active');document.getElementById('tab-'+b.dataset.tab).classList.add('active')}});
-document.querySelectorAll('.member-btn').forEach(function(b){b.onclick=function(){document.querySelectorAll('.member-btn').forEach(function(x){x.classList.remove('selected')});b.classList.add('selected');myData.teamSize=parseInt(b.dataset.count)}});
-document.getElementById('create-team-btn').onclick=async function(){var teamName=document.getElementById('team-name-input').value.trim();if(!teamName){showError('チーム名を入力してください');return}showLoading('チーム作成中...');try{var code=String(Math.floor(1000+Math.random()*9000));var r=await db.from('teams').insert({code:code,name:teamName,size:myData.teamSize,status:'waiting'}).select().single();if(r.error)throw r.error;var team=r.data;var pr=await db.from('players').insert({team_id:team.id,name:teamName,is_leader:true}).select().single();if(pr.error)throw pr.error;await db.from('game_states').insert({team_id:team.id});var npc=[];for(var i=0;i<6;i++)npc.push({team_id:team.id,npc_index:i});await db.from('npc_states').insert(npc);myData.playerId=pr.data.id;myData.teamId=team.id;myData.teamCode=code;myData.teamName=teamName;myData.isLeader=true;hideLoading();showWaitingScreen()}catch(e){hideLoading();showError('チーム作成に失敗: '+e.message)}};
-document.getElementById('join-team-btn').onclick=async function(){var code=document.getElementById('team-code-input').value.trim();if(code.length!==4){showError('4桁のチーム番号を入力してください');return}showLoading('チーム参加中...');try{var tr=await db.from('teams').select('*').eq('code',code).eq('status','waiting').single();if(tr.error||!tr.data){hideLoading();showError('チームが見つかりません');return}var team=tr.data;var cr=await db.from('players').select('*',{count:'exact',head:true}).eq('team_id',team.id);if(cr.count>=team.size){hideLoading();showError('チームが満員です');return}var pr=await db.from('players').insert({team_id:team.id,name:'メンバー'+(cr.count+1),is_leader:false}).select().single();if(pr.error)throw pr.error;myData.playerId=pr.data.id;myData.teamId=team.id;myData.teamCode=code;myData.teamName=team.name;myData.teamSize=team.size;myData.isLeader=false;hideLoading();showLobby()}catch(e){hideLoading();showError('参加に失敗: '+e.message)}};
-function showWaitingScreen(){document.getElementById('team-screen').style.display='none';document.getElementById('waiting-screen').style.display='flex';document.getElementById('waiting-team-name').textContent=myData.teamName;document.getElementById('waiting-team-size').textContent=myData.teamSize+'人';document.getElementById('waiting-team-code').textContent=myData.teamCode}
-document.getElementById('go-lobby-btn').onclick=showLobby;
-document.getElementById('back-team-btn').onclick=function(){document.getElementById('waiting-screen').style.display='none';document.getElementById('team-screen').style.display='flex'};
-async function showLobby(){document.getElementById('waiting-screen').style.display='none';document.getElementById('team-screen').style.display='none';document.getElementById('lobby-screen').style.display='flex';document.getElementById('lobby-team-name').textContent=myData.teamName;document.getElementById('lobby-team-id').textContent='#'+myData.teamCode;document.getElementById('lobby-max').textContent=myData.teamSize;subscribeToTeam();await refreshLobbyData()}
-function subscribeToTeam(){subscription=db.channel('lobby-'+myData.teamId).on('postgres_changes',{event:'*',schema:'public',table:'players',filter:'team_id=eq.'+myData.teamId},function(){refreshLobbyData()}).on('postgres_changes',{event:'*',schema:'public',table:'teams',filter:'id=eq.'+myData.teamId},function(p){if(p.new&&p.new.status==='playing')startGame()}).subscribe()}
-async function refreshLobbyData(){try{var r=await db.from('players').select('*').eq('team_id',myData.teamId);if(r.error)throw r.error;var players=r.data;document.getElementById('lobby-current').textContent=players.length;var badges=document.getElementById('member-badges');badges.innerHTML='';players.forEach(function(p){var b=document.createElement('span');b.className='member-badge';if(p.id===myData.playerId)b.classList.add('you');if(p.is_ready)b.style.border='2px solid #00ff88';b.textContent=p.name+(p.role?' ('+getRoleName(p.role)+')':'');badges.appendChild(b)});updateRoleCards(players);var allReady=players.length>=2&&players.every(function(p){return p.role&&p.is_ready});var btn=document.getElementById('game-start-btn');if(allReady&&myData.isLeader){btn.disabled=false;btn.textContent='ゲーム開始！'}else if(allReady){btn.disabled=true;btn.textContent='リーダーの開始を待っています...'}else{btn.disabled=true;btn.textContent='準備完了を待っています...'}var st=document.getElementById('lobby-status');if(players.length>=myData.teamSize){st.classList.add('ready');st.innerHTML='<h3>全員揃いました！</h3><p>役割を選んで準備完了してください</p>'}else{st.classList.remove('ready');st.innerHTML='<h3>メンバー待機中...</h3><p>あと'+(myData.teamSize-players.length)+'人</p>'}}catch(e){console.error(e)}}
-function getRoleName(r){return{commander:'指揮官',rescue:'レスキュー',scout:'情報員'}[r]||r}
-function updateRoleCards(players){var taken={};players.forEach(function(p){if(p.role)taken[p.role]=p});document.querySelectorAll('.role-card').forEach(function(c){var role=c.dataset.role;var st=c.querySelector('.role-status');c.classList.remove('selected','taken');if(taken[role]){if(taken[role].id===myData.playerId){c.classList.add('selected');st.textContent='選択中'}else{c.classList.add('taken');st.textContent=taken[role].name}}else{st.textContent='待機中'}})}
-document.querySelectorAll('.role-card').forEach(function(c){c.onclick=async function(){if(c.classList.contains('taken'))return;try{await db.from('players').update({role:c.dataset.role,is_ready:true}).eq('id',myData.playerId);myData.role=c.dataset.role}catch(e){showError('役割選択に失敗')}}});
-document.getElementById('lobby-back-btn').onclick=async function(){if(myData.playerId)await db.from('players').delete().eq('id',myData.playerId);if(subscription)subscription.unsubscribe();document.getElementById('lobby-screen').style.display='none';document.getElementById('team-screen').style.display='flex'};
-document.getElementById('game-start-btn').onclick=async function(){if(!myData.isLeader)return;try{await db.from('teams').update({status:'playing'}).eq('id',myData.teamId)}catch(e){showError('ゲーム開始に失敗')}};
-document.getElementById('test-start-btn').onclick=function(){startGame()};
-var G={time:1200,rampage:30,score:0,rescued:0,recovery:0,coopBonus:0,playing:false,over:false,panelA:false,panelB:false,panelMain:false,interacting:false,interactProgress:0};
-var scene,camera,renderer,robot,visorMat,coreMat,lArmGrp,rArmGrp,headMesh,lShoulderLight,rShoulderLight;
-var playerPos,npcs=[],panels=[],clock;
-var yaw=0,pitch=0;
-var keys={w:false,a:false,s:false,d:false,e:false};
-var isPointerLocked=false;
-var PLAYER_HEIGHT=1.7,MOVE_SPEED=0.2;
-function initThreeJS(){scene=new THREE.Scene();scene.background=new THREE.Color(0x050510);scene.fog=new THREE.FogExp2(0x050510,0.012);camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);playerPos=new THREE.Vector3(0,0,35);camera.position.set(playerPos.x,PLAYER_HEIGHT,playerPos.z);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);document.getElementById('game-container').appendChild(renderer.domElement);scene.add(new THREE.AmbientLight(0x111122,0.5));var s1=new THREE.SpotLight(0xffffff,3,100,Math.PI/6,0.5);s1.position.set(-30,60,-20);scene.add(s1);var t1=new THREE.Object3D();t1.position.set(0,25,-45);scene.add(t1);s1.target=t1;scene.add(new THREE.SpotLight(0x00f5ff,2,80,Math.PI/5,0.3)).position.set(30,50,-10);scene.add(new THREE.PointLight(0x00f5ff,1.5,60)).position.set(-35,8,0);scene.add(new THREE.PointLight(0xff00ff,1.5,60)).position.set(35,8,0);var fl=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:0x0a0a15,metalness:0.9,roughness:0.2}));fl.rotation.x=-Math.PI/2;fl.position.y=0;scene.add(fl);var gr=new THREE.GridHelper(200,100,0x00f5ff,0x000822);gr.position.y=0.01;scene.add(gr);createRobot();createNPCs();createWalls();createPanels()}
-function createRobot(){robot=new THREE.Group();var m=new THREE.MeshStandardMaterial({color:0x3a3a4a,metalness:0.95,roughness:0.1});var d=new THREE.MeshStandardMaterial({color:0x2a2a3a,metalness:0.9,roughness:0.2});robot.add(new THREE.Mesh(new THREE.BoxGeometry(4,16,4),m)).position.set(-4,8,0);robot.add(new THREE.Mesh(new THREE.BoxGeometry(4,16,4),m)).position.set(4,8,0);robot.add(new THREE.Mesh(new THREE.BoxGeometry(14,4,6),d)).position.set(0,18,0);robot.add(new THREE.Mesh(new THREE.BoxGeometry(14,16,8),m)).position.set(0,30,0);coreMat=new THREE.MeshBasicMaterial({color:0xffaa00});robot.add(new THREE.Mesh(new THREE.BoxGeometry(4,4,1),coreMat)).position.set(0,32,4.5);robot.add(new THREE.Mesh(new THREE.BoxGeometry(6,4,5),d)).position.set(-12,36,0);robot.add(new THREE.Mesh(new THREE.BoxGeometry(6,4,5),d)).position.set(12,36,0);lShoulderLight=new THREE.Mesh(new THREE.BoxGeometry(2,2,1),new THREE.MeshBasicMaterial({color:0xff3333}));lShoulderLight.position.set(-12,36,3);robot.add(lShoulderLight);rShoulderLight=new THREE.Mesh(new THREE.BoxGeometry(2,2,1),new THREE.MeshBasicMaterial({color:0xff3333}));rShoulderLight.position.set(12,36,3);robot.add(rShoulderLight);lArmGrp=new THREE.Group();lArmGrp.add(new THREE.Mesh(new THREE.BoxGeometry(3,14,3),m)).position.y=-7;lArmGrp.position.set(-12,34,0);robot.add(lArmGrp);rArmGrp=new THREE.Group();rArmGrp.add(new THREE.Mesh(new THREE.BoxGeometry(3,14,3),m)).position.y=-7;rArmGrp.position.set(12,34,0);robot.add(rArmGrp);headMesh=new THREE.Mesh(new THREE.BoxGeometry(8,6,6),m);headMesh.position.set(0,43,0);robot.add(headMesh);visorMat=new THREE.MeshBasicMaterial({color:0xffaa00});robot.add(new THREE.Mesh(new THREE.BoxGeometry(7,2.5,1),visorMat)).position.set(0,43.5,3.5);robot.position.set(0,0,-45);scene.add(robot)}
-var npcData=[{x:-30,z:-15,type:'standing',hint:'制御盤Aのコードは「青」から始まる...'},{x:30,z:-15,type:'standing',hint:'制御盤Bの近くにヒントがあったはず'},{x:-25,z:20,type:'sitting',hint:'主制御盤は両方解除しないと動かない'},{x:25,z:20,type:'sitting',hint:'暴走は時間とともに加速する！急いで！'},{x:-15,z:-35,type:'fallen',hint:'緊急停止コードの一部は「7」だ...'},{x:15,z:-35,type:'fallen',hint:'主制御盤には全員で行った方がいい'}];
-function createNPCs(){npcData.forEach(function(d,i){var g=new THREE.Group();var sk=new THREE.MeshStandardMaterial({color:0x888899});var cl=new THREE.MeshStandardMaterial({color:0x555566});var hd=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),sk);g.add(hd);var bd=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.7,0.25),cl);g.add(bd);if(d.type==='standing'){hd.position.y=1.55;bd.position.y=0.95}else if(d.type==='sitting'){hd.position.set(0,0.9,0);bd.position.set(0,0.4,0)}else{hd.position.set(0,0.25,0.4);hd.rotation.z=Math.PI/2;bd.position.set(0,0.15,0);bd.rotation.z=Math.PI/2}g.sos=new THREE.PointLight(0xff4444,2,15);g.sos.position.y=d.type==='standing'?2.5:1.5;g.add(g.sos);g.position.set(d.x,0,d.z);g.npcType=d.type;g.rescued=false;g.needsCoop=d.type==='fallen';g.id=i;g.hint=d.hint;scene.add(g);npcs.push(g)})}
-function createWalls(){function w(ww,h,x,z,ry){var wl=new THREE.Mesh(new THREE.BoxGeometry(ww,h,1),new THREE.MeshStandardMaterial({color:0x151520,metalness:0.8}));wl.position.set(x,h/2,z);wl.rotation.y=ry||0;scene.add(wl);var ln=new THREE.Mesh(new THREE.BoxGeometry(ww,0.2,1.1),new THREE.MeshBasicMaterial({color:0x00f5ff}));ln.position.set(x,h-0.3,z);ln.rotation.y=ry||0;scene.add(ln)}w(120,14,0,-55,0);w(120,14,0,55,0);w(110,14,-55,0,Math.PI/2);w(110,14,55,0,Math.PI/2)}
-function createPanels(){function p(x,z,id){var g=new THREE.Group();g.add(new THREE.Mesh(new THREE.BoxGeometry(4,0.5,2.5),new THREE.MeshStandardMaterial({color:0x333344}))).position.y=0.25;var sc=new THREE.Mesh(new THREE.BoxGeometry(2.8,2.5,0.2),new THREE.MeshBasicMaterial({color:0xff3333}));sc.position.set(0,2.7,0.35);g.add(sc);g.screen=sc;var cl=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16),new THREE.MeshBasicMaterial({color:0xff6600}));cl.position.set(1.5,4.5,0);g.add(cl);g.coopLight=cl;g.position.set(x,0,z);g.panelId=id;g.done=false;scene.add(g);panels.push(g)}p(-28,-8,'A');p(28,-8,'B');p(0,-50,'main')}
-document.addEventListener('keydown',function(e){if(!G.playing)return;if(e.code==='KeyW')keys.w=true;if(e.code==='KeyA')keys.a=true;if(e.code==='KeyS')keys.s=true;if(e.code==='KeyD')keys.d=true;if(e.code==='KeyE')keys.e=true});
-document.addEventListener('keyup',function(e){if(e.code==='KeyW')keys.w=false;if(e.code==='KeyA')keys.a=false;if(e.code==='KeyS')keys.s=false;if(e.code==='KeyD')keys.d=false;if(e.code==='KeyE'){keys.e=false;G.interactProgress=0;G.interacting=false}});
-document.addEventListener('mousemove',function(e){if(!G.playing||!isPointerLocked)return;yaw-=e.movementX*0.002;pitch-=e.movementY*0.002;pitch=Math.max(-Math.PI/2+0.1,Math.min(Math.PI/2-0.1,pitch))});
-document.addEventListener('click',function(){if(G.playing&&!isPointerLocked){document.body.requestPointerLock()}});document.addEventListener('pointerlockchange',function(){isPointerLocked=!!document.pointerLockElement});
+// ============================================
+// RAMPAGE PROTOCOL - Complete Rewrite
+// ============================================
 
-function distXZ(a,b){return Math.sqrt((a.x-b.x)*(a.x-b.x)+(a.z-b.z)*(a.z-b.z))}
-var near=null;
-function checkNear(){near=null;panels.forEach(function(p){if(!p.done&&distXZ(playerPos,p.position)<6)near={type:'panel',obj:p}});npcs.forEach(function(n){if(!n.rescued&&distXZ(playerPos,n.position)<5)near={type:'npc',obj:n}});updateInteractionUI()}
-function updateInteractionUI(){var pr=document.getElementById('interaction-prompt');if(!near){pr.style.display='none';return}pr.style.display='block';if(near.type==='panel'){var p=near.obj;var can=p.panelId==='main'?(G.panelA&&G.panelB):true;if(!can)pr.innerHTML='<h3>🔒 主制御盤</h3><p>先に制御盤A・Bを解除してください</p>';else{pr.innerHTML='<h3>制御盤 '+p.panelId+'</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:'+(G.interacting?G.interactProgress:0)+'%"></div></div><p><kbd>E</kbd> 長押しで解除</p>'}}else{var n=near.obj;var tt=n.npcType==='fallen'?'重傷の':n.npcType==='sitting'?'負傷した':'';pr.innerHTML='<h3>👤 '+tt+'研究員を発見！</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:'+(G.interacting?G.interactProgress:0)+'%"></div></div><p><kbd>E</kbd> 長押しで救助</p>'}}
-function processInteraction(delta){if(!near||!keys.e){G.interacting=false;G.interactProgress=0;return}if(near.type==='panel'&&near.obj.panelId==='main'&&!(G.panelA&&G.panelB))return;G.interacting=true;G.interactProgress+=delta*35;if(G.interactProgress>=100)completeInteraction()}
-function completeInteraction(){G.interacting=false;G.interactProgress=0;if(near.type==='panel'){var p=near.obj;p.done=true;p.screen.material.color.setHex(0x00ff88);if(p.coopLight)p.coopLight.material.color.setHex(0x00ff88);var pts=p.panelId==='main'?300:100;G.score+=pts;G.recovery++;G.coopBonus+=50;G.rampage=Math.max(0,G.rampage-15);if(p.panelId==='A'){G.panelA=true;lShoulderLight.material.color.setHex(0x00aaff);document.getElementById('status-a').classList.add('done');document.getElementById('status-a').querySelector('span:last-child').textContent='解除済';showBonus('+100 制御盤A解除！','#0f8')}else if(p.panelId==='B'){G.panelB=true;rShoulderLight.material.color.setHex(0x00aaff);document.getElementById('status-b').classList.add('done');document.getElementById('status-b').querySelector('span:last-child').textContent='解除済';showBonus('+100 制御盤B解除！','#0f8')}else{G.panelMain=true;document.getElementById('status-main').classList.add('done');document.getElementById('status-main').querySelector('span:last-child').textContent='解除済';showBonus('+300 主制御盤解除！','#0ff');setTimeout(function(){endGame(true)},1000)}}else{var n=near.obj;n.rescued=true;n.visible=false;G.rescued++;var pts=n.needsCoop?300:(n.npcType==='sitting'?200:150);G.score+=pts;showBonus('+'+pts+' 救助成功！','#00f5ff');setTimeout(function(){showBonus('💬 "'+n.hint+'"','#fc0')},600);if(n.needsCoop)G.coopBonus+=50;if(G.rescued>=npcs.length){G.score+=500;showBonus('+500 全員救助！','#f0f')}}updateGameUI()}
-function showBonus(t,c){var el=document.createElement('div');el.className='bonus-popup';el.textContent=t;el.style.color=c;document.body.appendChild(el);setTimeout(function(){el.remove()},2500)}
-function updateGameUI(){var m=Math.floor(G.time/60),s=Math.floor(G.time%60);document.getElementById('timer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');document.getElementById('rampage-level').textContent=Math.round(G.rampage)+'%';document.querySelector('.rampage-bar-inner').style.width=G.rampage+'%';document.getElementById('alert-overlay').classList.toggle('active',G.rampage>80);document.getElementById('score-display').textContent=G.score.toLocaleString();document.getElementById('rescued').textContent=G.rescued;document.getElementById('recovery').textContent=G.recovery;document.getElementById('coop-score').textContent=G.coopBonus}
-function updateRobotAppearance(time){var r=G.rampage/100;var ec;if(G.panelMain)ec=0x00aaff;else if(r<0.3)ec=0xffaa00;else if(r<0.5)ec=0xff6600;else if(r<0.7)ec=0xff0000;else ec=Math.sin(time*12)>0?0xff0000:0x440000;visorMat.color.setHex(ec);coreMat.color.setHex(G.panelMain?0x00ff88:ec);if(!G.panelA){lArmGrp.rotation.x=Math.sin(time*3)*0.7*r;lArmGrp.rotation.z=Math.sin(time*2.5)*0.5*r-0.2}if(!G.panelB){rArmGrp.rotation.x=Math.sin(time*3+Math.PI)*0.7*r;rArmGrp.rotation.z=-Math.sin(time*2.5)*0.5*r+0.2}if(!G.panelMain){headMesh.rotation.y=Math.sin(time*4)*0.3*r;robot.position.y=Math.sin(time*5)*0.3*r}}
-function endGame(win){G.playing=false;G.over=true;if(win){G.score+=1000;G.score+=Math.floor(G.time*5)}var r=document.getElementById('result-screen');r.style.display='flex';r.className=win?'success':'failure';r.querySelector('h1').textContent=win?'🎉 MISSION COMPLETE!':'💥 MISSION FAILED';document.getElementById('final-score').textContent=G.score.toLocaleString();document.getElementById('final-rescued').textContent=G.rescued+'/'+npcs.length;document.getElementById('final-coop').textContent='+'+G.coopBonus;var m=Math.floor(G.time/60),s=Math.floor(G.time%60);document.getElementById('final-time').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');document.getElementById('restart-btn').onclick=function(){location.reload()}}
-function animate(){requestAnimationFrame(animate);var delta=clock.getDelta();var time=clock.getElapsedTime();if(G.playing&&!G.over){G.time-=delta;if(G.time<=0){G.time=0;endGame(false)}G.rampage+=delta*(0.3+G.rampage*0.002);if(G.rampage>=100)endGame(false);var fwd=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);var rt=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);if(keys.w)playerPos.addScaledVector(fwd,MOVE_SPEED);if(keys.s)playerPos.addScaledVector(fwd,-MOVE_SPEED);if(keys.a)playerPos.addScaledVector(rt,-MOVE_SPEED);if(keys.d)playerPos.addScaledVector(rt,MOVE_SPEED);playerPos.x=Math.max(-50,Math.min(50,playerPos.x));playerPos.z=Math.max(-50,Math.min(50,playerPos.z));camera.position.set(playerPos.x,PLAYER_HEIGHT,playerPos.z);camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;checkNear();processInteraction(delta*60);updateGameUI()}camera.position.set(playerPos.x,PLAYER_HEIGHT,playerPos.z);camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;updateRobotAppearance(time);npcs.forEach(function(n){if(!n.rescued&&n.sos)n.sos.intensity=1.5+Math.sin(time*8+n.id*2)*1.2});renderer.render(scene,camera)}
-function startGame(){if(subscription)subscription.unsubscribe();document.getElementById('lobby-screen').style.display='none';document.getElementById('hud').style.display='flex';document.getElementById('bottom-hud').style.display='flex';document.getElementById('controls-help').style.display='block';document.getElementById('crosshair').style.display='block';document.getElementById('robot-status').style.display='block';if(!scene){initThreeJS();clock=new THREE.Clock();window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});G.playing=true;camera.position.set(playerPos.x,PLAYER_HEIGHT,playerPos.z);camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;animate()}G.playing=true}
+// Supabase Configuration
+var SUPABASE_URL = 'https://foqaawlemzzgarldepwh.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvcWFhd2xlbXp6Z2FybGRlcHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDQwOTQsImV4cCI6MjA4MzAyMDA5NH0.oSxWt5y55FWX21L00RFJax3Ndm4Yq_AJ5FwZjJjrr9o';
+var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Player/Team Data
+var myData = {
+  playerId: null,
+  teamId: null,
+  teamCode: '',
+  teamName: '',
+  teamSize: 5,
+  role: null,
+  isLeader: false
+};
+var subscription = null;
+
+// Game State
+var G = {
+  time: 1200,
+  rampage: 30,
+  score: 0,
+  rescued: 0,
+  recovery: 0,
+  coopBonus: 0,
+  playing: false,
+  over: false,
+  panelA: false,
+  panelB: false,
+  panelMain: false,
+  interacting: false,
+  interactProgress: 0
+};
+
+// Three.js Variables
+var scene, camera, renderer, clock;
+var robot, visorMat, coreMat, lArmGrp, rArmGrp, headMesh;
+var lShoulderLight, rShoulderLight;
+var npcs = [], panels = [];
+
+// Player Controls
+var PLAYER_HEIGHT = 1.7;
+var MOVE_SPEED = 0.2;
+var yaw = 0;
+var pitch = 0;
+var isPointerLocked = false;
+var keys = { w: false, a: false, s: false, d: false, e: false };
+var playerPos = new THREE.Vector3(0, 0, 35);
+
+// Interaction
+var near = null;
+
+// Multiplayer
+var otherPlayers = {}; // { odlayerId: { mesh, targetPos, targetYaw, role, name } }
+var gameSubscription = null;
+var positionUpdateInterval = null;
+var POSITION_SYNC_INTERVAL = 200; // ms
+
+// NPC Data
+var npcData = [
+  { x: -30, z: -15, type: 'standing', hint: '制御盤Aのコードは「青」から始まる...' },
+  { x: 30, z: -15, type: 'standing', hint: '制御盤Bの近くにヒントがあったはず' },
+  { x: -25, z: 20, type: 'sitting', hint: '主制御盤は両方解除しないと動かない' },
+  { x: 25, z: 20, type: 'sitting', hint: '暴走は時間とともに加速する！急いで！' },
+  { x: -15, z: -35, type: 'fallen', hint: '緊急停止コードの一部は「7」だ...' },
+  { x: 15, z: -35, type: 'fallen', hint: '主制御盤には全員で行った方がいい' }
+];
+
+// ============================================
+// UI Helper Functions
+// ============================================
+
+function showLoading(t) {
+  document.getElementById('loading-text').textContent = t || '接続中...';
+  document.getElementById('loading-overlay').classList.add('active');
+}
+
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('active');
+}
+
+function showError(t) {
+  var e = document.getElementById('error-toast');
+  e.textContent = t;
+  e.classList.add('active');
+  setTimeout(function() { e.classList.remove('active'); }, 3000);
+}
+
+function showBonus(t, c) {
+  var el = document.createElement('div');
+  el.className = 'bonus-popup';
+  el.textContent = t;
+  el.style.color = c;
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, 2500);
+}
+
+function getRoleName(r) {
+  return { commander: '指揮官', rescue: 'レスキュー', scout: '情報員' }[r] || r;
+}
+
+function getRoleColor(role) {
+  return {
+    commander: 0xffa500, // オレンジ
+    rescue: 0x00ff88,    // 緑
+    scout: 0x00f5ff      // シアン
+  }[role] || 0xffffff;
+}
+
+// ============================================
+// Multiplayer System
+// ============================================
+
+// プレイヤーアバターを作成
+function createPlayerAvatar(playerId, role, name) {
+  var color = getRoleColor(role);
+  var group = new THREE.Group();
+
+  // 体
+  var bodyMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8), bodyMat);
+  body.position.y = 0.8;
+  group.add(body);
+
+  // 頭
+  var head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), bodyMat);
+  head.position.y = 1.6;
+  group.add(head);
+
+  // ネームプレート用のライト（目印）
+  var light = new THREE.PointLight(color, 1, 8);
+  light.position.y = 2;
+  group.add(light);
+
+  group.playerId = playerId;
+  group.playerRole = role;
+  group.playerName = name;
+
+  scene.add(group);
+
+  otherPlayers[playerId] = {
+    mesh: group,
+    targetPos: new THREE.Vector3(0, 0, 35),
+    targetYaw: 0,
+    role: role,
+    name: name
+  };
+
+  return group;
+}
+
+// 他プレイヤーのアバターを更新
+function updateOtherPlayerAvatars(delta) {
+  for (var id in otherPlayers) {
+    var p = otherPlayers[id];
+    if (p.mesh) {
+      // 位置の補間（スムーズな移動）
+      p.mesh.position.lerp(p.targetPos, Math.min(1, delta * 10));
+      // 回転の補間
+      var targetRotY = p.targetYaw;
+      var currentRotY = p.mesh.rotation.y;
+      var diff = targetRotY - currentRotY;
+      // 角度の差を-PI~PIに正規化
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      p.mesh.rotation.y += diff * Math.min(1, delta * 10);
+    }
+  }
+}
+
+// 自分の位置をSupabaseに送信
+async function sendPositionUpdate() {
+  if (!G.playing || !myData.playerId) return;
+  try {
+    await db.from('players').update({
+      pos_x: playerPos.x,
+      pos_y: playerPos.y,
+      pos_z: playerPos.z,
+      yaw: yaw,
+      pitch: pitch
+    }).eq('id', myData.playerId);
+  } catch (e) {
+    console.error('位置送信エラー:', e);
+  }
+}
+
+// ゲーム中のリアルタイム購読を開始
+function subscribeToGame() {
+  // プレイヤー位置の購読
+  gameSubscription = db.channel('game-' + myData.teamId)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'players',
+      filter: 'team_id=eq.' + myData.teamId
+    }, function(payload) {
+      var p = payload.new;
+      // 自分以外のプレイヤーの位置を更新
+      if (p.id !== myData.playerId && p.pos_x !== null) {
+        if (!otherPlayers[p.id] && scene) {
+          createPlayerAvatar(p.id, p.role, p.name);
+        }
+        if (otherPlayers[p.id]) {
+          otherPlayers[p.id].targetPos.set(p.pos_x, 0, p.pos_z);
+          otherPlayers[p.id].targetYaw = p.yaw || 0;
+        }
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'game_states',
+      filter: 'team_id=eq.' + myData.teamId
+    }, function(payload) {
+      var gs = payload.new;
+      // ゲーム状態を同期（自分がリーダーでない場合のみ受信）
+      if (!myData.isLeader) {
+        syncFromGameState(gs);
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'npc_states',
+      filter: 'team_id=eq.' + myData.teamId
+    }, function(payload) {
+      var ns = payload.new;
+      // NPC救助状態を同期
+      if (ns.is_rescued && npcs[ns.npc_index] && !npcs[ns.npc_index].rescued) {
+        npcs[ns.npc_index].rescued = true;
+        npcs[ns.npc_index].visible = false;
+        G.rescued++;
+        updateGameUI();
+      }
+    })
+    .subscribe();
+}
+
+// ゲーム状態をSupabaseに送信（リーダーのみ）
+async function syncGameStateToServer() {
+  if (!myData.isLeader || !myData.teamId) return;
+  try {
+    await db.from('game_states').update({
+      time_remaining: Math.floor(G.time),
+      rampage_level: Math.floor(G.rampage),
+      score: G.score,
+      panel_a: G.panelA,
+      panel_b: G.panelB,
+      panel_main: G.panelMain
+    }).eq('team_id', myData.teamId);
+  } catch (e) {
+    console.error('ゲーム状態送信エラー:', e);
+  }
+}
+
+// サーバーからゲーム状態を受信して適用
+function syncFromGameState(gs) {
+  if (!gs) return;
+  G.time = gs.time_remaining || G.time;
+  G.rampage = gs.rampage_level || G.rampage;
+  G.score = gs.score || G.score;
+
+  // パネル状態の同期
+  if (gs.panel_a && !G.panelA) {
+    G.panelA = true;
+    panels.forEach(function(p) {
+      if (p.panelId === 'A') {
+        p.done = true;
+        p.screen.material.color.setHex(0x00ff88);
+      }
+    });
+    lShoulderLight.material.color.setHex(0x00aaff);
+    document.getElementById('status-a').classList.add('done');
+    document.getElementById('status-a').querySelector('span:last-child').textContent = '解除済';
+  }
+  if (gs.panel_b && !G.panelB) {
+    G.panelB = true;
+    panels.forEach(function(p) {
+      if (p.panelId === 'B') {
+        p.done = true;
+        p.screen.material.color.setHex(0x00ff88);
+      }
+    });
+    rShoulderLight.material.color.setHex(0x00aaff);
+    document.getElementById('status-b').classList.add('done');
+    document.getElementById('status-b').querySelector('span:last-child').textContent = '解除済';
+  }
+  if (gs.panel_main && !G.panelMain) {
+    G.panelMain = true;
+    panels.forEach(function(p) {
+      if (p.panelId === 'main') {
+        p.done = true;
+        p.screen.material.color.setHex(0x00ff88);
+      }
+    });
+    document.getElementById('status-main').classList.add('done');
+    document.getElementById('status-main').querySelector('span:last-child').textContent = '解除済';
+  }
+
+  updateGameUI();
+}
+
+// NPC救助状態をサーバーに送信
+async function syncNpcRescue(npcIndex) {
+  if (!myData.teamId) return;
+  try {
+    await db.from('npc_states').update({
+      is_rescued: true,
+      rescued_by: myData.playerId
+    }).eq('team_id', myData.teamId).eq('npc_index', npcIndex);
+  } catch (e) {
+    console.error('NPC救助同期エラー:', e);
+  }
+}
+
+// 他プレイヤーの初期読み込み
+async function loadOtherPlayers() {
+  if (!myData.teamId) return;
+  try {
+    var r = await db.from('players').select('*').eq('team_id', myData.teamId);
+    if (r.data) {
+      r.data.forEach(function(p) {
+        if (p.id !== myData.playerId && p.pos_x !== null) {
+          if (!otherPlayers[p.id]) {
+            createPlayerAvatar(p.id, p.role, p.name);
+          }
+          otherPlayers[p.id].targetPos.set(p.pos_x, 0, p.pos_z);
+          otherPlayers[p.id].targetYaw = p.yaw || 0;
+        }
+      });
+    }
+  } catch (e) {
+    console.error('他プレイヤー読み込みエラー:', e);
+  }
+}
+
+// ============================================
+// Sound System (Web Audio API)
+// ============================================
+
+var audioCtx = null;
+var soundEnabled = true;
+
+function initAudio() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) {
+    console.log('Web Audio API not supported');
+    soundEnabled = false;
+  }
+}
+
+function playSound(type) {
+  if (!audioCtx || !soundEnabled) return;
+
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  var now = audioCtx.currentTime;
+
+  switch (type) {
+    case 'footstep':
+      osc.frequency.setValueAtTime(100, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialDecayTo(0.001, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.1);
+      break;
+    case 'panel':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialDecayTo(0.001, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+      break;
+    case 'rescue':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.1);
+      osc.frequency.setValueAtTime(784, now + 0.2);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialDecayTo(0.001, now + 0.4);
+      osc.start(now);
+      osc.stop(now + 0.4);
+      break;
+    case 'warning':
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.setValueAtTime(150, now + 0.15);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialDecayTo(0.001, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+      break;
+    case 'success':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.15);
+      osc.frequency.setValueAtTime(784, now + 0.3);
+      osc.frequency.setValueAtTime(1047, now + 0.45);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.5);
+      gain.gain.exponentialDecayTo(0.001, now + 0.8);
+      osc.start(now);
+      osc.stop(now + 0.8);
+      break;
+    case 'fail':
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.5);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialDecayTo(0.001, now + 0.6);
+      osc.start(now);
+      osc.stop(now + 0.6);
+      break;
+    case 'alarm':
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.setValueAtTime(600, now + 0.2);
+      osc.frequency.setValueAtTime(800, now + 0.4);
+      osc.frequency.setValueAtTime(600, now + 0.6);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.setValueAtTime(0.08, now + 0.8);
+      gain.gain.exponentialDecayTo(0.001, now + 0.9);
+      osc.start(now);
+      osc.stop(now + 0.9);
+      break;
+  }
+}
+
+// exponentialDecayTo polyfill
+AudioParam.prototype.exponentialDecayTo = AudioParam.prototype.exponentialDecayTo || function(value, endTime) {
+  this.exponentialRampToValueAtTime(Math.max(0.0001, value), endTime);
+};
+
+// ============================================
+// Particle Effects System
+// ============================================
+
+var particles = [];
+
+function createParticleEffect(x, y, z, color, count) {
+  var particleCount = count || 20;
+  for (var i = 0; i < particleCount; i++) {
+    var geometry = new THREE.SphereGeometry(0.1, 4, 4);
+    var material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 1 });
+    var particle = new THREE.Mesh(geometry, material);
+
+    particle.position.set(x, y, z);
+    particle.velocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.3,
+      Math.random() * 0.2 + 0.1,
+      (Math.random() - 0.5) * 0.3
+    );
+    particle.life = 1.0;
+    particle.decay = 0.02 + Math.random() * 0.02;
+
+    scene.add(particle);
+    particles.push(particle);
+  }
+}
+
+function updateParticles(delta) {
+  for (var i = particles.length - 1; i >= 0; i--) {
+    var p = particles[i];
+    p.position.add(p.velocity);
+    p.velocity.y -= 0.01; // 重力
+    p.life -= p.decay;
+    p.material.opacity = p.life;
+
+    if (p.life <= 0) {
+      scene.remove(p);
+      particles.splice(i, 1);
+    }
+  }
+}
+
+// パネル解除エフェクト
+function playPanelEffect(panel) {
+  createParticleEffect(panel.position.x, 3, panel.position.z, 0x00ff88, 30);
+  playSound('panel');
+}
+
+// 救助エフェクト
+function playRescueEffect(npc) {
+  createParticleEffect(npc.position.x, 1.5, npc.position.z, 0x00f5ff, 25);
+  playSound('rescue');
+}
+
+// ============================================
+// Role Ability System
+// ============================================
+
+var minimapCanvas, minimapCtx;
+var scoutLight = null;
+
+// 役割に応じた能力を取得
+function getRoleAbilities() {
+  var role = myData.role;
+  return {
+    moveSpeedMultiplier: role === 'scout' ? 1.3 : 1.0,
+    rescueSpeedMultiplier: role === 'rescue' ? 2.0 : 1.0,
+    canRescueFallenAlone: role === 'rescue',
+    hasFlashlight: role === 'scout',
+    hasMinimap: role === 'commander'
+  };
+}
+
+// 役割能力UIを表示
+function showRoleAbilityUI() {
+  var el = document.getElementById('role-ability');
+  var role = myData.role;
+  if (!role) {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.className = 'role-ability ' + role;
+
+  var content = '';
+  if (role === 'commander') {
+    content = '<h4>🎖️ 指揮官</h4><p>・ミニマップ表示</p><p>・チーム全体を把握</p>';
+    document.getElementById('minimap').style.display = 'block';
+    initMinimap();
+  } else if (role === 'rescue') {
+    content = '<h4>🚑 レスキュー</h4><p>・救助速度2倍</p><p>・重傷者を1人で救助可能</p>';
+  } else if (role === 'scout') {
+    content = '<h4>🔍 情報員</h4><p>・移動速度1.3倍</p><p>・フラッシュライト装備</p>';
+    createScoutFlashlight();
+  }
+
+  el.innerHTML = content;
+  el.style.display = 'block';
+}
+
+// 指揮官用ミニマップを初期化
+function initMinimap() {
+  minimapCanvas = document.getElementById('minimap-canvas');
+  minimapCanvas.width = 180;
+  minimapCanvas.height = 180;
+  minimapCtx = minimapCanvas.getContext('2d');
+}
+
+// ミニマップを更新
+function updateMinimap() {
+  if (!minimapCtx || myData.role !== 'commander') return;
+
+  var ctx = minimapCtx;
+  var w = 180, h = 180;
+  var scale = w / 120; // マップサイズ(-60~60)を180pxに
+
+  // 背景クリア
+  ctx.fillStyle = 'rgba(10, 10, 30, 0.9)';
+  ctx.fillRect(0, 0, w, h);
+
+  // グリッド
+  ctx.strokeStyle = 'rgba(0, 245, 255, 0.2)';
+  ctx.lineWidth = 1;
+  for (var i = 0; i <= 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * 30, 0);
+    ctx.lineTo(i * 30, h);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i * 30);
+    ctx.lineTo(w, i * 30);
+    ctx.stroke();
+  }
+
+  // ロボット
+  var robotX = (0 + 60) * scale;
+  var robotZ = (-45 + 60) * scale;
+  ctx.fillStyle = '#ff3333';
+  ctx.beginPath();
+  ctx.arc(robotX, robotZ, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('🤖', robotX - 6, robotZ + 4);
+
+  // 制御盤
+  panels.forEach(function(p) {
+    var px = (p.position.x + 60) * scale;
+    var pz = (p.position.z + 60) * scale;
+    ctx.fillStyle = p.done ? '#00ff88' : '#ff6600';
+    ctx.fillRect(px - 4, pz - 4, 8, 8);
+    ctx.fillStyle = '#fff';
+    ctx.font = '8px Orbitron';
+    ctx.fillText(p.panelId, px - 3, pz + 3);
+  });
+
+  // NPC
+  npcs.forEach(function(n) {
+    if (n.rescued) return;
+    var nx = (n.position.x + 60) * scale;
+    var nz = (n.position.z + 60) * scale;
+    ctx.fillStyle = n.npcType === 'fallen' ? '#ff4444' : '#ffaa00';
+    ctx.beginPath();
+    ctx.arc(nx, nz, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 他プレイヤー
+  for (var id in otherPlayers) {
+    var op = otherPlayers[id];
+    var opx = (op.targetPos.x + 60) * scale;
+    var opz = (op.targetPos.z + 60) * scale;
+    ctx.fillStyle = '#' + getRoleColor(op.role).toString(16).padStart(6, '0');
+    ctx.beginPath();
+    ctx.arc(opx, opz, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // 自分（常に中心に近い位置に大きく表示）
+  var myX = (playerPos.x + 60) * scale;
+  var myZ = (playerPos.z + 60) * scale;
+  ctx.fillStyle = '#00ff88';
+  ctx.beginPath();
+  ctx.arc(myX, myZ, 6, 0, Math.PI * 2);
+  ctx.fill();
+  // 向いている方向
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(myX, myZ);
+  ctx.lineTo(myX - Math.sin(yaw) * 12, myZ - Math.cos(yaw) * 12);
+  ctx.stroke();
+}
+
+// 情報員用フラッシュライト
+function createScoutFlashlight() {
+  if (scoutLight) return;
+  scoutLight = new THREE.SpotLight(0xffffee, 2, 30, Math.PI / 6, 0.5);
+  scoutLight.position.set(0, PLAYER_HEIGHT, 0);
+  scene.add(scoutLight);
+  scene.add(scoutLight.target);
+}
+
+// フラッシュライトを更新
+function updateScoutFlashlight() {
+  if (!scoutLight || myData.role !== 'scout') return;
+  scoutLight.position.set(playerPos.x, PLAYER_HEIGHT, playerPos.z);
+  // 向いている方向にライトを向ける
+  var forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+  forward.y = Math.sin(pitch) * -1;
+  scoutLight.target.position.set(
+    playerPos.x + forward.x * 10,
+    PLAYER_HEIGHT + forward.y * 10,
+    playerPos.z + forward.z * 10
+  );
+}
+
+// 協力チェック：近くにいる他プレイヤーの数を数える
+function countNearbyPlayers(distance) {
+  var count = 1; // 自分
+  for (var id in otherPlayers) {
+    var op = otherPlayers[id];
+    var dx = playerPos.x - op.targetPos.x;
+    var dz = playerPos.z - op.targetPos.z;
+    var dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < distance) count++;
+  }
+  return count;
+}
+
+// 協力警告を表示
+function showCoopWarning(msg) {
+  var el = document.getElementById('coop-warning');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 2000);
+}
+
+// ============================================
+// Screen Navigation
+// ============================================
+
+document.getElementById('start-title').onclick = function() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'flex';
+};
+
+document.querySelectorAll('.tab-btn').forEach(function(b) {
+  b.onclick = function() {
+    document.querySelectorAll('.tab-btn').forEach(function(x) { x.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    document.getElementById('tab-' + b.dataset.tab).classList.add('active');
+  };
+});
+
+document.querySelectorAll('.member-btn').forEach(function(b) {
+  b.onclick = function() {
+    document.querySelectorAll('.member-btn').forEach(function(x) { x.classList.remove('selected'); });
+    b.classList.add('selected');
+    myData.teamSize = parseInt(b.dataset.count);
+  };
+});
+
+// ============================================
+// Team Management
+// ============================================
+
+document.getElementById('create-team-btn').onclick = async function() {
+  var teamName = document.getElementById('team-name-input').value.trim();
+  if (!teamName) { showError('チーム名を入力してください'); return; }
+  showLoading('チーム作成中...');
+  try {
+    var code = String(Math.floor(1000 + Math.random() * 9000));
+    var r = await db.from('teams').insert({ code: code, name: teamName, size: myData.teamSize, status: 'waiting' }).select().single();
+    if (r.error) throw r.error;
+    var team = r.data;
+    var pr = await db.from('players').insert({ team_id: team.id, name: teamName, is_leader: true }).select().single();
+    if (pr.error) throw pr.error;
+    await db.from('game_states').insert({ team_id: team.id });
+    var npc = [];
+    for (var i = 0; i < 6; i++) npc.push({ team_id: team.id, npc_index: i });
+    await db.from('npc_states').insert(npc);
+    myData.playerId = pr.data.id;
+    myData.teamId = team.id;
+    myData.teamCode = code;
+    myData.teamName = teamName;
+    myData.isLeader = true;
+    hideLoading();
+    showWaitingScreen();
+  } catch (e) {
+    hideLoading();
+    showError('チーム作成に失敗: ' + e.message);
+  }
+};
+
+document.getElementById('join-team-btn').onclick = async function() {
+  var code = document.getElementById('team-code-input').value.trim();
+  if (code.length !== 4) { showError('4桁のチーム番号を入力してください'); return; }
+  showLoading('チーム参加中...');
+  try {
+    var tr = await db.from('teams').select('*').eq('code', code).eq('status', 'waiting').single();
+    if (tr.error || !tr.data) { hideLoading(); showError('チームが見つかりません'); return; }
+    var team = tr.data;
+    var cr = await db.from('players').select('*', { count: 'exact', head: true }).eq('team_id', team.id);
+    if (cr.count >= team.size) { hideLoading(); showError('チームが満員です'); return; }
+    var pr = await db.from('players').insert({ team_id: team.id, name: 'メンバー' + (cr.count + 1), is_leader: false }).select().single();
+    if (pr.error) throw pr.error;
+    myData.playerId = pr.data.id;
+    myData.teamId = team.id;
+    myData.teamCode = code;
+    myData.teamName = team.name;
+    myData.teamSize = team.size;
+    myData.isLeader = false;
+    hideLoading();
+    showLobby();
+  } catch (e) {
+    hideLoading();
+    showError('参加に失敗: ' + e.message);
+  }
+};
+
+function showWaitingScreen() {
+  document.getElementById('team-screen').style.display = 'none';
+  document.getElementById('waiting-screen').style.display = 'flex';
+  document.getElementById('waiting-team-name').textContent = myData.teamName;
+  document.getElementById('waiting-team-size').textContent = myData.teamSize + '人';
+  document.getElementById('waiting-team-code').textContent = myData.teamCode;
+}
+
+document.getElementById('go-lobby-btn').onclick = showLobby;
+document.getElementById('back-team-btn').onclick = function() {
+  document.getElementById('waiting-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'flex';
+};
+
+// ============================================
+// Lobby System
+// ============================================
+
+async function showLobby() {
+  document.getElementById('waiting-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'none';
+  document.getElementById('lobby-screen').style.display = 'flex';
+  document.getElementById('lobby-team-name').textContent = myData.teamName;
+  document.getElementById('lobby-team-id').textContent = '#' + myData.teamCode;
+  document.getElementById('lobby-max').textContent = myData.teamSize;
+  subscribeToTeam();
+  await refreshLobbyData();
+}
+
+function subscribeToTeam() {
+  subscription = db.channel('lobby-' + myData.teamId)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: 'team_id=eq.' + myData.teamId }, function() {
+      refreshLobbyData();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'teams', filter: 'id=eq.' + myData.teamId }, function(p) {
+      if (p.new && p.new.status === 'playing') startGame();
+    })
+    .subscribe();
+}
+
+async function refreshLobbyData() {
+  try {
+    var r = await db.from('players').select('*').eq('team_id', myData.teamId);
+    if (r.error) throw r.error;
+    var players = r.data;
+    document.getElementById('lobby-current').textContent = players.length;
+
+    var badges = document.getElementById('member-badges');
+    badges.innerHTML = '';
+    players.forEach(function(p) {
+      var b = document.createElement('span');
+      b.className = 'member-badge';
+      if (p.id === myData.playerId) b.classList.add('you');
+      if (p.is_ready) b.style.border = '2px solid #00ff88';
+      b.textContent = p.name + (p.role ? ' (' + getRoleName(p.role) + ')' : '');
+      badges.appendChild(b);
+    });
+
+    updateRoleCards(players);
+
+    var allReady = players.length >= 2 && players.every(function(p) { return p.role && p.is_ready; });
+    var btn = document.getElementById('game-start-btn');
+    if (allReady && myData.isLeader) {
+      btn.disabled = false;
+      btn.textContent = 'ゲーム開始！';
+    } else if (allReady) {
+      btn.disabled = true;
+      btn.textContent = 'リーダーの開始を待っています...';
+    } else {
+      btn.disabled = true;
+      btn.textContent = '準備完了を待っています...';
+    }
+
+    var st = document.getElementById('lobby-status');
+    if (players.length >= myData.teamSize) {
+      st.classList.add('ready');
+      st.innerHTML = '<h3>全員揃いました！</h3><p>役割を選んで準備完了してください</p>';
+    } else {
+      st.classList.remove('ready');
+      st.innerHTML = '<h3>メンバー待機中...</h3><p>あと' + (myData.teamSize - players.length) + '人</p>';
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function updateRoleCards(players) {
+  var taken = {};
+  players.forEach(function(p) { if (p.role) taken[p.role] = p; });
+  document.querySelectorAll('.role-card').forEach(function(c) {
+    var role = c.dataset.role;
+    var st = c.querySelector('.role-status');
+    c.classList.remove('selected', 'taken');
+    if (taken[role]) {
+      if (taken[role].id === myData.playerId) {
+        c.classList.add('selected');
+        st.textContent = '選択中';
+      } else {
+        c.classList.add('taken');
+        st.textContent = taken[role].name;
+      }
+    } else {
+      st.textContent = '待機中';
+    }
+  });
+}
+
+document.querySelectorAll('.role-card').forEach(function(c) {
+  c.onclick = async function() {
+    if (c.classList.contains('taken')) return;
+    try {
+      await db.from('players').update({ role: c.dataset.role, is_ready: true }).eq('id', myData.playerId);
+      myData.role = c.dataset.role;
+    } catch (e) {
+      showError('役割選択に失敗');
+    }
+  };
+});
+
+document.getElementById('lobby-back-btn').onclick = async function() {
+  if (myData.playerId) await db.from('players').delete().eq('id', myData.playerId);
+  if (subscription) subscription.unsubscribe();
+  document.getElementById('lobby-screen').style.display = 'none';
+  document.getElementById('team-screen').style.display = 'flex';
+};
+
+document.getElementById('game-start-btn').onclick = async function() {
+  if (!myData.isLeader) return;
+  try {
+    await db.from('teams').update({ status: 'playing' }).eq('id', myData.teamId);
+  } catch (e) {
+    showError('ゲーム開始に失敗');
+  }
+};
+
+document.getElementById('test-start-btn').onclick = function() {
+  startGame();
+};
+
+// ============================================
+// Three.js Setup
+// ============================================
+
+function initThreeJS() {
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050510);
+  scene.fog = new THREE.FogExp2(0x050510, 0.012);
+
+  // Camera - Initialize at proper height
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, PLAYER_HEIGHT, 35);
+  camera.rotation.order = 'YXZ';
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.getElementById('game-container').appendChild(renderer.domElement);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x111122, 0.5));
+
+  var spotlight1 = new THREE.SpotLight(0xffffff, 3, 100, Math.PI / 6, 0.5);
+  spotlight1.position.set(-30, 60, -20);
+  scene.add(spotlight1);
+  var target1 = new THREE.Object3D();
+  target1.position.set(0, 25, -45);
+  scene.add(target1);
+  spotlight1.target = target1;
+
+  var spotlight2 = new THREE.SpotLight(0x00f5ff, 2, 80, Math.PI / 5, 0.3);
+  spotlight2.position.set(30, 50, -10);
+  scene.add(spotlight2);
+
+  var pointLight1 = new THREE.PointLight(0x00f5ff, 1.5, 60);
+  pointLight1.position.set(-35, 8, 0);
+  scene.add(pointLight1);
+
+  var pointLight2 = new THREE.PointLight(0xff00ff, 1.5, 60);
+  pointLight2.position.set(35, 8, 0);
+  scene.add(pointLight2);
+
+  // Floor - Use DoubleSide material to ensure visibility from both sides
+  var floorGeometry = new THREE.PlaneGeometry(200, 200);
+  var floorMaterial = new THREE.MeshStandardMaterial({
+    color: 0x0a0a15,
+    metalness: 0.9,
+    roughness: 0.2,
+    side: THREE.DoubleSide
+  });
+  var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0;
+  scene.add(floor);
+
+  // Grid
+  var grid = new THREE.GridHelper(200, 100, 0x00f5ff, 0x000822);
+  grid.position.y = 0.01;
+  scene.add(grid);
+
+  // Create game objects
+  createRobot();
+  createNPCs();
+  createWalls();
+  createPanels();
+}
+
+function createRobot() {
+  robot = new THREE.Group();
+  var metalMat = new THREE.MeshStandardMaterial({ color: 0x3a3a4a, metalness: 0.95, roughness: 0.1 });
+  var darkMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.9, roughness: 0.2 });
+
+  // Legs
+  var leftLeg = new THREE.Mesh(new THREE.BoxGeometry(4, 16, 4), metalMat);
+  leftLeg.position.set(-4, 8, 0);
+  robot.add(leftLeg);
+
+  var rightLeg = new THREE.Mesh(new THREE.BoxGeometry(4, 16, 4), metalMat);
+  rightLeg.position.set(4, 8, 0);
+  robot.add(rightLeg);
+
+  // Waist
+  var waist = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 6), darkMat);
+  waist.position.set(0, 18, 0);
+  robot.add(waist);
+
+  // Torso
+  var torso = new THREE.Mesh(new THREE.BoxGeometry(14, 16, 8), metalMat);
+  torso.position.set(0, 30, 0);
+  robot.add(torso);
+
+  // Core
+  coreMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+  var core = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 1), coreMat);
+  core.position.set(0, 32, 4.5);
+  robot.add(core);
+
+  // Shoulders
+  var leftShoulder = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 5), darkMat);
+  leftShoulder.position.set(-12, 36, 0);
+  robot.add(leftShoulder);
+
+  var rightShoulder = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 5), darkMat);
+  rightShoulder.position.set(12, 36, 0);
+  robot.add(rightShoulder);
+
+  // Shoulder lights
+  lShoulderLight = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+  lShoulderLight.position.set(-12, 36, 3);
+  robot.add(lShoulderLight);
+
+  rShoulderLight = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+  rShoulderLight.position.set(12, 36, 3);
+  robot.add(rShoulderLight);
+
+  // Arms
+  lArmGrp = new THREE.Group();
+  var leftArm = new THREE.Mesh(new THREE.BoxGeometry(3, 14, 3), metalMat);
+  leftArm.position.y = -7;
+  lArmGrp.add(leftArm);
+  lArmGrp.position.set(-12, 34, 0);
+  robot.add(lArmGrp);
+
+  rArmGrp = new THREE.Group();
+  var rightArm = new THREE.Mesh(new THREE.BoxGeometry(3, 14, 3), metalMat);
+  rightArm.position.y = -7;
+  rArmGrp.add(rightArm);
+  rArmGrp.position.set(12, 34, 0);
+  robot.add(rArmGrp);
+
+  // Head
+  headMesh = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 6), metalMat);
+  headMesh.position.set(0, 43, 0);
+  robot.add(headMesh);
+
+  // Visor
+  visorMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+  var visor = new THREE.Mesh(new THREE.BoxGeometry(7, 2.5, 1), visorMat);
+  visor.position.set(0, 43.5, 3.5);
+  robot.add(visor);
+
+  robot.position.set(0, 0, -45);
+  scene.add(robot);
+}
+
+function createNPCs() {
+  npcData.forEach(function(d, i) {
+    var g = new THREE.Group();
+    var skinMat = new THREE.MeshStandardMaterial({ color: 0x888899 });
+    var clothMat = new THREE.MeshStandardMaterial({ color: 0x555566 });
+
+    var head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), skinMat);
+    g.add(head);
+
+    var body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.25), clothMat);
+    g.add(body);
+
+    if (d.type === 'standing') {
+      head.position.y = 1.55;
+      body.position.y = 0.95;
+    } else if (d.type === 'sitting') {
+      head.position.set(0, 0.9, 0);
+      body.position.set(0, 0.4, 0);
+    } else {
+      head.position.set(0, 0.25, 0.4);
+      head.rotation.z = Math.PI / 2;
+      body.position.set(0, 0.15, 0);
+      body.rotation.z = Math.PI / 2;
+    }
+
+    g.sos = new THREE.PointLight(0xff4444, 2, 15);
+    g.sos.position.y = d.type === 'standing' ? 2.5 : 1.5;
+    g.add(g.sos);
+
+    g.position.set(d.x, 0, d.z);
+    g.npcType = d.type;
+    g.rescued = false;
+    g.needsCoop = d.type === 'fallen';
+    g.id = i;
+    g.hint = d.hint;
+    scene.add(g);
+    npcs.push(g);
+  });
+}
+
+function createWalls() {
+  function addWall(w, h, x, z, ry) {
+    var wallMat = new THREE.MeshStandardMaterial({ color: 0x151520, metalness: 0.8 });
+    var wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1), wallMat);
+    wall.position.set(x, h / 2, z);
+    wall.rotation.y = ry || 0;
+    scene.add(wall);
+
+    var lineMat = new THREE.MeshBasicMaterial({ color: 0x00f5ff });
+    var line = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, 1.1), lineMat);
+    line.position.set(x, h - 0.3, z);
+    line.rotation.y = ry || 0;
+    scene.add(line);
+  }
+
+  addWall(120, 14, 0, -55, 0);
+  addWall(120, 14, 0, 55, 0);
+  addWall(110, 14, -55, 0, Math.PI / 2);
+  addWall(110, 14, 55, 0, Math.PI / 2);
+}
+
+function createPanels() {
+  function addPanel(x, z, id) {
+    var g = new THREE.Group();
+
+    var base = new THREE.Mesh(
+      new THREE.BoxGeometry(4, 0.5, 2.5),
+      new THREE.MeshStandardMaterial({ color: 0x333344 })
+    );
+    base.position.y = 0.25;
+    g.add(base);
+
+    var screen = new THREE.Mesh(
+      new THREE.BoxGeometry(2.8, 2.5, 0.2),
+      new THREE.MeshBasicMaterial({ color: 0xff3333 })
+    );
+    screen.position.set(0, 2.7, 0.35);
+    g.add(screen);
+    g.screen = screen;
+
+    var coopLight = new THREE.Mesh(
+      new THREE.SphereGeometry(0.3, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xff6600 })
+    );
+    coopLight.position.set(1.5, 4.5, 0);
+    g.add(coopLight);
+    g.coopLight = coopLight;
+
+    g.position.set(x, 0, z);
+    g.panelId = id;
+    g.done = false;
+    scene.add(g);
+    panels.push(g);
+  }
+
+  addPanel(-28, -8, 'A');
+  addPanel(28, -8, 'B');
+  addPanel(0, -50, 'main');
+}
+
+// ============================================
+// Input Handling
+// ============================================
+
+document.addEventListener('keydown', function(e) {
+  if (!G.playing) return;
+  if (e.code === 'KeyW') keys.w = true;
+  if (e.code === 'KeyA') keys.a = true;
+  if (e.code === 'KeyS') keys.s = true;
+  if (e.code === 'KeyD') keys.d = true;
+  if (e.code === 'KeyE') keys.e = true;
+});
+
+document.addEventListener('keyup', function(e) {
+  if (e.code === 'KeyW') keys.w = false;
+  if (e.code === 'KeyA') keys.a = false;
+  if (e.code === 'KeyS') keys.s = false;
+  if (e.code === 'KeyD') keys.d = false;
+  if (e.code === 'KeyE') {
+    keys.e = false;
+    G.interactProgress = 0;
+    G.interacting = false;
+  }
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (!G.playing || !isPointerLocked) return;
+  yaw -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+  pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+});
+
+document.addEventListener('click', function() {
+  if (G.playing && !isPointerLocked) {
+    document.body.requestPointerLock();
+  }
+});
+
+document.addEventListener('pointerlockchange', function() {
+  isPointerLocked = !!document.pointerLockElement;
+});
+
+// ============================================
+// Game Logic
+// ============================================
+
+function distXZ(a, b) {
+  return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+}
+
+function checkNear() {
+  near = null;
+  panels.forEach(function(p) {
+    if (!p.done && distXZ(playerPos, p.position) < 6) {
+      near = { type: 'panel', obj: p };
+    }
+  });
+  npcs.forEach(function(n) {
+    if (!n.rescued && distXZ(playerPos, n.position) < 5) {
+      near = { type: 'npc', obj: n };
+    }
+  });
+  updateInteractionUI();
+}
+
+function updateInteractionUI() {
+  var pr = document.getElementById('interaction-prompt');
+  if (!near) {
+    pr.style.display = 'none';
+    return;
+  }
+  pr.style.display = 'block';
+  if (near.type === 'panel') {
+    var p = near.obj;
+    var can = p.panelId === 'main' ? (G.panelA && G.panelB) : true;
+    if (!can) {
+      pr.innerHTML = '<h3>🔒 主制御盤</h3><p>先に制御盤A・Bを解除してください</p>';
+    } else {
+      pr.innerHTML = '<h3>制御盤 ' + p.panelId + '</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで解除</p>';
+    }
+  } else {
+    var n = near.obj;
+    var tt = n.npcType === 'fallen' ? '重傷の' : n.npcType === 'sitting' ? '負傷した' : '';
+    pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助</p>';
+  }
+}
+
+function processInteraction(delta) {
+  if (!near || !keys.e) {
+    G.interacting = false;
+    G.interactProgress = 0;
+    return;
+  }
+
+  var abilities = getRoleAbilities();
+
+  // パネル関連のチェック
+  if (near.type === 'panel') {
+    var p = near.obj;
+    // 主制御盤は制御盤A・Bが必要
+    if (p.panelId === 'main' && !(G.panelA && G.panelB)) return;
+    // 主制御盤は2人以上必要
+    if (p.panelId === 'main') {
+      var nearbyCount = countNearbyPlayers(8);
+      if (nearbyCount < 2) {
+        showCoopWarning('主制御盤には2人以上必要！');
+        return;
+      }
+    }
+  }
+
+  // NPC救助関連のチェック
+  if (near.type === 'npc') {
+    var n = near.obj;
+    // 重傷者は2人必要（レスキューは1人でOK）
+    if (n.needsCoop && !abilities.canRescueFallenAlone) {
+      var nearbyCount = countNearbyPlayers(6);
+      if (nearbyCount < 2) {
+        showCoopWarning('重傷者の救助には2人必要！');
+        return;
+      }
+    }
+  }
+
+  G.interacting = true;
+
+  // 救助速度に役割補正を適用
+  var speedMultiplier = (near.type === 'npc') ? abilities.rescueSpeedMultiplier : 1.0;
+  G.interactProgress += delta * 35 * speedMultiplier;
+
+  if (G.interactProgress >= 100) completeInteraction();
+}
+
+function completeInteraction() {
+  G.interacting = false;
+  G.interactProgress = 0;
+
+  if (near.type === 'panel') {
+    var p = near.obj;
+    p.done = true;
+    p.screen.material.color.setHex(0x00ff88);
+    if (p.coopLight) p.coopLight.material.color.setHex(0x00ff88);
+
+    // パネル解除エフェクト
+    playPanelEffect(p);
+
+    var pts = p.panelId === 'main' ? 300 : 100;
+    G.score += pts;
+    G.recovery++;
+    G.coopBonus += 50;
+    G.rampage = Math.max(0, G.rampage - 15);
+
+    if (p.panelId === 'A') {
+      G.panelA = true;
+      lShoulderLight.material.color.setHex(0x00aaff);
+      document.getElementById('status-a').classList.add('done');
+      document.getElementById('status-a').querySelector('span:last-child').textContent = '解除済';
+      showBonus('+100 制御盤A解除！', '#0f8');
+    } else if (p.panelId === 'B') {
+      G.panelB = true;
+      rShoulderLight.material.color.setHex(0x00aaff);
+      document.getElementById('status-b').classList.add('done');
+      document.getElementById('status-b').querySelector('span:last-child').textContent = '解除済';
+      showBonus('+100 制御盤B解除！', '#0f8');
+    } else {
+      G.panelMain = true;
+      document.getElementById('status-main').classList.add('done');
+      document.getElementById('status-main').querySelector('span:last-child').textContent = '解除済';
+      showBonus('+300 主制御盤解除！', '#0ff');
+      playSound('success');
+      setTimeout(function() { endGame(true); }, 1000);
+    }
+  } else {
+    var n = near.obj;
+    n.rescued = true;
+    n.visible = false;
+    G.rescued++;
+
+    // 救助エフェクト
+    playRescueEffect(n);
+
+    var pts = n.needsCoop ? 300 : (n.npcType === 'sitting' ? 200 : 150);
+    G.score += pts;
+    showBonus('+' + pts + ' 救助成功！', '#00f5ff');
+    setTimeout(function() { showBonus('💬 "' + n.hint + '"', '#fc0'); }, 600);
+    if (n.needsCoop) G.coopBonus += 50;
+    if (G.rescued >= npcs.length) {
+      G.score += 500;
+      showBonus('+500 全員救助！', '#f0f');
+    }
+    // マルチプレイヤー同期
+    syncNpcRescue(n.id);
+  }
+  updateGameUI();
+  // ゲーム状態をサーバーに同期
+  syncGameStateToServer();
+}
+
+function updateGameUI() {
+  var m = Math.floor(G.time / 60);
+  var s = Math.floor(G.time % 60);
+  document.getElementById('timer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  document.getElementById('rampage-level').textContent = Math.round(G.rampage) + '%';
+  document.querySelector('.rampage-bar-inner').style.width = G.rampage + '%';
+  document.getElementById('alert-overlay').classList.toggle('active', G.rampage > 80);
+  document.getElementById('score-display').textContent = G.score.toLocaleString();
+  document.getElementById('rescued').textContent = G.rescued;
+  document.getElementById('recovery').textContent = G.recovery;
+  document.getElementById('coop-score').textContent = G.coopBonus;
+}
+
+function updateRobotAppearance(time) {
+  var r = G.rampage / 100;
+  var ec;
+  if (G.panelMain) {
+    ec = 0x00aaff;
+  } else if (r < 0.3) {
+    ec = 0xffaa00;
+  } else if (r < 0.5) {
+    ec = 0xff6600;
+  } else if (r < 0.7) {
+    ec = 0xff0000;
+  } else {
+    ec = Math.sin(time * 12) > 0 ? 0xff0000 : 0x440000;
+  }
+  visorMat.color.setHex(ec);
+  coreMat.color.setHex(G.panelMain ? 0x00ff88 : ec);
+
+  if (!G.panelA) {
+    lArmGrp.rotation.x = Math.sin(time * 3) * 0.7 * r;
+    lArmGrp.rotation.z = Math.sin(time * 2.5) * 0.5 * r - 0.2;
+  }
+  if (!G.panelB) {
+    rArmGrp.rotation.x = Math.sin(time * 3 + Math.PI) * 0.7 * r;
+    rArmGrp.rotation.z = -Math.sin(time * 2.5) * 0.5 * r + 0.2;
+  }
+  if (!G.panelMain) {
+    headMesh.rotation.y = Math.sin(time * 4) * 0.3 * r;
+    robot.position.y = Math.sin(time * 5) * 0.3 * r;
+  }
+}
+
+function endGame(win) {
+  G.playing = false;
+  G.over = true;
+  // マルチプレイヤーのクリーンアップ
+  cleanupMultiplayer();
+  // 終了サウンド
+  playSound(win ? 'success' : 'fail');
+  if (win) {
+    G.score += 1000;
+    G.score += Math.floor(G.time * 5);
+  }
+  var r = document.getElementById('result-screen');
+  r.style.display = 'flex';
+  r.className = win ? 'success' : 'failure';
+  r.querySelector('h1').textContent = win ? '🎉 MISSION COMPLETE!' : '💥 MISSION FAILED';
+  document.getElementById('final-score').textContent = G.score.toLocaleString();
+  document.getElementById('final-rescued').textContent = G.rescued + '/' + npcs.length;
+  document.getElementById('final-coop').textContent = '+' + G.coopBonus;
+  var m = Math.floor(G.time / 60);
+  var s = Math.floor(G.time % 60);
+  document.getElementById('final-time').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  document.getElementById('restart-btn').onclick = function() { location.reload(); };
+}
+
+// ============================================
+// Main Game Loop
+// ============================================
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  var delta = clock.getDelta();
+  var time = clock.getElapsedTime();
+
+  if (G.playing && !G.over) {
+    // Time and rampage
+    G.time -= delta;
+    if (G.time <= 0) {
+      G.time = 0;
+      endGame(false);
+    }
+    var prevRampage = G.rampage;
+    G.rampage += delta * (0.3 + G.rampage * 0.002);
+    // 暴走レベル80%突破時にアラーム
+    if (prevRampage < 80 && G.rampage >= 80) {
+      playSound('alarm');
+      showBonus('⚠️ 暴走レベル危険！', '#ff0000');
+    }
+    if (G.rampage >= 100) endGame(false);
+
+    // Movement (役割補正適用)
+    var abilities = getRoleAbilities();
+    var moveSpeed = MOVE_SPEED * abilities.moveSpeedMultiplier;
+    var forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    var right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+    if (keys.w) playerPos.addScaledVector(forward, moveSpeed);
+    if (keys.s) playerPos.addScaledVector(forward, -moveSpeed);
+    if (keys.a) playerPos.addScaledVector(right, -moveSpeed);
+    if (keys.d) playerPos.addScaledVector(right, moveSpeed);
+
+    // Bounds
+    playerPos.x = Math.max(-50, Math.min(50, playerPos.x));
+    playerPos.z = Math.max(-50, Math.min(50, playerPos.z));
+
+    // Interaction
+    checkNear();
+    processInteraction(delta * 60);
+    updateGameUI();
+  }
+
+  // Update camera position and rotation
+  camera.position.set(playerPos.x, PLAYER_HEIGHT, playerPos.z);
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  // Update other player avatars (multiplayer)
+  updateOtherPlayerAvatars(delta);
+
+  // Update role-specific features
+  updateMinimap();
+  updateScoutFlashlight();
+
+  // Update particles
+  updateParticles(delta);
+
+  // Update visuals
+  updateRobotAppearance(time);
+  npcs.forEach(function(n) {
+    if (!n.rescued && n.sos) {
+      n.sos.intensity = 1.5 + Math.sin(time * 8 + n.id * 2) * 1.2;
+    }
+  });
+
+  renderer.render(scene, camera);
+}
+
+// ============================================
+// Game Start
+// ============================================
+
+function startGame() {
+  if (subscription) subscription.unsubscribe();
+
+  // Hide menus, show HUD
+  document.getElementById('lobby-screen').style.display = 'none';
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('bottom-hud').style.display = 'flex';
+  document.getElementById('controls-help').style.display = 'block';
+  document.getElementById('crosshair').style.display = 'block';
+  document.getElementById('robot-status').style.display = 'block';
+
+  // Initialize Three.js if not already done
+  if (!scene) {
+    initThreeJS();
+    clock = new THREE.Clock();
+
+    window.addEventListener('resize', function() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  }
+
+  // Reset player position and camera
+  playerPos.set(0, 0, 35);
+  yaw = 0;
+  pitch = 0;
+  camera.position.set(playerPos.x, PLAYER_HEIGHT, playerPos.z);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  // Start multiplayer sync
+  if (myData.teamId) {
+    // マルチプレイヤー購読開始
+    subscribeToGame();
+    // 他プレイヤーを読み込む
+    loadOtherPlayers();
+    // 位置同期を開始（200ms間隔）
+    positionUpdateInterval = setInterval(sendPositionUpdate, POSITION_SYNC_INTERVAL);
+    // リーダーはゲーム状態を定期的に同期（1秒間隔）
+    if (myData.isLeader) {
+      setInterval(syncGameStateToServer, 1000);
+    }
+  }
+
+  // 役割能力UIを表示
+  showRoleAbilityUI();
+
+  // オーディオ初期化
+  initAudio();
+
+  // Start the game
+  G.playing = true;
+  animate();
+}
+
+// ============================================
+// Cleanup on game end
+// ============================================
+
+function cleanupMultiplayer() {
+  if (positionUpdateInterval) {
+    clearInterval(positionUpdateInterval);
+    positionUpdateInterval = null;
+  }
+  if (gameSubscription) {
+    gameSubscription.unsubscribe();
+    gameSubscription = null;
+  }
+  // 他プレイヤーのアバターを削除
+  for (var id in otherPlayers) {
+    if (otherPlayers[id].mesh) {
+      scene.remove(otherPlayers[id].mesh);
+    }
+  }
+  otherPlayers = {};
+}
   </script>
 </body>
 </html>
