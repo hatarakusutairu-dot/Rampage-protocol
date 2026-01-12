@@ -394,6 +394,7 @@ function calculateInteractionSpeed(isRescue) {
 var scene, camera, renderer, clock;
 var robot, visorMat, coreMat, lArmGrp, rArmGrp, headMesh;
 var lShoulderLight, rShoulderLight;
+var robotSpotlight, emergencyLight1, emergencyLight2;
 var npcs = [], panels = [];
 
 // Player Controls
@@ -1447,28 +1448,57 @@ function initThreeJS() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById('game-container').appendChild(renderer.domElement);
 
-  // Lights
-  scene.add(new THREE.AmbientLight(0x111122, 0.5));
+  // Lights - 基本環境光（少し明るく）
+  scene.add(new THREE.AmbientLight(0x334455, 0.8));
 
-  var spotlight1 = new THREE.SpotLight(0xffffff, 3, 100, Math.PI / 6, 0.5);
-  spotlight1.position.set(-30, 60, -20);
+  // ロボットへのメインスポットライト（赤い警告色）
+  robotSpotlight = new THREE.SpotLight(0xff4400, 4, 120, Math.PI / 4, 0.3);
+  robotSpotlight.position.set(0, 80, -20);
+  scene.add(robotSpotlight);
+  var robotTarget = new THREE.Object3D();
+  robotTarget.position.set(0, 25, -45);
+  scene.add(robotTarget);
+  robotSpotlight.target = robotTarget;
+
+  // ロボット背面からのバックライト（シルエット強調）
+  var backLight = new THREE.SpotLight(0xff2200, 3, 100, Math.PI / 3, 0.5);
+  backLight.position.set(0, 50, -80);
+  scene.add(backLight);
+  backLight.target = robotTarget;
+
+  // サイドからの補助スポットライト
+  var spotlight1 = new THREE.SpotLight(0xffffff, 2, 100, Math.PI / 6, 0.5);
+  spotlight1.position.set(-40, 60, -30);
   scene.add(spotlight1);
-  var target1 = new THREE.Object3D();
-  target1.position.set(0, 25, -45);
-  scene.add(target1);
-  spotlight1.target = target1;
+  spotlight1.target = robotTarget;
 
-  var spotlight2 = new THREE.SpotLight(0x00f5ff, 2, 80, Math.PI / 5, 0.3);
-  spotlight2.position.set(30, 50, -10);
+  var spotlight2 = new THREE.SpotLight(0x00f5ff, 2.5, 100, Math.PI / 5, 0.3);
+  spotlight2.position.set(40, 55, -25);
   scene.add(spotlight2);
+  spotlight2.target = robotTarget;
 
-  var pointLight1 = new THREE.PointLight(0x00f5ff, 1.5, 60);
-  pointLight1.position.set(-35, 8, 0);
+  // フロアの緊急照明（サイバーパンク風）
+  var pointLight1 = new THREE.PointLight(0x00f5ff, 2, 80);
+  pointLight1.position.set(-40, 5, 0);
   scene.add(pointLight1);
 
-  var pointLight2 = new THREE.PointLight(0xff00ff, 1.5, 60);
-  pointLight2.position.set(35, 8, 0);
+  var pointLight2 = new THREE.PointLight(0xff00ff, 2, 80);
+  pointLight2.position.set(40, 5, 0);
   scene.add(pointLight2);
+
+  // 中央エリアの照明
+  var centerLight = new THREE.PointLight(0xffffaa, 1.5, 50);
+  centerLight.position.set(0, 10, 20);
+  scene.add(centerLight);
+
+  // 緊急回転灯（赤）
+  emergencyLight1 = new THREE.PointLight(0xff0000, 3, 40);
+  emergencyLight1.position.set(-50, 8, -40);
+  scene.add(emergencyLight1);
+
+  emergencyLight2 = new THREE.PointLight(0xff0000, 3, 40);
+  emergencyLight2.position.set(50, 8, -40);
+  scene.add(emergencyLight2);
 
   // Floor - Use DoubleSide material to ensure visibility from both sides
   var floorGeometry = new THREE.PlaneGeometry(200, 200);
@@ -1534,14 +1564,34 @@ function createRobot() {
   rightShoulder.position.set(12, 36, 0);
   robot.add(rightShoulder);
 
-  // Shoulder lights
+  // Shoulder lights（光るパネル＋実際のライト）
   lShoulderLight = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
   lShoulderLight.position.set(-12, 36, 3);
   robot.add(lShoulderLight);
+  var lShoulderPointLight = new THREE.PointLight(0xff3333, 2, 20);
+  lShoulderPointLight.position.set(-12, 36, 5);
+  robot.add(lShoulderPointLight);
 
   rShoulderLight = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
   rShoulderLight.position.set(12, 36, 3);
   robot.add(rShoulderLight);
+  var rShoulderPointLight = new THREE.PointLight(0xff3333, 2, 20);
+  rShoulderPointLight.position.set(12, 36, 5);
+  robot.add(rShoulderPointLight);
+
+  // ボディの発光ライン
+  var glowLineMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+  var glowLine1 = new THREE.Mesh(new THREE.BoxGeometry(14, 0.3, 0.5), glowLineMat);
+  glowLine1.position.set(0, 24, 4.3);
+  robot.add(glowLine1);
+  var glowLine2 = new THREE.Mesh(new THREE.BoxGeometry(14, 0.3, 0.5), glowLineMat);
+  glowLine2.position.set(0, 36, 4.3);
+  robot.add(glowLine2);
+
+  // コアからの光
+  var coreLight = new THREE.PointLight(0xffaa00, 3, 25);
+  coreLight.position.set(0, 32, 6);
+  robot.add(coreLight);
 
   // Arms
   lArmGrp = new THREE.Group();
@@ -1958,6 +2008,27 @@ function updateRobotAppearance(time) {
   if (!G.panelMain) {
     headMesh.rotation.y = Math.sin(time * 4) * 0.3 * r;
     robot.position.y = Math.sin(time * 5) * 0.3 * r;
+  }
+
+  // ロボットスポットライトの演出（暴走レベルに応じて激しく）
+  if (robotSpotlight) {
+    var pulseSpeed = 2 + r * 8; // 暴走度に応じて点滅速度上昇
+    var pulseIntensity = 3 + r * 3 + Math.sin(time * pulseSpeed) * r * 2;
+    robotSpotlight.intensity = pulseIntensity;
+    // 色も暴走度に応じて変化（オレンジ→赤）
+    var red = 1;
+    var green = 0.3 - r * 0.3;
+    var blue = 0;
+    robotSpotlight.color.setRGB(red, Math.max(0, green), blue);
+  }
+
+  // 緊急回転灯アニメーション
+  if (emergencyLight1 && emergencyLight2) {
+    var rotSpeed = 3 + r * 5;
+    var intensity1 = Math.max(0, Math.sin(time * rotSpeed)) * (2 + r * 3);
+    var intensity2 = Math.max(0, Math.sin(time * rotSpeed + Math.PI)) * (2 + r * 3);
+    emergencyLight1.intensity = intensity1;
+    emergencyLight2.intensity = intensity2;
   }
 }
 
