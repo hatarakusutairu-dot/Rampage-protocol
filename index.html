@@ -486,18 +486,33 @@ function generatePanelCodes() {
 }
 
 // ヒント生成（コードに基づいて動的に生成）
-function generateHints() {
+// 救助NPCからのヒント（レスキューが救助完了時に取得）
+function generateRescueHints() {
   return [
-    // Panel A のヒント（2人のNPCに分散）
-    { panel: 'A', hint: '制御盤Aの最初の色は「' + panelCodes.A[0] + '」だ...' },
-    { panel: 'A', hint: '制御盤Aは「' + panelCodes.A[1] + '」の次に「' + panelCodes.A[2] + '」で終わる' },
-    // Panel B のヒント（2人のNPCに分散）
-    { panel: 'B', hint: '制御盤Bの1番目は「' + panelCodes.B[0] + '」、2番目は「' + panelCodes.B[1] + '」...' },
-    { panel: 'B', hint: '制御盤Bの最後は「' + panelCodes.B[2] + '」だったはず' },
-    // Main Panel のヒント（2人のNPCに分散）
-    { panel: 'main', hint: '緊急停止コードの前半は「' + panelCodes.main[0] + '' + panelCodes.main[1] + '」...' },
-    { panel: 'main', hint: '緊急停止コードの後半は「' + panelCodes.main[2] + '' + panelCodes.main[3] + '」だ！' }
+    // Panel A のヒント（3人のNPCに分散）
+    { panel: 'A', hint: '制御盤Aの1番目は「' + panelCodes.A[0] + '」だ...' },
+    { panel: 'A', hint: '制御盤Aの2番目は「' + panelCodes.A[1] + '」...' },
+    { panel: 'A', hint: '制御盤Aの最後は「' + panelCodes.A[2] + '」で終わる' },
+    // Panel B のヒント（3人のNPCに分散）
+    { panel: 'B', hint: '制御盤Bの1番目は「' + panelCodes.B[0] + '」だ...' },
+    { panel: 'B', hint: '制御盤Bの2番目は「' + panelCodes.B[1] + '」...' },
+    { panel: 'B', hint: '制御盤Bの最後は「' + panelCodes.B[2] + '」だったはず' }
   ];
+}
+
+// 邪魔なNPCからのヒント（情報員が会話で取得）
+function generateDistractionHints() {
+  return [
+    { panel: 'main', hint: '緊急停止コードの最初は「' + panelCodes.main[0] + '」だった気がする...' },
+    { panel: 'main', hint: '緊急停止コードの2番目は「' + panelCodes.main[1] + '」...' },
+    { panel: 'main', hint: '緊急停止コードの3番目は「' + panelCodes.main[2] + '」だったような...' },
+    { panel: 'main', hint: '緊急停止コードの最後は「' + panelCodes.main[3] + '」だ！' }
+  ];
+}
+
+// 旧互換用
+function generateHints() {
+  return generateRescueHints();
 }
 
 // NPC Data - 救助対象（ヒントを持っている）
@@ -1162,36 +1177,36 @@ function getRoleAbilities() {
   var teamSize = myData.teamSize || 3;
 
   // 2人モードの特別処理
-  // 指揮官+情報員 と レスキュー に分かれる
-  // 各自が相手の役割の一部をサポートできるが、メイン能力は専用
+  // 指揮官+レスキュー と 情報員 に分かれる
   var isTwoPlayerMode = teamSize <= 2;
 
   if (isTwoPlayerMode) {
-    // 2人モード：役割の組み合わせ
-    if (role === 'commander' || role === 'scout') {
-      // 指揮官/情報員プレイヤー：コード入力＋ヒント取得
+    if (role === 'scout') {
+      // 情報員プレイヤー：情報収集全般を担当
       return {
-        moveSpeedMultiplier: 1.2,
-        rescueSpeedMultiplier: 0.5, // 救助は苦手
+        moveSpeedMultiplier: 1.3,
+        rescueSpeedMultiplier: 1.0,
         canRescueFallenAlone: false,
         hasFlashlight: true,
-        hasMinimap: true,
-        canGetHints: true,      // ヒント取得可能
-        canOperatePanel: true,  // 制御盤操作可能
-        canRescueNpc: false,    // 救助は不可（レスキュー必須）
+        hasMinimap: false,
+        canGetHintsFromRescued: true,    // 救助済みNPCからヒント取得
+        canTalkToDistraction: true,       // 邪魔な研究員と会話可能
+        canOperatePanel: false,
+        canRescueNpc: false,
         isDualRole: true
       };
     } else {
-      // レスキュープレイヤー：救助専門
+      // 指揮官/レスキュープレイヤー：救助＋制御盤担当
       return {
         moveSpeedMultiplier: 1.0,
-        rescueSpeedMultiplier: 2.0,
+        rescueSpeedMultiplier: 1.5,
         canRescueFallenAlone: true,
         hasFlashlight: false,
-        hasMinimap: false,
-        canGetHints: false,     // ヒント取得不可
-        canOperatePanel: false, // 制御盤操作不可
-        canRescueNpc: true,     // 救助可能
+        hasMinimap: true,
+        canGetHintsFromRescued: false,   // ヒントは情報員に任せる
+        canTalkToDistraction: false,
+        canOperatePanel: true,
+        canRescueNpc: true,
         isDualRole: true
       };
     }
@@ -1209,8 +1224,10 @@ function getRoleAbilities() {
     hasFlashlight: role === 'scout',
     // ミニマップ（指揮官）
     hasMinimap: role === 'commander',
-    // NPCからヒント取得可能（情報員のみ）
-    canGetHints: role === 'scout',
+    // 救助済みNPCからヒント取得可能（情報員のみ）
+    canGetHintsFromRescued: role === 'scout',
+    // 邪魔な研究員と会話可能（情報員のみ）
+    canTalkToDistraction: role === 'scout',
     // 制御盤操作可能（指揮官のみ）
     canOperatePanel: role === 'commander',
     // NPC救助可能（レスキューのみ）
@@ -1229,18 +1246,32 @@ function showRoleAbilityUI() {
     return;
   }
 
+  var abilities = getRoleAbilities();
   el.className = 'role-ability ' + role;
 
   var content = '';
-  if (role === 'commander') {
-    content = '<h4>🎖️ 指揮官</h4><p>・ミニマップ表示</p><p>・チーム全体を把握</p>';
-    document.getElementById('minimap').style.display = 'block';
-    initMinimap();
-  } else if (role === 'rescue') {
-    content = '<h4>🚑 レスキュー</h4><p>・救助速度2倍</p><p>・重傷者を1人で救助可能</p>';
-  } else if (role === 'scout') {
-    content = '<h4>🔍 情報員</h4><p>・移動速度1.3倍</p><p>・フラッシュライト装備</p>';
-    createScoutFlashlight();
+  if (abilities.isDualRole) {
+    // 2人モード
+    if (role === 'scout') {
+      content = '<h4>🔍 情報員</h4><p>・移動速度1.3倍</p><p>・フラッシュライト装備</p><p>・救助後NPCからヒント取得</p><p>・研究員の確認</p>';
+      createScoutFlashlight();
+    } else {
+      content = '<h4>🎖️ 指揮官+レスキュー</h4><p>・ミニマップ表示</p><p>・NPCを救助</p><p>・制御盤にコード入力</p>';
+      document.getElementById('minimap').style.display = 'block';
+      initMinimap();
+    }
+  } else {
+    // 3人以上モード
+    if (role === 'commander') {
+      content = '<h4>🎖️ 指揮官</h4><p>・ミニマップ表示</p><p>・制御盤にコード入力</p><p>・チーム全体を指揮</p>';
+      document.getElementById('minimap').style.display = 'block';
+      initMinimap();
+    } else if (role === 'rescue') {
+      content = '<h4>🚑 レスキュー</h4><p>・救助速度2倍</p><p>・重傷者を1人で救助可能</p><p>・NPCの救助専門</p>';
+    } else if (role === 'scout') {
+      content = '<h4>🔍 情報員</h4><p>・移動速度1.3倍</p><p>・フラッシュライト装備</p><p>・救助後NPCからヒント取得</p><p>・研究員の確認</p>';
+      createScoutFlashlight();
+    }
   }
 
   el.innerHTML = content;
@@ -1823,16 +1854,33 @@ function generateNpcData(teamSize) {
   });
 
   // 邪魔な研究員を追加（チーム人数に応じた数）
+  // メインパネルのヒントを持つNPCを4人配置（情報員が探す必要がある）
   var distractionCount = distractionCountByTeamSize[teamSize] || 5;
   var shuffledPositions = distractionPositions.slice().sort(function() { return Math.random() - 0.5; });
   var shuffledDialogues = distractionDialogues.slice().sort(function() { return Math.random() - 0.5; });
+  var mainHints = generateDistractionHints(); // メインパネルのヒント（4つ）
+
+  // ヒントを持つNPCのインデックスをランダムに選択
+  var hintIndices = [];
+  for (var h = 0; h < Math.min(4, distractionCount); h++) {
+    hintIndices.push(h);
+  }
+  // シャッフルして分散（最初の4人がヒントを持つわけではない）
+  var hintAssignment = [];
+  for (var j = 0; j < distractionCount; j++) {
+    hintAssignment.push(j < 4 ? j : -1); // 最初の4人にヒントインデックスを割り当て
+  }
+  hintAssignment.sort(function() { return Math.random() - 0.5; }); // シャッフル
 
   for (var i = 0; i < distractionCount && i < shuffledPositions.length; i++) {
     var pos = shuffledPositions[i];
+    var hintIdx = hintAssignment[i];
     npcData.push({
       x: pos.x, z: pos.z, type: 'standing',
       dialogue: shuffledDialogues[i % shuffledDialogues.length],
-      needsRescue: false
+      needsRescue: false,
+      hasHint: hintIdx >= 0,
+      distractionHintIndex: hintIdx >= 0 ? hintIdx : -1
     });
   }
 
@@ -2039,14 +2087,13 @@ function checkNear() {
   });
   npcs.forEach(function(n) {
     if (n.needsRescue) {
-      // 救助対象NPC：救助済みでなければインタラクト可能
-      // ヒント取得済みでも救助はまだ必要
-      if (!n.rescued && distXZ(playerPos, n.position) < 5) {
+      // 救助対象NPC：近くにいれば表示（救助済みかどうかに関わらず状態を表示）
+      if (distXZ(playerPos, n.position) < 5) {
         near = { type: 'npc', obj: n };
       }
     } else {
-      // 邪魔な研究員：話してなければインタラクト可能
-      if (!n.talked && distXZ(playerPos, n.position) < 5) {
+      // 邪魔な研究員：近くにいれば表示（会話済みかどうかに関わらず状態を表示）
+      if (distXZ(playerPos, n.position) < 5) {
         near = { type: 'npc', obj: n };
       }
     }
@@ -2080,28 +2127,39 @@ function updateInteractionUI() {
   } else {
     var n = near.obj;
     if (n.needsRescue) {
-      // 救助対象NPC - 新フロー：救助 → ヒント取得
+      // 救助対象NPC
       var tt = n.npcType === 'fallen' ? '重傷の' : n.npcType === 'sitting' ? '負傷した' : '';
+      var timeHint = n.npcType === 'fallen' ? '（時間がかかります）' : n.npcType === 'sitting' ? '（やや時間がかかります）' : '';
 
-      if (!n.rescued && abilities.canRescueNpc) {
-        // レスキュー：救助可能
-        pr.innerHTML = '<h3>🚑 ' + tt + '研究員を発見！</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助</p>';
-      } else if (!n.rescued && !abilities.canRescueNpc) {
-        // 救助できない役割
-        pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><p style="color:#ff6600">⚠️ レスキューを呼んで救助して！</p><p>救助後に情報員がヒントを聞ける</p>';
-      } else if (n.rescued && !n.hintObtained && abilities.canGetHints) {
-        // 情報員：救助済みからヒント取得可能
-        pr.innerHTML = '<h3>💬 救助された研究員</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで情報を聞く</p>';
-      } else if (n.rescued && !n.hintObtained && !abilities.canGetHints) {
-        // 救助済みだがヒント取得できない役割
-        pr.innerHTML = '<h3>💬 救助された研究員</h3><p style="color:#ff6600">⚠️ 情報員を呼んでヒントを聞いて！</p>';
-      } else if (n.rescued && n.hintObtained) {
-        // 救助済み＆ヒント取得済み
-        pr.innerHTML = '<h3>✅ 救助完了・情報取得済み</h3><p style="color:#00ff88">この研究員は対応完了です</p>';
+      if (!n.rescued) {
+        // 未救助状態
+        if (abilities.canRescueNpc) {
+          // レスキュー：救助可能（救助完了時にヒントも取得）
+          var coopNote = n.needsCoop && !abilities.canRescueFallenAlone ? '<p style="color:#ffa500">⚠️ 重傷者は2人で救助</p>' : '';
+          pr.innerHTML = '<h3>🚑 ' + tt + '研究員を発見！</h3>' + coopNote + '<div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助 ' + timeHint + '</p><p style="color:#00f5ff;font-size:.8rem">💡 救助するとヒントが得られる</p>';
+        } else {
+          // 救助できない役割
+          pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><p style="color:#ff6600">⚠️ レスキューを呼んで救助して！</p><p style="font-size:.85rem">レスキューが救助するとヒントが得られます</p>';
+        }
+      } else {
+        // 救助済み（ヒントも取得済み）
+        pr.innerHTML = '<h3>✅ 救助完了</h3><p style="color:#00ff88">ヒント取得済み</p>';
       }
     } else {
-      // 邪魔な研究員
-      pr.innerHTML = '<h3>👤 研究員を発見</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで話しかける</p>';
+      // 邪魔な研究員 - 情報員のみ会話可能
+      if (n.talked && n.hintObtained) {
+        // 会話済み＆ヒント取得済み
+        pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#00f5ff">重要情報を取得しました</p>';
+      } else if (n.talked) {
+        // 会話済み（ヒントなし）
+        pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#aaa">この人は情報を持っていませんでした</p>';
+      } else if (abilities.canTalkToDistraction) {
+        // 情報員：会話可能
+        pr.innerHTML = '<h3>👤 研究員を発見</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで話しかける</p><p style="color:#fc0;font-size:.8rem">💡 緊急停止コードを知っているかも...</p>';
+      } else {
+        // 情報員以外：会話不可
+        pr.innerHTML = '<h3>👤 研究員を発見</h3><p style="color:#ff6600">⚠️ 情報員を呼んで話を聞いて！</p><p style="font-size:.85rem">緊急停止コードを知っているかも</p>';
+      }
     }
   }
 }
@@ -2144,37 +2202,40 @@ function processInteraction(delta) {
     var n = near.obj;
 
     if (n.needsRescue) {
-      // 救助対象NPC - 新フロー：救助 → ヒント取得
-      if (!n.rescued && abilities.canRescueNpc) {
-        // レスキュー：先に救助
-        // 重傷者は2人必要（レスキューは1人でOK）
-        if (n.needsCoop && !abilities.canRescueFallenAlone) {
-          var nearbyCount = countNearbyPlayers(6);
-          if (nearbyCount < 2) {
-            showCoopWarning('重傷者の救助には2人必要！');
-            return;
-          }
-        }
-        G.interacting = true;
-        var rescueSpeed = calculateInteractionSpeed(true);
-        G.interactProgress += delta * rescueSpeed * 0.4; // 救助は時間がかかる
-        if (G.interactProgress >= 100) completeRescue(n);
-      } else if (n.rescued && !n.hintObtained && abilities.canGetHints) {
-        // 情報員：救助済みNPCからヒント取得
-        G.interacting = true;
-        G.interactProgress += delta * 25; // ヒント取得は速い
-        if (G.interactProgress >= 100) completeHintGathering(n);
-      } else if (!n.rescued && !abilities.canRescueNpc) {
-        // 救助できない役割
-        showCoopWarning('救助はレスキューのみ可能！');
-        return;
-      } else if (n.rescued && !n.hintObtained && !abilities.canGetHints) {
-        // ヒント取得できない役割
-        showCoopWarning('情報員を呼んでヒントを聞いて！');
+      // 救助対象NPC
+      if (n.rescued) {
+        // 既に救助済み（ヒントも取得済み）
         return;
       }
+      // 未救助 - レスキューのみ救助可能
+      if (!abilities.canRescueNpc) {
+        showCoopWarning('救助はレスキューのみ可能！');
+        return;
+      }
+      // 重傷者は2人必要（レスキューは1人でOK）
+      if (n.needsCoop && !abilities.canRescueFallenAlone) {
+        var nearbyCount = countNearbyPlayers(6);
+        if (nearbyCount < 2) {
+          showCoopWarning('重傷者の救助には2人必要！');
+          return;
+        }
+      }
+      G.interacting = true;
+      var rescueSpeed = calculateInteractionSpeed(true);
+      // NPCタイプ別の救助時間（重傷者は長い）
+      var typeMultiplier = n.npcType === 'fallen' ? 0.25 : (n.npcType === 'sitting' ? 0.35 : 0.45);
+      G.interactProgress += delta * rescueSpeed * typeMultiplier;
+      if (G.interactProgress >= 100) completeRescue(n);
     } else {
-      // 邪魔な研究員
+      // 邪魔な研究員 - 情報員のみ会話可能
+      if (n.talked) {
+        // 既に会話済み
+        return;
+      }
+      if (!abilities.canTalkToDistraction) {
+        showCoopWarning('情報員を呼んで話を聞いて！');
+        return;
+      }
       G.interacting = true;
       G.interactProgress += delta * 20;
       if (G.interactProgress >= 100) {
@@ -2182,7 +2243,23 @@ function processInteraction(delta) {
         G.interacting = false;
         G.interactProgress = 0;
         playSound('click');
-        showBonus('💬 "' + n.dialogue + '"', '#aaa');
+
+        // ヒントを持っているNPCかチェック
+        if (n.hasHint && !n.hintObtained) {
+          n.hintObtained = true;
+          var mainHints = generateDistractionHints();
+          var hint = mainHints[n.distractionHintIndex];
+          if (hint) {
+            G.score += 100;
+            showBonus('+100 重要情報！', '#00f5ff');
+            setTimeout(function() {
+              showBonus('💬 "' + hint.hint + '"', '#fc0');
+            }, 400);
+          }
+        } else {
+          // ヒントを持っていないNPC
+          showBonus('💬 "' + n.dialogue + '"', '#aaa');
+        }
       }
     }
   }
@@ -2209,12 +2286,13 @@ function completeHintGathering(npc) {
   updateGameUI();
 }
 
-// 救助完了（レスキュー専用）
+// 救助完了（レスキュー専用）- 救助時にヒントも直接取得
 function completeRescue(npc) {
   G.interacting = false;
   G.interactProgress = 0;
 
   npc.rescued = true;
+  npc.hintObtained = true; // 救助と同時にヒント取得
   G.rescued++;
 
   playRescueEffect(npc);
@@ -2225,6 +2303,15 @@ function completeRescue(npc) {
   showBonus('+' + pts + ' 救助成功！', '#00ff88');
   if (npc.needsCoop) G.coopBonus += 50;
 
+  // ヒントを表示（救助NPCはパネルA,Bのヒントを持っている）
+  var hints = generateRescueHints();
+  var hint = hints[npc.hintIndex];
+  if (hint) {
+    setTimeout(function() {
+      showBonus('💬 "' + hint.hint + '"', '#fc0');
+    }, 600);
+  }
+
   // 全員救助チェック
   var rescueNpcCount = npcs.filter(function(n) { return n.needsRescue; }).length;
   if (G.rescued >= rescueNpcCount) {
@@ -2233,6 +2320,7 @@ function completeRescue(npc) {
   }
 
   syncNpcRescue(npc.id);
+  syncNpcHintObtained(npc.id); // ヒント取得も同期
   updateGameUI();
 }
 
@@ -2399,9 +2487,6 @@ function unlockPanel(panel) {
   }
 
   updateGameUI();
-  syncGameStateToServer();
-}
-  // ゲーム状態をサーバーに同期
   syncGameStateToServer();
 }
 
