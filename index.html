@@ -2295,14 +2295,20 @@ function updateInteractionUI() {
           pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><p style="color:#ff6600">⚠️ レスキューを呼んで救助して！</p><p style="font-size:.85rem">レスキューが救助するとヒントが得られます</p>';
         }
       } else {
-        // 救助済み（ヒントも取得済み）
-        pr.innerHTML = '<h3>✅ 救助完了</h3><p style="color:#00ff88">ヒント取得済み</p>';
+        // 救助済み（ヒントも取得済み）- ヒントを再表示
+        var hints = generateRescueHints();
+        var hint = hints[n.hintIndex];
+        var hintText = hint ? hint.hint : '';
+        pr.innerHTML = '<h3>✅ 救助完了</h3><p style="color:#00ff88">ヒント取得済み</p>' + (hintText ? '<p style="color:#fc0;font-size:.9rem;margin-top:8px">💬 "' + hintText + '"</p>' : '');
       }
     } else {
       // 邪魔な研究員 - 情報員のみ会話可能
       if (n.talked && n.hintObtained) {
-        // 会話済み＆ヒント取得済み
-        pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#00f5ff">重要情報を取得しました</p>';
+        // 会話済み＆ヒント取得済み - ヒントを再表示
+        var mainHints = generateDistractionHints();
+        var hint = mainHints[n.distractionHintIndex];
+        var hintText = hint ? hint.hint : '';
+        pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#00f5ff">重要情報を取得しました</p>' + (hintText ? '<p style="color:#fc0;font-size:.9rem;margin-top:8px">💬 "' + hintText + '"</p>' : '');
       } else if (n.talked) {
         // 会話済み（ヒントなし）
         pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#aaa">この人は情報を持っていませんでした</p>';
