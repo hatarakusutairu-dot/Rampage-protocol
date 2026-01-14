@@ -104,7 +104,7 @@
     #minimap{position:fixed;top:80px;right:20px;width:180px;height:180px;background:rgba(10,10,30,.9);border:2px solid #ffa500;border-radius:8px;z-index:100;display:none;overflow:hidden}
     #minimap-canvas{width:100%;height:100%}
     #minimap-title{position:absolute;top:-25px;left:0;color:#ffa500;font-family:Orbitron;font-size:.7rem}
-    #role-ability{position:fixed;top:80px;left:20px;background:rgba(10,10,30,.9);border:1px solid rgba(255,255,255,.3);padding:10px 15px;border-radius:8px;z-index:100;display:none;font-size:.75rem}
+    #role-ability{position:fixed;top:200px;left:20px;background:rgba(10,10,30,.9);border:1px solid rgba(255,255,255,.3);padding:10px 15px;border-radius:8px;z-index:100;display:none;font-size:.75rem}
     #role-ability h4{margin-bottom:5px}
     #role-ability.commander{border-color:#ffa500}
     #role-ability.commander h4{color:#ffa500}
@@ -1895,12 +1895,13 @@ function createRobot() {
 function generateNpcData(teamSize) {
   npcData = [];
 
-  // 救助対象NPCを追加
-  rescueNpcData.forEach(function(d) {
+  // 救助対象NPCを追加（ヒントインデックスを割り当て）
+  rescueNpcData.forEach(function(d, idx) {
     npcData.push({
       x: d.x, z: d.z, type: d.type,
       hint: d.hint,
-      needsRescue: true
+      needsRescue: true,
+      hintIndex: idx // 0-5のヒントインデックス
     });
   });
 
@@ -1997,6 +1998,9 @@ function createNPCs() {
     g.id = i;
     g.hint = d.hint || null;
     g.dialogue = d.dialogue || null;
+    g.hasHint = d.hasHint || false;
+    g.distractionHintIndex = d.distractionHintIndex !== undefined ? d.distractionHintIndex : -1;
+    g.hintIndex = d.hintIndex !== undefined ? d.hintIndex : -1;
 
     // 歩行AI用のプロパティ（立っているNPCのみ）
     if (d.type === 'standing') {
