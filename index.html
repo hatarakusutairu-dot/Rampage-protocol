@@ -1617,8 +1617,42 @@ async function showLobby() {
   document.getElementById('lobby-team-name').textContent = myData.teamName;
   document.getElementById('lobby-team-id').textContent = '#' + myData.teamCode;
   document.getElementById('lobby-max').textContent = myData.teamSize;
+  
+  // 2人チーム用の役割カード調整
+  adjustRoleCardsForTeamSize();
+  
   subscribeToTeam();
   await refreshLobbyData();
+}
+
+function adjustRoleCardsForTeamSize() {
+  var commanderCard = document.querySelector('.role-card[data-role="commander"]');
+  var rescueCard = document.querySelector('.role-card[data-role="rescue"]');
+  var scoutCard = document.querySelector('.role-card[data-role="scout"]');
+  
+  if (myData.teamSize <= 2) {
+    // 2人モード: 指揮官+レスキュー と 情報員 の2択
+    if (rescueCard) rescueCard.style.display = 'none';
+    if (commanderCard) {
+      commanderCard.querySelector('h4').textContent = '指揮官+レスキュー';
+      commanderCard.querySelector('p').textContent = '救助・制御盤操作';
+      commanderCard.querySelector('.role-icon').textContent = '🎖️🚑';
+    }
+    if (scoutCard) {
+      scoutCard.querySelector('p').textContent = '情報収集・ヒント取得';
+    }
+  } else {
+    // 3人以上: 通常の3役割
+    if (rescueCard) rescueCard.style.display = 'flex';
+    if (commanderCard) {
+      commanderCard.querySelector('h4').textContent = '指揮官';
+      commanderCard.querySelector('p').textContent = '指揮・情報統合';
+      commanderCard.querySelector('.role-icon').textContent = '🎖️';
+    }
+    if (scoutCard) {
+      scoutCard.querySelector('p').textContent = '探索・情報収集';
+    }
+  }
 }
 
 function subscribeToTeam() {
