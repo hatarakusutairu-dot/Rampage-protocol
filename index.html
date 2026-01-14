@@ -428,8 +428,8 @@ function getDifficultySettings() {
 // 暴走レベルの上昇率を計算（人数補正込み）
 function calculateRampageIncrease(delta, currentRampage) {
   var settings = getDifficultySettings();
-  // 基本上昇率: 0.3 + 現在レベル×0.002（加速）
-  var baseRate = 0.25 + currentRampage * 0.0015;
+  // 基本上昇率（15-20分クリア目標）
+  var baseRate = 0.055 + currentRampage * 0.0004;
   return delta * baseRate * settings.rampageMultiplier;
 }
 
@@ -793,7 +793,7 @@ function updateOtherPlayerAvatars(delta) {
       }
 
       // 回転の補間
-      var targetRotY = p.targetYaw;
+      var targetRotY = p.targetYaw + Math.PI; // 向きを反転
       var currentRotY = p.mesh.rotation.y;
       var diff = targetRotY - currentRotY;
       // 角度の差を-PI~PIに正規化
