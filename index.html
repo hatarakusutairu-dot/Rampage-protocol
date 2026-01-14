@@ -1495,7 +1495,17 @@ document.getElementById('create-team-btn').onclick = async function() {
   if (!teamName) { showError('チーム名を入力してください'); return; }
   showLoading('チーム作成中...');
   try {
-    var code = String(Math.floor(1000 + Math.random() * 9000));
+    // ユニークなチームコードを生成（既存の待機中チームと重複しないように）
+    var code;
+    var maxRetries = 10;
+    for (var retry = 0; retry < maxRetries; retry++) {
+      code = String(Math.floor(1000 + Math.random() * 9000));
+      var existing = await db.from('teams').select('id').eq('code', code).eq('status', 'waiting').maybeSingle();
+      if (!existing.data) break; // 重複なし
+      if (retry === maxRetries - 1) {
+        throw new Error('チームコードの生成に失敗しました。再度お試しください。');
+      }
+    }
     var r = await db.from('teams').insert({ code: code, name: teamName, size: myData.teamSize, status: 'waiting' }).select().single();
     if (r.error) throw r.error;
     var team = r.data;
