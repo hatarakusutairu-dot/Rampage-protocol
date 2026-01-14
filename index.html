@@ -1224,6 +1224,23 @@ function playPanelEffect(panel) {
 function playRescueEffect(npc) {
   createParticleEffect(npc.position.x, 1.5, npc.position.z, 0x00f5ff, 25);
   playSound('rescue');
+  
+  // 救助後にNPCを立ち上がらせる
+  if (npc.npcType === 'fallen') {
+    npc.rotation.z = 0;
+    npc.position.y = 0;
+  } else if (npc.npcType === 'sitting') {
+    npc.position.y = 0;
+    if (npc.leftLeg) npc.leftLeg.rotation.x = 0;
+    if (npc.rightLeg) npc.rightLeg.rotation.x = 0;
+    if (npc.leftArm) npc.leftArm.rotation.x = 0;
+    if (npc.rightArm) npc.rightArm.rotation.x = 0;
+  }
+  // SOSライトを緑に変更
+  if (npc.sos) {
+    npc.sos.color.setHex(0x00ff88);
+    npc.sos.intensity = 0.5;
+  }
 }
 
 // ============================================
@@ -2616,11 +2633,17 @@ function submitCode() {
   var correctCode = panelCodes[currentCodePanel.panelId];
   var isCorrect = true;
 
+  console.log('Code check - Input:', codeInput, 'Correct:', correctCode);
+
   if (codeInput.length !== correctCode.length) {
+    console.log('Length mismatch:', codeInput.length, 'vs', correctCode.length);
     isCorrect = false;
   } else {
     for (var i = 0; i < correctCode.length; i++) {
-      if (String(codeInput[i]) !== String(correctCode[i])) {
+      var inputVal = String(codeInput[i]);
+      var correctVal = String(correctCode[i]);
+      if (inputVal !== correctVal) {
+        console.log('Mismatch at', i, ':', inputVal, 'vs', correctVal);
         isCorrect = false;
         break;
       }
@@ -2806,8 +2829,10 @@ function animate() {
       endGame(false);
     }
     var prevRampage = G.rampage;
-    // 難易度補正付きの暴走レベル上昇
-    G.rampage += calculateRampageIncrease(delta, G.rampage);
+    // 難易度補正付きの暴走レベル上昇（リーダーのみ計算、他はサーバーから同期）
+    if (myData.isLeader || !myData.teamId) {
+      G.rampage += calculateRampageIncrease(delta, G.rampage);
+    }
     // 暴走レベル80%突破時にアラーム
     if (prevRampage < 80 && G.rampage >= 80) {
       playSound('alarm');
