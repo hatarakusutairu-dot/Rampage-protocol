@@ -220,6 +220,29 @@
     #code-clear{background:transparent;border:2px solid #ff6600;color:#ff6600}
     #code-clear:hover{background:rgba(255,102,0,.2)}
     #code-cancel{background:transparent;border:2px solid rgba(255,255,255,.3);color:#fff}
+    /* Mobile Controls */
+    #mobile-controls{display:none;position:fixed;bottom:0;left:0;right:0;top:0;pointer-events:none;z-index:200}
+    .mobile-active #mobile-controls{display:block}
+    .mobile-active #controls-help{display:none!important}
+    #mobile-joystick{position:absolute;bottom:30px;left:30px;width:120px;height:120px;pointer-events:auto}
+    #joystick-base{width:120px;height:120px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);border-radius:50%;position:relative}
+    #joystick-stick{width:50px;height:50px;background:rgba(0,245,255,.6);border:2px solid #00f5ff;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transition:none}
+    #mobile-camera{position:absolute;bottom:0;right:0;width:50%;height:100%;pointer-events:auto}
+    #mobile-action-btn{position:absolute;bottom:40px;right:40px;width:80px;height:80px;background:rgba(255,136,0,.3);border:3px solid #ff8800;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-family:Orbitron;font-size:1.5rem;color:#ff8800;user-select:none;-webkit-user-select:none}
+    #mobile-action-btn.active{background:rgba(255,136,0,.7);transform:scale(.95)}
+    #mobile-action-btn.near{border-color:#00ff88;color:#00ff88;background:rgba(0,255,136,.3)}
+    #mobile-action-btn.near.active{background:rgba(0,255,136,.6)}
+    .mobile-active #crosshair{width:10px;height:10px}
+    @media(max-width:768px){
+      #hud{flex-wrap:wrap;gap:5px;padding:10px}
+      .hud-panel{padding:8px 12px;min-width:auto}
+      .hud-panel h3{font-size:.6rem}
+      .hud-value{font-size:.9rem}
+      #bottom-hud{padding:10px}
+      #robot-status{font-size:.8rem;padding:10px}
+      #role-ability{font-size:.8rem;padding:10px}
+      #interaction-prompt{bottom:180px;font-size:.9rem}
+    }
   </style>
 </head>
 <body>
@@ -241,6 +264,11 @@
   <div id="minimap"><span id="minimap-title">🎖️ 指揮官マップ</span><canvas id="minimap-canvas"></canvas></div>
   <div id="role-ability"></div>
   <div class="coop-warning" id="coop-warning">⚠️ あと1人必要！</div>
+  <div id="mobile-controls">
+    <div id="mobile-joystick"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
+    <div id="mobile-camera"></div>
+    <div id="mobile-action-btn">E</div>
+  </div>
   <div id="admin-screen">
     <div class="admin-panel">
       <div class="admin-header">
@@ -436,6 +464,13 @@ var yaw = 0;
 var pitch = 0;
 var isPointerLocked = false;
 var keys = { w: false, a: false, s: false, d: false, e: false };
+
+// Mobile Detection & Controls
+var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || ('ontouchstart' in window);
+var joystickData = { active: false, startX: 0, startY: 0, moveX: 0, moveY: 0 };
+var cameraTouch = { active: false, id: null, lastX: 0, lastY: 0 };
+var actionBtnPressed = false;
+
 var playerPos = new THREE.Vector3(0, 0, 35);
 
 // Interaction
@@ -2059,7 +2094,7 @@ document.addEventListener('mousemove', function(e) {
 });
 
 document.addEventListener('click', function() {
-  if (G.playing && !isPointerLocked) {
+  if (G.playing && !isPointerLocked && !isMobile) {
     document.body.requestPointerLock();
   }
 });
@@ -2067,6 +2102,118 @@ document.addEventListener('click', function() {
 document.addEventListener('pointerlockchange', function() {
   isPointerLocked = !!document.pointerLockElement;
 });
+
+// ============================================
+// Mobile Touch Controls
+// ============================================
+
+function initMobileControls() {
+  if (!isMobile) return;
+  document.body.classList.add('mobile-active');
+  
+  var joystick = document.getElementById('mobile-joystick');
+  var stick = document.getElementById('joystick-stick');
+  var cameraArea = document.getElementById('mobile-camera');
+  var actionBtn = document.getElementById('mobile-action-btn');
+  
+  // Joystick Touch
+  joystick.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    var touch = e.touches[0];
+    var rect = joystick.getBoundingClientRect();
+    joystickData.active = true;
+    joystickData.startX = rect.left + rect.width / 2;
+    joystickData.startY = rect.top + rect.height / 2;
+  }, { passive: false });
+  
+  joystick.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if (!joystickData.active) return;
+    var touch = e.touches[0];
+    var dx = touch.clientX - joystickData.startX;
+    var dy = touch.clientY - joystickData.startY;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var maxDist = 35;
+    if (dist > maxDist) {
+      dx = dx / dist * maxDist;
+      dy = dy / dist * maxDist;
+    }
+    joystickData.moveX = dx / maxDist;
+    joystickData.moveY = dy / maxDist;
+    stick.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
+  }, { passive: false });
+  
+  joystick.addEventListener('touchend', function(e) {
+    joystickData.active = false;
+    joystickData.moveX = 0;
+    joystickData.moveY = 0;
+    stick.style.transform = 'translate(-50%, -50%)';
+  });
+  
+  // Camera Touch
+  cameraArea.addEventListener('touchstart', function(e) {
+    if (cameraTouch.active) return;
+    var touch = e.changedTouches[0];
+    cameraTouch.active = true;
+    cameraTouch.id = touch.identifier;
+    cameraTouch.lastX = touch.clientX;
+    cameraTouch.lastY = touch.clientY;
+  }, { passive: true });
+  
+  cameraArea.addEventListener('touchmove', function(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var touch = e.changedTouches[i];
+      if (touch.identifier === cameraTouch.id) {
+        var dx = touch.clientX - cameraTouch.lastX;
+        var dy = touch.clientY - cameraTouch.lastY;
+        yaw -= dx * 0.005;
+        pitch -= dy * 0.005;
+        pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+        cameraTouch.lastX = touch.clientX;
+        cameraTouch.lastY = touch.clientY;
+        break;
+      }
+    }
+  }, { passive: true });
+  
+  cameraArea.addEventListener('touchend', function(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === cameraTouch.id) {
+        cameraTouch.active = false;
+        cameraTouch.id = null;
+        break;
+      }
+    }
+  });
+  
+  // Action Button
+  actionBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    actionBtnPressed = true;
+    keys.e = true;
+    actionBtn.classList.add('active');
+  }, { passive: false });
+  
+  actionBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    actionBtnPressed = false;
+    keys.e = false;
+    G.interactProgress = 0;
+    G.interacting = false;
+    actionBtn.classList.remove('active');
+  }, { passive: false });
+}
+
+// Update action button appearance based on nearby objects
+function updateMobileActionBtn() {
+  if (!isMobile) return;
+  var btn = document.getElementById('mobile-action-btn');
+  if (near) {
+    btn.classList.add('near');
+  } else {
+    btn.classList.remove('near');
+  }
+}
 
 // ============================================
 // Game Logic
@@ -2626,10 +2773,17 @@ function animate() {
     var forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
     var right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
 
+    // Keyboard movement
     if (keys.w) playerPos.addScaledVector(forward, moveSpeed);
     if (keys.s) playerPos.addScaledVector(forward, -moveSpeed);
     if (keys.a) playerPos.addScaledVector(right, -moveSpeed);
     if (keys.d) playerPos.addScaledVector(right, moveSpeed);
+    
+    // Mobile joystick movement
+    if (isMobile && joystickData.active) {
+      playerPos.addScaledVector(forward, -joystickData.moveY * moveSpeed);
+      playerPos.addScaledVector(right, joystickData.moveX * moveSpeed);
+    }
 
     // Bounds
     playerPos.x = Math.max(-50, Math.min(50, playerPos.x));
@@ -2637,6 +2791,7 @@ function animate() {
 
     // Interaction
     checkNear();
+    updateMobileActionBtn();
     processInteraction(delta * 60);
     updateGameUI();
   }
@@ -2764,6 +2919,9 @@ function startGame() {
 
   // オーディオ初期化
   initAudio();
+
+  // モバイルコントロール初期化
+  initMobileControls();
 
   // 人数に応じた初期暴走レベルを設定
   var settings = getDifficultySettings();
