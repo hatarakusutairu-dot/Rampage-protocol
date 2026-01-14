@@ -438,8 +438,8 @@ function calculateInteractionSpeed(isRescue) {
   var settings = getDifficultySettings();
   var abilities = getRoleAbilities();
 
-  // 基本速度
-  var baseSpeed = 35;
+  // 基本速度（低めに設定して救助に時間がかかるように）
+  var baseSpeed = 2.5;
   // 人数補正（人数が多いほど遅くなる）
   var adjustedSpeed = baseSpeed / settings.interactionMultiplier;
   // 役割補正（レスキューは救助が速い）
@@ -870,7 +870,24 @@ function subscribeToGame() {
         updateGameUI();
       }
     })
-    .subscribe();
+    .subscribe(function(status) {
+      console.log('Game subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        // 購読開始後に他プレイヤーを再読み込み
+        setTimeout(loadOtherPlayers, 500);
+      }
+    });
+}
+
+// 定期的に他プレイヤーを再チェック（5秒ごと）
+var playerRefreshInterval = null;
+function startPlayerRefresh() {
+  if (playerRefreshInterval) return;
+  playerRefreshInterval = setInterval(function() {
+    if (G.playing && myData.teamId) {
+      loadOtherPlayers();
+    }
+  }, 5000);
 }
 
 // ゲーム状態をSupabaseに送信（リーダーのみ）
@@ -955,10 +972,13 @@ async function loadOtherPlayers() {
   if (!myData.teamId) return;
   try {
     var r = await db.from('players').select('*').eq('team_id', myData.teamId);
+    console.log('Loading other players:', r.data ? r.data.length : 0, 'players found');
     if (r.data) {
       r.data.forEach(function(p) {
         if (p.id !== myData.playerId) {
+          console.log('Other player found:', p.id, p.name, p.role, 'pos:', p.pos_x, p.pos_z);
           if (!otherPlayers[p.id] && scene) {
+            console.log('Creating avatar for:', p.id);
             createPlayerAvatar(p.id, p.role, p.name);
           }
           if (otherPlayers[p.id]) {
@@ -2396,7 +2416,8 @@ function processInteraction(delta) {
       G.interacting = true;
       var rescueSpeed = calculateInteractionSpeed(true);
       // NPCタイプ別の救助時間（重傷者は長い）
-      var typeMultiplier = n.npcType === 'fallen' ? 0.25 : (n.npcType === 'sitting' ? 0.35 : 0.45);
+      // 救助時間: 重傷=約8秒, 負傷=約4秒, 軽傷=約2秒 (3人モード基準)
+      var typeMultiplier = n.npcType === 'fallen' ? 0.15 : (n.npcType === 'sitting' ? 0.3 : 0.6);
       G.interactProgress += delta * rescueSpeed * typeMultiplier;
       if (G.interactProgress >= 100) completeRescue(n);
     } else {
@@ -2936,6 +2957,8 @@ function startGame() {
     positionUpdateInterval = setInterval(sendPositionUpdate, POSITION_SYNC_INTERVAL);
     // 初回位置送信（他プレイヤーに自分を表示させる）
     sendPositionUpdate();
+    // 定期的なプレイヤー更新を開始
+    startPlayerRefresh();
     // リーダーはゲーム状態を定期的に同期（1秒間隔）
     if (myData.isLeader) {
       setInterval(syncGameStateToServer, 1000);
