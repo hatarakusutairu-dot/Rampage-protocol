@@ -825,18 +825,19 @@ function subscribeToGame() {
   // プレイヤー位置の購読
   gameSubscription = db.channel('game-' + myData.teamId)
     .on('postgres_changes', {
-      event: 'UPDATE',
+      event: '*',
       schema: 'public',
       table: 'players',
       filter: 'team_id=eq.' + myData.teamId
     }, function(payload) {
       var p = payload.new;
+      if (!p) return;
       // 自分以外のプレイヤーの位置を更新
-      if (p.id !== myData.playerId && p.pos_x !== null) {
+      if (p.id !== myData.playerId) {
         if (!otherPlayers[p.id] && scene) {
           createPlayerAvatar(p.id, p.role, p.name);
         }
-        if (otherPlayers[p.id]) {
+        if (otherPlayers[p.id] && p.pos_x !== null) {
           otherPlayers[p.id].targetPos.set(p.pos_x, 0, p.pos_z);
           otherPlayers[p.id].targetYaw = p.yaw || 0;
         }
@@ -956,12 +957,17 @@ async function loadOtherPlayers() {
     var r = await db.from('players').select('*').eq('team_id', myData.teamId);
     if (r.data) {
       r.data.forEach(function(p) {
-        if (p.id !== myData.playerId && p.pos_x !== null) {
-          if (!otherPlayers[p.id]) {
+        if (p.id !== myData.playerId) {
+          if (!otherPlayers[p.id] && scene) {
             createPlayerAvatar(p.id, p.role, p.name);
           }
-          otherPlayers[p.id].targetPos.set(p.pos_x, 0, p.pos_z);
-          otherPlayers[p.id].targetYaw = p.yaw || 0;
+          if (otherPlayers[p.id]) {
+            // Use position if available, otherwise use default spawn
+            var posX = p.pos_x !== null ? p.pos_x : 0;
+            var posZ = p.pos_z !== null ? p.pos_z : 35;
+            otherPlayers[p.id].targetPos.set(posX, 0, posZ);
+            otherPlayers[p.id].targetYaw = p.yaw || 0;
+          }
         }
       });
     }
@@ -2908,6 +2914,8 @@ function startGame() {
     loadOtherPlayers();
     // 位置同期を開始（200ms間隔）
     positionUpdateInterval = setInterval(sendPositionUpdate, POSITION_SYNC_INTERVAL);
+    // 初回位置送信（他プレイヤーに自分を表示させる）
+    sendPositionUpdate();
     // リーダーはゲーム状態を定期的に同期（1秒間隔）
     if (myData.isLeader) {
       setInterval(syncGameStateToServer, 1000);
