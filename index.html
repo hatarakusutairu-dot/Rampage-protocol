@@ -2937,12 +2937,37 @@ function animate() {
 // Game Start
 // ============================================
 
-function startGame() {
+async function startGame() {
   if (subscription) subscription.unsubscribe();
 
-  // パネルコードを生成
-  generatePanelCodes();
-  console.log('Panel codes generated:', panelCodes);
+  // パネルコードの同期（リーダーが生成してDBに保存、他は取得）
+  if (myData.isLeader || !myData.teamId) {
+    // リーダー（またはソロ）：コードを生成してDBに保存
+    generatePanelCodes();
+    console.log('Panel codes generated (leader):', panelCodes);
+    if (myData.teamId) {
+      await db.from('game_states').update({
+        panel_codes: JSON.stringify(panelCodes)
+      }).eq('team_id', myData.teamId);
+    }
+  } else {
+    // 非リーダー：DBからコードを取得
+    var retries = 0;
+    while (retries < 10) {
+      var gs = await db.from('game_states').select('panel_codes').eq('team_id', myData.teamId).single();
+      if (gs.data && gs.data.panel_codes) {
+        panelCodes = JSON.parse(gs.data.panel_codes);
+        console.log('Panel codes loaded from server:', panelCodes);
+        break;
+      }
+      retries++;
+      await new Promise(function(r) { setTimeout(r, 500); });
+    }
+    if (!panelCodes.A || !panelCodes.A.length) {
+      console.error('Failed to load panel codes, generating locally');
+      generatePanelCodes();
+    }
+  }
 
   // Hide menus, show HUD
   document.getElementById('lobby-screen').style.display = 'none';
