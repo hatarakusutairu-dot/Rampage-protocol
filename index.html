@@ -3277,6 +3277,10 @@ async function startGame() {
     }
   }
 
+  // ヒントのシャッフル初期化（panelCodes設定後に実行）
+  initShuffledHints();
+  console.log("Shuffled hints initialized:", shuffledHintAssignment);
+
   // Hide menus, show HUD
   document.getElementById('lobby-screen').style.display = 'none';
   document.getElementById('hud').style.display = 'flex';
