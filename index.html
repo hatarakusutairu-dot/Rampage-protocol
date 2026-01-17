@@ -561,11 +561,15 @@ function generateAllHints() {
 
 // シャッフルされたヒント割り当て（ゲーム開始時に生成）
 var shuffledHintAssignment = [];
+var cachedAllHints = []; // ヒントをキャッシュ
 
 function initShuffledHints() {
-  var allHints = generateAllHints();
+  // ヒントを一度だけ生成してキャッシュ
+  cachedAllHints = generateAllHints();
+  console.log('Cached hints:', cachedAllHints.map(function(h) { return h.hint; }));
+  
   shuffledHintAssignment = [];
-  for (var i = 0; i < allHints.length; i++) {
+  for (var i = 0; i < cachedAllHints.length; i++) {
     shuffledHintAssignment.push(i);
   }
   for (var i = shuffledHintAssignment.length - 1; i > 0; i--) {
@@ -578,20 +582,18 @@ function initShuffledHints() {
 
 // 救助NPCからのヒント（シャッフルされた順序で取得）
 function generateRescueHints() {
-  var allHints = generateAllHints();
   var result = [];
   for (var i = 0; i < 6 && i < shuffledHintAssignment.length; i++) {
-    result.push(allHints[shuffledHintAssignment[i]]);
+    result.push(cachedAllHints[shuffledHintAssignment[i]]);
   }
   return result;
 }
 
 // 邪魔なNPCからのヒント（シャッフルされた順序で取得）
 function generateDistractionHints() {
-  var allHints = generateAllHints();
   var result = [];
   for (var i = 6; i < 10 && i < shuffledHintAssignment.length; i++) {
-    result.push(allHints[shuffledHintAssignment[i]]);
+    result.push(cachedAllHints[shuffledHintAssignment[i]]);
   }
   return result;
 }
