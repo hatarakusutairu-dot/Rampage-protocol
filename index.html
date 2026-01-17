@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <title>RAMPAGE PROTOCOL v2.0</title>
+  <title>RAMPAGE PROTOCOL</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
@@ -44,11 +41,7 @@
     .lobby-status h3{color:#ffa500}
     .lobby-status.ready{background:rgba(0,255,136,.2);border-color:#00ff88}
     .lobby-status.ready h3{color:#00ff88}
-    .role-grid{display:grid;gap:15px;margin-bottom:20px;justify-content:center;max-width:900px;margin-left:auto;margin-right:auto}
-    .role-grid.cols-2{grid-template-columns:repeat(2,1fr)}
-    .role-grid.cols-3{grid-template-columns:repeat(3,1fr)}
-    .role-grid.cols-4{grid-template-columns:repeat(2,1fr)}
-    .role-grid.cols-5{grid-template-columns:repeat(3,1fr)}
+    .role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;margin-bottom:20px}
     .role-card{background:rgba(20,30,50,.95);border:2px solid rgba(255,255,255,.2);padding:20px;display:flex;align-items:center;gap:15px;cursor:pointer;border-radius:8px}
     .role-card.selected{border-color:#00ff88;background:rgba(0,255,136,.15)}
     .role-card.taken{opacity:.5;cursor:not-allowed}
@@ -93,49 +86,14 @@
     #interaction-prompt .progress-bar{width:100%;height:10px;background:rgba(255,255,255,.1);margin:15px 0;border-radius:5px;overflow:hidden}
     #interaction-prompt .progress-bar-inner{height:100%;background:linear-gradient(90deg,#00f5ff,#0f8);width:0}
     #interaction-prompt kbd{background:#00f5ff;color:#000;padding:8px 20px;border-radius:5px}
-    #result-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,rgba(0,10,30,.98) 0%,rgba(0,0,0,.99) 100%);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:500;overflow:hidden}
-    #result-screen::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 30%,rgba(0,245,255,.1) 0%,transparent 50%);pointer-events:none}
-    #result-screen.success::before{background:radial-gradient(circle at 50% 30%,rgba(0,255,136,.15) 0%,transparent 50%)}
-    #result-screen.failure::before{background:radial-gradient(circle at 50% 30%,rgba(255,0,68,.15) 0%,transparent 50%)}
-    .result-container{position:relative;z-index:1;text-align:center;animation:resultFadeIn .8s ease-out}
-    @keyframes resultFadeIn{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:translateY(0)}}
-    #result-screen h1{font-family:Orbitron;font-size:3rem;margin-bottom:.5rem;text-shadow:0 0 30px currentColor;animation:resultGlow 2s ease-in-out infinite alternate}
-    @keyframes resultGlow{from{text-shadow:0 0 20px currentColor,0 0 40px currentColor}to{text-shadow:0 0 30px currentColor,0 0 60px currentColor,0 0 80px currentColor}}
+    #result-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.95);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:500}
     #result-screen.success h1{color:#0f8}
     #result-screen.failure h1{color:#f04}
-    .result-subtitle{font-family:Orbitron;font-size:1rem;color:rgba(255,255,255,.6);margin-bottom:2rem;letter-spacing:3px}
-    .result-rank{font-family:Orbitron;font-size:5rem;margin:1rem 0;animation:rankPop .6s ease-out .3s both}
-    @keyframes rankPop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
-    .result-rank.s{color:#ffd700;text-shadow:0 0 30px #ffd700,0 0 60px #ffa500}
-    .result-rank.a{color:#ff6b6b;text-shadow:0 0 20px #ff6b6b}
-    .result-rank.b{color:#4ecdc4;text-shadow:0 0 20px #4ecdc4}
-    .result-rank.c{color:#95a5a6;text-shadow:0 0 10px #95a5a6}
-    .result-rank.f{color:#f04;text-shadow:0 0 30px #f04,0 0 60px #ff0000}
-    .result-rank-label{font-size:.8rem;color:rgba(255,255,255,.5);margin-bottom:1.5rem}
-    .result-stats{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:2rem 0}
-    .result-stat{background:linear-gradient(180deg,rgba(20,30,50,.95) 0%,rgba(10,15,30,.95) 100%);border:1px solid rgba(0,245,255,.3);padding:20px 30px;text-align:center;border-radius:10px;min-width:120px;animation:statSlide .5s ease-out both;box-shadow:0 5px 20px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1)}
-    .result-stat:nth-child(1){animation-delay:.4s}
-    .result-stat:nth-child(2){animation-delay:.5s}
-    .result-stat:nth-child(3){animation-delay:.6s}
-    .result-stat:nth-child(4){animation-delay:.7s}
-    @keyframes statSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    .result-stat h4{color:rgba(255,255,255,.6);font-size:.75rem;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
-    .result-stat .value{font-family:Orbitron;font-size:1.8rem;color:#00f5ff;text-shadow:0 0 10px rgba(0,245,255,.5)}
-    .result-stat .bonus{font-size:.7rem;color:#0f8;margin-top:5px}
-    #result-screen.success .result-stat{border-color:rgba(0,255,136,.3)}
-    #result-screen.success .result-stat .value{color:#0f8;text-shadow:0 0 10px rgba(0,255,136,.5)}
-    #result-screen.failure .result-stat{border-color:rgba(255,0,68,.3)}
-    #result-screen.failure .result-stat .value{color:#f04;text-shadow:0 0 10px rgba(255,0,68,.5)}
-    .result-buttons{display:flex;gap:15px;margin-top:2rem;animation:buttonFade .5s ease-out .9s both}
-    @keyframes buttonFade{from{opacity:0}to{opacity:1}}
-    .result-buttons button{background:transparent;border:2px solid;font-family:Orbitron;padding:15px 35px;cursor:pointer;border-radius:5px;transition:all .3s;text-transform:uppercase;letter-spacing:1px}
-    #restart-btn{border-color:#00f5ff;color:#00f5ff}
-    #restart-btn:hover{background:#00f5ff;color:#000;box-shadow:0 0 30px rgba(0,245,255,.5)}
-    #ranking-btn{border-color:#ffa500;color:#ffa500}
-    #ranking-btn:hover{background:#ffa500;color:#000;box-shadow:0 0 30px rgba(255,165,0,.5)}
-    .result-particles{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
-    .result-particle{position:absolute;width:4px;height:4px;background:#0f8;border-radius:50%;animation:particleFloat 3s ease-in-out infinite}
-    @keyframes particleFloat{0%,100%{transform:translateY(100vh) scale(0);opacity:0}50%{opacity:1;transform:translateY(-100vh) scale(1)}}
+    #result-screen h1{font-family:Orbitron;font-size:2.5rem;margin-bottom:2rem}
+    .result-stats{display:flex;gap:15px;flex-wrap:wrap;justify-content:center}
+    .result-stat{background:rgba(10,10,20,.9);border:1px solid rgba(255,255,255,.2);padding:15px 20px;text-align:center}
+    .result-stat .value{font-family:Orbitron;font-size:1.5rem;color:#00f5ff}
+    #restart-btn{background:transparent;border:2px solid #00f5ff;color:#00f5ff;font-family:Orbitron;padding:15px 40px;cursor:pointer;margin-top:30px}
     #alert-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50}
     #alert-overlay.active{animation:flash .5s infinite}
     @keyframes flash{50%{background:rgba(255,0,50,.15)}}
@@ -292,38 +250,20 @@
   <div class="loading-overlay" id="loading-overlay"><div class="loading-spinner"></div><div id="loading-text">接続中...</div></div>
   <div class="error-toast" id="error-toast"></div>
   <div id="title-screen"><h1>RAMPAGE PROTOCOL</h1><p class="subtitle">巨大ロボ暴走停止ミッション</p><div class="start-text" id="start-title">▶ CLICK TO START ◀</div></div>
-  <div id="team-screen"><div class="team-container"><div class="tab-buttons"><button class="tab-btn active" data-tab="create">チ�Eム作�E</button><button class="tab-btn" data-tab="join">チ�Eム参加</button></div><div class="tab-content active" id="tab-create"><div class="form-group"><label>チ�Eム吁E/label><input type="text" id="team-name-input" placeholder="チ�Eム名を入劁E maxlength="10"></div><div class="form-group"><label>チ�Eム人数</label><div class="member-select"><button class="member-btn" data-count="2">2人</button><button class="member-btn" data-count="3">3人</button><button class="member-btn" data-count="4">4人</button><button class="member-btn selected" data-count="5">5人</button></div></div><button class="btn-primary" id="create-team-btn">チ�Eム作�E</button></div><div class="tab-content" id="tab-join"><div class="form-group"><label>チ�Eム番号�E�E桁E��E/label><input type="text" id="team-code-input" placeholder="0000" maxlength="4" style="font-size:2rem;letter-spacing:10px;font-family:Orbitron"></div><button class="btn-primary" id="join-team-btn">チ�Eム参加</button></div></div></div>
-  <div id="waiting-screen"><div class="waiting-container"><h2 style="font-family:Orbitron;color:#00f5ff;margin-bottom:30px">征E��室</h2><div><label style="color:rgba(255,255,255,.6)">チ�Eム吁E/label><div id="waiting-team-name" style="font-size:1.2rem">-</div></div><div style="margin-top:15px"><label style="color:rgba(255,255,255,.6)">チ�Eム人数</label><div id="waiting-team-size">-</div></div><div class="team-code-display"><label style="color:#00f5ff">チ�Eム番号</label><div class="code" id="waiting-team-code">0000</div></div><div class="waiting-buttons"><button class="btn-primary" id="go-lobby-btn">ロビ�Eに入めEↁE/button><button class="btn-secondary" id="back-team-btn">ↁE戻めE/button></div></div></div>
-  <div id="lobby-screen"><div class="lobby-header"><div><div class="team-name" id="lobby-team-name">チ�Eム吁E/div><div style="color:rgba(255,255,255,.5)" id="lobby-team-id">#0000</div></div><div style="text-align:right"><div style="color:rgba(255,255,255,.6)">参加老E/div><div style="font-family:Orbitron;font-size:1.5rem"><span id="lobby-current">1</span>/<span id="lobby-max">5</span>吁E/div></div></div><div class="lobby-status" id="lobby-status"><h3>メンバ�E征E��中...</h3><p>全員揁E��たら役割を選べまぁE/p></div><div class="role-grid" id="role-grid"></div><div style="background:rgba(20,30,50,.95);border:1px solid rgba(255,255,255,.2);padding:15px;border-radius:8px"><h4 style="color:rgba(255,255,255,.6);margin-bottom:10px">メンバ�E状況E/h4><div class="member-badges" id="member-badges"></div></div><div class="lobby-footer"><button class="btn-secondary" id="lobby-back-btn">ↁE戻めE/button><button class="btn-primary" id="game-start-btn" disabled>準備完亁E��征E��てぁE��ぁE..</button></div><button class="test-btn" id="test-start-btn">🔧 チE��ト！E人でゲーム開姁E/button><button id="admin-btn">⚙︁E管琁E��面</button></div>
-  <div id="hud"><div class="hud-panel"><h3>残り時間</h3><div id="timer" class="hud-value">20:00</div></div><div class="hud-panel"><h3>暴走レベル</h3><div id="rampage-level" class="hud-value">30%</div><div class="rampage-bar"><div class="rampage-bar-inner" style="width:30%"></div></div></div><div class="hud-panel"><h3>スコア</h3><div id="score-display" class="hud-value">0</div></div><div class="hud-panel" id="team-mode-panel" style="background:rgba(10,10,20,.7);border-color:rgba(255,255,255,.3)"><h3>チ�Eム</h3><div id="team-mode" class="hud-value" style="font-size:1rem;color:#ffa500">-人</div></div></div>
-  <div id="robot-status"><h4>🤁Eロボット状慁E/h4><div class="status-item" id="status-a"><span>制御盤A:</span><span>未解除</span></div><div class="status-item" id="status-b"><span>制御盤B:</span><span>未解除</span></div><div class="status-item" id="status-main"><span>主制御盤:</span><span>ロチE��中</span></div></div>
+  <div id="team-screen"><div class="team-container"><div class="tab-buttons"><button class="tab-btn active" data-tab="create">チーム作成</button><button class="tab-btn" data-tab="join">チーム参加</button></div><div class="tab-content active" id="tab-create"><div class="form-group"><label>チーム名</label><input type="text" id="team-name-input" placeholder="チーム名を入力" maxlength="10"></div><div class="form-group"><label>チーム人数</label><div class="member-select"><button class="member-btn" data-count="2">2人</button><button class="member-btn" data-count="3">3人</button><button class="member-btn" data-count="4">4人</button><button class="member-btn selected" data-count="5">5人</button></div></div><button class="btn-primary" id="create-team-btn">チーム作成</button></div><div class="tab-content" id="tab-join"><div class="form-group"><label>チーム番号（4桁）</label><input type="text" id="team-code-input" placeholder="0000" maxlength="4" style="font-size:2rem;letter-spacing:10px;font-family:Orbitron"></div><button class="btn-primary" id="join-team-btn">チーム参加</button></div></div></div>
+  <div id="waiting-screen"><div class="waiting-container"><h2 style="font-family:Orbitron;color:#00f5ff;margin-bottom:30px">待機室</h2><div><label style="color:rgba(255,255,255,.6)">チーム名</label><div id="waiting-team-name" style="font-size:1.2rem">-</div></div><div style="margin-top:15px"><label style="color:rgba(255,255,255,.6)">チーム人数</label><div id="waiting-team-size">-</div></div><div class="team-code-display"><label style="color:#00f5ff">チーム番号</label><div class="code" id="waiting-team-code">0000</div></div><div class="waiting-buttons"><button class="btn-primary" id="go-lobby-btn">ロビーに入る →</button><button class="btn-secondary" id="back-team-btn">← 戻る</button></div></div></div>
+  <div id="lobby-screen"><div class="lobby-header"><div><div class="team-name" id="lobby-team-name">チーム名</div><div style="color:rgba(255,255,255,.5)" id="lobby-team-id">#0000</div></div><div style="text-align:right"><div style="color:rgba(255,255,255,.6)">参加者</div><div style="font-family:Orbitron;font-size:1.5rem"><span id="lobby-current">1</span>/<span id="lobby-max">5</span>名</div></div></div><div class="lobby-status" id="lobby-status"><h3>メンバー待機中...</h3><p>全員揃ったら役割を選べます</p></div><div class="role-grid"><div class="role-card" data-role="commander"><div class="role-icon commander">🎖️</div><div style="flex:1"><h4>指揮官</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">指揮・情報統合</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="rescue"><div class="role-icon rescue">🚑</div><div style="flex:1"><h4>レスキュー</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">救助・回復</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="scout"><div class="role-icon scout">🔍</div><div style="flex:1"><h4>情報員</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">探索・情報収集</p></div><div class="role-status">待機中</div></div></div><div style="background:rgba(20,30,50,.95);border:1px solid rgba(255,255,255,.2);padding:15px;border-radius:8px"><h4 style="color:rgba(255,255,255,.6);margin-bottom:10px">メンバー状況</h4><div class="member-badges" id="member-badges"></div></div><div class="lobby-footer"><button class="btn-secondary" id="lobby-back-btn">← 戻る</button><button class="btn-primary" id="game-start-btn" disabled>準備完了を待っています...</button></div><button class="test-btn" id="test-start-btn">🔧 テスト：1人でゲーム開始</button><button id="admin-btn">⚙️ 管理画面</button></div>
+  <div id="hud"><div class="hud-panel"><h3>残り時間</h3><div id="timer" class="hud-value">20:00</div></div><div class="hud-panel"><h3>暴走レベル</h3><div id="rampage-level" class="hud-value">30%</div><div class="rampage-bar"><div class="rampage-bar-inner" style="width:30%"></div></div></div><div class="hud-panel"><h3>スコア</h3><div id="score-display" class="hud-value">0</div></div><div class="hud-panel" id="team-mode-panel" style="background:rgba(10,10,20,.7);border-color:rgba(255,255,255,.3)"><h3>チーム</h3><div id="team-mode" class="hud-value" style="font-size:1rem;color:#ffa500">-人</div></div></div>
+  <div id="robot-status"><h4>🤖 ロボット状態</h4><div class="status-item" id="status-a"><span>制御盤A:</span><span>未解除</span></div><div class="status-item" id="status-b"><span>制御盤B:</span><span>未解除</span></div><div class="status-item" id="status-main"><span>主制御盤:</span><span>ロック中</span></div></div>
   <div id="bottom-hud"><div class="stats-panel"><div class="stat-item"><h4>救助</h4><div class="value"><span id="rescued">0</span>/<span id="rescue-total">6</span></div></div><div class="stat-item"><h4>復旧</h4><div class="value"><span id="recovery">0</span>/3</div></div><div class="stat-item"><h4>協力</h4><div class="value">+<span id="coop-score">0</span></div></div></div></div>
-  <div id="controls-help"><h4>操作方況E/h4><p><kbd>WASD</kbd> 移勁E/p><p><kbd>クリチE��</kbd> 視点ロチE��</p><p><kbd>E長押ぁE/kbd> アクション</p></div>
+  <div id="controls-help"><h4>操作方法</h4><p><kbd>WASD</kbd> 移動</p><p><kbd>クリック</kbd> 視点ロック</p><p><kbd>E長押し</kbd> アクション</p></div>
   <div id="interaction-prompt"></div>
-  <div id="result-screen">
-  <div class="result-particles" id="result-particles"></div>
-  <div class="result-container">
-    <h1 id="result-title">MISSION COMPLETE</h1>
-    <div class="result-subtitle" id="result-subtitle">RAMPAGE PROTOCOL</div>
-    <div class="result-rank" id="result-rank">S</div>
-    <div class="result-rank-label" id="result-rank-label">PERFECT CLEAR</div>
-    <div class="result-stats">
-      <div class="result-stat"><h4>FINAL SCORE</h4><div class="value" id="final-score">0</div></div>
-      <div class="result-stat"><h4>RESCUED</h4><div class="value" id="final-rescued">0/6</div></div>
-      <div class="result-stat"><h4>TEAMWORK</h4><div class="value" id="final-coop">+0</div></div>
-      <div class="result-stat"><h4>TIME LEFT</h4><div class="value" id="final-time">00:00</div></div>
-    </div>
-    <div class="result-buttons">
-      <button id="restart-btn">RETRY</button>
-      <button id="ranking-btn">RANKING</button>
-    </div>
-  </div>
-</div>
+  <div id="result-screen"><h1>MISSION COMPLETE</h1><div class="result-stats"><div class="result-stat"><h4>最終スコア</h4><div class="value" id="final-score">0</div></div><div class="result-stat"><h4>救助</h4><div class="value" id="final-rescued">0/6</div></div><div class="result-stat"><h4>協力</h4><div class="value" id="final-coop">+0</div></div><div class="result-stat"><h4>残り時間</h4><div class="value" id="final-time">00:00</div></div></div><div class="result-buttons"><button id="restart-btn">もう一度プレイ</button><button id="ranking-btn">🏆 ランキング表示</button></div></div>
   <div id="alert-overlay"></div>
   <div id="crosshair"></div>
-  <div id="minimap"><span id="minimap-title">🎖�E�E持E��官�EチE�E</span><canvas id="minimap-canvas"></canvas></div>
+  <div id="minimap"><span id="minimap-title">🎖️ 指揮官マップ</span><canvas id="minimap-canvas"></canvas></div>
   <div id="role-ability"></div>
-  <div class="coop-warning" id="coop-warning">⚠�E�Eあと1人忁E��E��E/div>
+  <div class="coop-warning" id="coop-warning">⚠️ あと1人必要！</div>
   <div id="mobile-controls">
     <div id="mobile-joystick"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
     <div id="mobile-camera"></div>
@@ -332,15 +272,15 @@
   <div id="admin-screen">
     <div class="admin-panel">
       <div class="admin-header">
-        <h2>📊 管琁E��面</h2>
-        <button id="admin-close-btn">✁E閉じめE/button>
+        <h2>📊 管理画面</h2>
+        <button id="admin-close-btn">✕ 閉じる</button>
       </div>
       <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="progress">進捗状況E/button>
+        <button class="admin-tab active" data-tab="progress">進捗状況</button>
         <button class="admin-tab" data-tab="ranking">ランキング</button>
       </div>
       <div class="admin-content" id="progress-tab">
-        <h3>🎮 全チ�Eム進捗状況E/h3>
+        <h3>🎮 全チーム進捗状況</h3>
         <div id="teams-progress"></div>
       </div>
       <div class="admin-content" id="ranking-tab" style="display:none">
@@ -349,28 +289,28 @@
       </div>
       <div class="admin-footer">
         <button id="admin-refresh-btn">🔄 更新</button>
-        <button id="admin-reset-btn">⚠�E�E全チE�EタリセチE��</button>
+        <button id="admin-reset-btn">⚠️ 全データリセット</button>
       </div>
     </div>
   </div>
   <div id="password-modal">
     <div class="password-box">
-      <h3>🔒 パスワード�E劁E/h3>
-      <input type="password" id="admin-password" placeholder="パスワードを入劁E>
+      <h3>🔒 パスワード入力</h3>
+      <input type="password" id="admin-password" placeholder="パスワードを入力">
       <div class="password-buttons">
-        <button id="password-submit">確誁E/button>
+        <button id="password-submit">確認</button>
         <button id="password-cancel">キャンセル</button>
       </div>
-      <div id="password-error" style="color:#ff4444;font-size:.8rem;margin-top:10px;display:none">パスワードが違いまぁE/div>
+      <div id="password-error" style="color:#ff4444;font-size:.8rem;margin-top:10px;display:none">パスワードが違います</div>
     </div>
   </div>
   <div id="code-input-modal">
     <div class="code-input-panel">
-      <h3 id="code-panel-title">制御盤 A - コード�E劁E/h3>
+      <h3 id="code-panel-title">制御盤 A - コード入力</h3>
       <div id="code-display"></div>
       <div id="code-buttons"></div>
       <div class="code-action-btns">
-        <button id="code-submit">決宁E/button>
+        <button id="code-submit">決定</button>
         <button id="code-clear">クリア</button>
         <button id="code-cancel">キャンセル</button>
       </div>
@@ -419,44 +359,44 @@ var G = {
 // ============================================
 // Difficulty Scaling System
 // ============================================
-// 目樁E 2人でめE人でめE5-20刁E��クリアできる難易度
+// 目標: 2人でも5人でも15-20分でクリアできる難易度
 
 var DifficultyConfig = {
-  // 基準値�E�E人プレイを基準！E
+  // 基準値（3人プレイを基準）
   basePlayerCount: 3,
 
-  // 人数別の暴走レベル上�E倍率
-  // 人数が少なぁEↁE暴走が遅ぁE��時間に余裕！E
-  // 人数が多い ↁE暴走が速い�E��E拁E��て効玁E��忁E��E��E
+  // 人数別の暴走レベル上昇倍率
+  // 人数が少ない → 暴走が遅い（時間に余裕）
+  // 人数が多い → 暴走が速い（分担して効率化必要）
   rampageMultiplier: {
-    1: 0.5,   // チE��ト用
-    2: 0.75,  // 2人: 暴走遁E��
-    3: 1.0,   // 3人: 基溁E
-    4: 1.1,   // 4人: めE��速い�E�調整�E�E
-    5: 1.2    // 5人: 速い�E�調整�E�E
+    1: 0.5,   // テスト用
+    2: 0.75,  // 2人: 暴走遅め
+    3: 1.0,   // 3人: 基準
+    4: 1.1,   // 4人: やや速い（調整）
+    5: 1.2    // 5人: 速い（調整）
   },
 
   // 人数別のインタラクション時間倍率
-  // 人数が少なぁEↁE操作が速い�E�E人で褁E��対応！E
-  // 人数が多い ↁE操作が遁E���E��E拁E��提！E
+  // 人数が少ない → 操作が速い（1人で複数対応）
+  // 人数が多い → 操作が遅い（分担前提）
   interactionMultiplier: {
-    1: 0.5,   // チE��ト用
-    2: 0.8,   // 2人: めE��速い
-    3: 1.0,   // 3人: 基溁E
-    4: 1.1,   // 4人: めE��遁E���E�調整�E�E
-    5: 1.15   // 5人: めE��遁E���E�調整�E�E
+    1: 0.5,   // テスト用
+    2: 0.8,   // 2人: やや速い
+    3: 1.0,   // 3人: 基準
+    4: 1.1,   // 4人: やや遅い（調整）
+    5: 1.15   // 5人: やや遅い（調整）
   },
 
-  // 人数別の忁E��協力人数�E�主制御盤�E�E
+  // 人数別の必要協力人数（主制御盤）
   requiredCoopPlayers: {
-    1: 1,     // チE��ト用
-    2: 2,     // 2人: 2人忁E��E
-    3: 2,     // 3人: 2人忁E��E
-    4: 3,     // 4人: 3人忁E��E
-    5: 3      // 5人: 3人忁E��E
+    1: 1,     // テスト用
+    2: 2,     // 2人: 2人必要
+    3: 2,     // 3人: 2人必要
+    4: 3,     // 4人: 3人必要
+    5: 3      // 5人: 3人必要
   },
 
-  // 初期暴走レベル�E�人数が多いほど高めスタート！E
+  // 初期暴走レベル（人数が多いほど高めスタート）
   initialRampage: {
     1: 20,
     2: 25,
@@ -466,14 +406,14 @@ var DifficultyConfig = {
   }
 };
 
-// 現在の難易度設定を取征E
+// 現在の難易度設定を取得
 function getDifficultySettings() {
   var playerCount = myData.teamSize || 1;
-  // 実際のプレイヤー数をカウント（接続中のプレイヤー�E�E
+  // 実際のプレイヤー数をカウント（接続中のプレイヤー）
   var actualPlayers = 1 + Object.keys(otherPlayers).length;
-  // より大きい方を使用�E�途中参加を老E�E�E�E
+  // より大きい方を使用（途中参加を考慮）
   playerCount = Math.max(playerCount, actualPlayers);
-  // 篁E��めE-5に制陁E
+  // 範囲を1-5に制限
   playerCount = Math.max(1, Math.min(5, playerCount));
 
   return {
@@ -485,24 +425,24 @@ function getDifficultySettings() {
   };
 }
 
-// 暴走レベルの上�E玁E��計算（人数補正込み�E�E
+// 暴走レベルの上昇率を計算（人数補正込み）
 function calculateRampageIncrease(delta, currentRampage) {
   var settings = getDifficultySettings();
-  // 基本上�E玁E��E5-20刁E��リア目標！E
+  // 基本上昇率（15-20分クリア目標）
   var baseRate = 0.055 + currentRampage * 0.0004;
   return delta * baseRate * settings.rampageMultiplier;
 }
 
-// インタラクション速度を計算（役割�E�人数補正�E�E
+// インタラクション速度を計算（役割＋人数補正）
 function calculateInteractionSpeed(isRescue) {
   var settings = getDifficultySettings();
   var abilities = getRoleAbilities();
 
-  // 基本速度�E�低めに設定して救助に時間がかかるように�E�E
+  // 基本速度（低めに設定して救助に時間がかかるように）
   var baseSpeed = 2.5;
-  // 人数補正�E�人数が多いほど遁E��なる！E
+  // 人数補正（人数が多いほど遅くなる）
   var adjustedSpeed = baseSpeed / settings.interactionMultiplier;
-  // 役割補正�E�レスキューは救助が速い�E�E
+  // 役割補正（レスキューは救助が速い）
   if (isRescue && abilities.rescueSpeedMultiplier) {
     adjustedSpeed *= abilities.rescueSpeedMultiplier;
   }
@@ -543,35 +483,35 @@ var positionUpdateInterval = null;
 var POSITION_SYNC_INTERVAL = 200; // ms
 
 // ============================================
-// 制御盤コードシスチE��
+// 制御盤コードシステム
 // ============================================
 
 // 色コード選択肢
-var COLOR_CODES = ['赤', '靁E, '緁E, '黁E];
-var COLOR_HEX = { '赤': 0xff3333, '靁E: 0x3333ff, '緁E: 0x33ff33, '黁E: 0xffff33 };
+var COLOR_CODES = ['赤', '青', '緑', '黄'];
+var COLOR_HEX = { '赤': 0xff3333, '青': 0x3333ff, '緑': 0x33ff33, '黄': 0xffff33 };
 
-// 制御盤の正解コード（ゲーム開始時にランダム生�E�E�E
+// 制御盤の正解コード（ゲーム開始時にランダム生成）
 var panelCodes = {
-  A: [], // 3色コーチE
-  B: [], // 3色コーチE
-  main: [] // 4桁数孁E
+  A: [], // 3色コード
+  B: [], // 3色コード
+  main: [] // 4桁数字
 };
 
-// コード生戁E
+// コード生成
 function generatePanelCodes() {
-  // Panel A: 3色コード（例：青-赤-緑！E
+  // Panel A: 3色コード（例：青-赤-緑）
   panelCodes.A = [
     COLOR_CODES[Math.floor(Math.random() * 4)],
     COLOR_CODES[Math.floor(Math.random() * 4)],
     COLOR_CODES[Math.floor(Math.random() * 4)]
   ];
-  // Panel B: 3色コーチE
+  // Panel B: 3色コード
   panelCodes.B = [
     COLOR_CODES[Math.floor(Math.random() * 4)],
     COLOR_CODES[Math.floor(Math.random() * 4)],
     COLOR_CODES[Math.floor(Math.random() * 4)]
   ];
-  // Main Panel: 4桁数字！E-9のみ使用�E�E
+  // Main Panel: 4桁数字（1-9のみ使用）
   panelCodes.main = [
     Math.floor(Math.random() * 9) + 1,
     Math.floor(Math.random() * 9) + 1,
@@ -580,83 +520,28 @@ function generatePanelCodes() {
   ];
 }
 
-// シード付きコード生成（チームコードを種として使用�E�E
-// 全プレイヤーが同じチームコードを持つので、同じコードが生�EされめE
-function generatePanelCodesFromSeed(seed) {
-  // 簡易シード乱数生�E器�E�Eulberry32�E�E
-  var seedNum = 0;
-  for (var i = 0; i < seed.length; i++) {
-    seedNum = seedNum * 31 + seed.charCodeAt(i);
-  }
-  function seededRandom() {
-    seedNum |= 0; seedNum = seedNum + 0x6D2B79F5 | 0;
-    var t = Math.imul(seedNum ^ seedNum >>> 15, 1 | seedNum);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-  // Panel A: 3色コーチE
-  panelCodes.A = [
-    COLOR_CODES[Math.floor(seededRandom() * 4)],
-    COLOR_CODES[Math.floor(seededRandom() * 4)],
-    COLOR_CODES[Math.floor(seededRandom() * 4)]
-  ];
-  // Panel B: 3色コーチE
-  panelCodes.B = [
-    COLOR_CODES[Math.floor(seededRandom() * 4)],
-    COLOR_CODES[Math.floor(seededRandom() * 4)],
-    COLOR_CODES[Math.floor(seededRandom() * 4)]
-  ];
-  // Main Panel: 4桁数字！E-9のみ使用�E�E
-  panelCodes.main = [
-    Math.floor(seededRandom() * 9) + 1,
-    Math.floor(seededRandom() * 9) + 1,
-    Math.floor(seededRandom() * 9) + 1,
-    Math.floor(seededRandom() * 9) + 1
-  ];
-  console.log('Generated codes from seed "' + seed + '":', JSON.stringify(panelCodes));
-}
-
-
-// ヒント生成（コードに基づぁE��動的に生�E�E�E
-// 全ヒント�Eール�E�E3つ + B3つ + Main4つ = 10個！E
-function generateAllHints() {
-  return [
-    { panel: 'A', hint: '制御盤Aの1番目は、E + panelCodes.A[0] + '」だ...' },
-    { panel: 'A', hint: '制御盤Aの2番目は、E + panelCodes.A[1] + '、E..' },
-    { panel: 'A', hint: '制御盤Aの最後�E、E + panelCodes.A[2] + '」で終わめE },
-    { panel: 'B', hint: '制御盤Bの1番目は、E + panelCodes.B[0] + '」だ...' },
-    { panel: 'B', hint: '制御盤Bの2番目は、E + panelCodes.B[1] + '、E..' },
-    { panel: 'B', hint: '制御盤Bの最後�E、E + panelCodes.B[2] + '」だった�EぁE },
-    { panel: 'main', hint: '緊急停止コード�E最初�E、E + panelCodes.main[0] + '」だった気がする...' },
-    { panel: 'main', hint: '緊急停止コード�E2番目は、E + panelCodes.main[1] + '、E..' },
-    { panel: 'main', hint: '緊急停止コード�E3番目は、E + panelCodes.main[2] + '」だったよぁE��...' },
-    { panel: 'main', hint: '緊急停止コード�E最後�E、E + panelCodes.main[3] + '」だ�E�E }
-  ];
-}
-
-// 救助NPCからのヒント（レスキューが救助完亁E��に取得！E
-// A1つ、B1つ、Main2つ = 訁Eつ�E�残り2人はヒントなし！E
+// ヒント生成（コードに基づいて動的に生成）
+// 救助NPCからのヒント（レスキューが救助完了時に取得）
 function generateRescueHints() {
   return [
-    { panel: 'A', hint: '制御盤Aの1番目は、E + panelCodes.A[0] + '」だ...' },
-    { panel: 'B', hint: '制御盤Bの1番目は、E + panelCodes.B[0] + '」だ...' },
-    { panel: 'main', hint: '緊急停止コード�E最初�E、E + panelCodes.main[0] + '」だった気がする...' },
-    { panel: 'main', hint: '緊急停止コード�E2番目は、E + panelCodes.main[1] + '、E..' },
-    null, // ヒントなし（救助のみ�E�E
-    null  // ヒントなし（救助のみ�E�E
+    // Panel A のヒント（3人のNPCに分散）
+    { panel: 'A', hint: '制御盤Aの1番目は「' + panelCodes.A[0] + '」だ...' },
+    { panel: 'A', hint: '制御盤Aの2番目は「' + panelCodes.A[1] + '」...' },
+    { panel: 'A', hint: '制御盤Aの最後は「' + panelCodes.A[2] + '」で終わる' },
+    // Panel B のヒント（3人のNPCに分散）
+    { panel: 'B', hint: '制御盤Bの1番目は「' + panelCodes.B[0] + '」だ...' },
+    { panel: 'B', hint: '制御盤Bの2番目は「' + panelCodes.B[1] + '」...' },
+    { panel: 'B', hint: '制御盤Bの最後は「' + panelCodes.B[2] + '」だったはず' }
   ];
 }
 
-// 邪魔なNPCからのヒント（情報員が会話で取得！E
-// A2つ、B2つ、Main2つ = 訁Eつ
+// 邪魔なNPCからのヒント（情報員が会話で取得）
 function generateDistractionHints() {
   return [
-    { panel: 'A', hint: '制御盤Aの2番目は、E + panelCodes.A[1] + '、E..' },
-    { panel: 'A', hint: '制御盤Aの最後�E、E + panelCodes.A[2] + '」で終わめE },
-    { panel: 'B', hint: '制御盤Bの2番目は、E + panelCodes.B[1] + '、E..' },
-    { panel: 'B', hint: '制御盤Bの最後�E、E + panelCodes.B[2] + '」だった�EぁE },
-    { panel: 'main', hint: '緊急停止コード�E3番目は、E + panelCodes.main[2] + '」だったよぁE��...' },
-    { panel: 'main', hint: '緊急停止コード�E最後�E、E + panelCodes.main[3] + '」だ�E�E }
+    { panel: 'main', hint: '緊急停止コードの最初は「' + panelCodes.main[0] + '」だった気がする...' },
+    { panel: 'main', hint: '緊急停止コードの2番目は「' + panelCodes.main[1] + '」...' },
+    { panel: 'main', hint: '緊急停止コードの3番目は「' + panelCodes.main[2] + '」だったような...' },
+    { panel: 'main', hint: '緊急停止コードの最後は「' + panelCodes.main[3] + '」だ！' }
   ];
 }
 
@@ -665,8 +550,8 @@ function generateHints() {
   return generateRescueHints();
 }
 
-// NPC Data - 救助対象�E�ヒントを持ってぁE���E�E
-// ヒント�Eゲーム開始時に動的に割り当て
+// NPC Data - 救助対象（ヒントを持っている）
+// ヒントはゲーム開始時に動的に割り当て
 var rescueNpcData = [
   { x: -30, z: -15, type: 'standing', hintIndex: 0 },
   { x: 30, z: -15, type: 'standing', hintIndex: 1 },
@@ -676,31 +561,31 @@ var rescueNpcData = [
   { x: 15, z: -35, type: 'fallen', hintIndex: 5 }
 ];
 
-// 役割別のNPC応答メチE��ージ
+// 役割別のNPC応答メッセージ
 var npcResponseByRole = {
-  noRole: 'ぁE..助けて...�E�情報員を呼んで詳しく聞いてもらって�E�E,
-  commander: '持E��官さん！レスキューを呼んでください...惁E��なら情報員に...',
-  rescue: 'レスキューさん�E�助かっぁE..でも情報は惁E��員に聞いて...',
-  scout: null // 惁E��員は特別処琁E��ヒントを表示�E�E
+  noRole: 'う...助けて...（情報員を呼んで詳しく聞いてもらって）',
+  commander: '指揮官さん！レスキューを呼んでください...情報なら情報員に...',
+  rescue: 'レスキューさん！助かった...でも情報は情報員に聞いて...',
+  scout: null // 情報員は特別処理（ヒントを表示）
 };
 
-// 邪魔な研究員のセリフ（救助不要、話しかけるとセリフを言ぁE��け！E
+// 邪魔な研究員のセリフ（救助不要、話しかけるとセリフを言うだけ）
 var distractionDialogues = [
-  'ロボットが暴走してる！早く何とかしてくれ�E�E,
-  '私�E大丈夫だから、他�E人を助けて�E�E,
-  'こんな時に限って...チE�EタのバックアチE�EぁE..',
-  '制御室はあっちの方だったよぁE��...',
-  '怖い怖い怖い�E�でも送E��られなぁE��E,
-  '誰か�E�E�助けてー�E�E..あ、君か。私�E平気だめE,
-  'シスチE��エラー発生中...手動で対処しなぁE��',
-  '非常口はどこだ�E�！E..ぁE��、まず止めなぁE��',
-  'マニュアル通りにめE��ば...マニュアルどこだっぁE,
-  '博士の研究が台無しになる前に何とぁE..',
-  '電源を落とせ�E止まる？いめE��それじめE��メだ',
-  '冷却シスチE��ぁE..ぁE��、今�EそれどころじゃなぁE,
-  'あ�Eロボット、昨日まで普通だった�Eに...',
-  '警報がうるさぁE��E��中できなぁE��E,
-  '避難�E�いめE��ここで何とかしなぁE���E�E
+  'ロボットが暴走してる！早く何とかしてくれ！',
+  '私は大丈夫だから、他の人を助けて！',
+  'こんな時に限って...データのバックアップが...',
+  '制御室はあっちの方だったような...',
+  '怖い怖い怖い！でも逃げられない！',
+  '誰かー！助けてー！...あ、君か。私は平気だよ',
+  'システムエラー発生中...手動で対処しないと',
+  '非常口はどこだ？！...いや、まず止めないと',
+  'マニュアル通りにやれば...マニュアルどこだっけ',
+  '博士の研究が台無しになる前に何とか...',
+  '電源を落とせば止まる？いや、それじゃダメだ',
+  '冷却システムが...いや、今はそれどころじゃない',
+  'あのロボット、昨日まで普通だったのに...',
+  '警報がうるさい！集中できない！',
+  '避難？いや、ここで何とかしないと！'
 ];
 
 // 邪魔な研究員の配置候補位置
@@ -712,11 +597,11 @@ var distractionPositions = [
   { x: -10, z: 40 }, { x: 10, z: 40 }, { x: -30, z: 40 }
 ];
 
-// チ�Eム人数に応じた邪魔な研究員の数
-// 邪魔なNPCの数�E�大人数でも多すぎなぁE��ぁE��調整�E�E
+// チーム人数に応じた邪魔な研究員の数
+// 邪魔なNPCの数（大人数でも多すぎないように調整）
 var distractionCountByTeamSize = { 1: 2, 2: 4, 3: 5, 4: 6, 5: 7 };
 
-// 実際のNPCチE�Eタ�E�ゲーム開始時に生�E�E�E
+// 実際のNPCデータ（ゲーム開始時に生成）
 var npcData = [];
 
 // ============================================
@@ -749,39 +634,35 @@ function showBonus(t, c) {
 }
 
 function getRoleName(r) {
-  // スロチE��番号を除去して基本役割名を取征E
-  var base = r && r.includes('_') ? r.split('_')[0] : r;
-  return { commander: '持E��宁E, rescue: 'レスキュー', scout: '惁E��員' }[base] || r;
+  return { commander: '指揮官', rescue: 'レスキュー', scout: '情報員' }[r] || r;
 }
 
 function getRoleColor(role) {
-  // スロチE��番号を除去して基本役割を取征E
-  var base = role && role.includes('_') ? role.split('_')[0] : role;
   return {
     commander: 0xffa500, // オレンジ
-    rescue: 0x00ff88,    // 緁E
+    rescue: 0x00ff88,    // 緑
     scout: 0x00f5ff      // シアン
-  }[base] || 0xffffff;
+  }[role] || 0xffffff;
 }
 
 // ============================================
 // Multiplayer System
 // ============================================
 
-// マイクラ風キャラクター作�E�E��E通関数�E�E
+// マイクラ風キャラクター作成（共通関数）
 function createMinecraftCharacter(bodyColor, skinColor, hasHelmet) {
   var group = new THREE.Group();
 
   var bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor });
   var skinMat = new THREE.MeshStandardMaterial({ color: skinColor });
 
-  // 頭�E�大きめの四角！E
+  // 頭（大きめの四角）
   var head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), skinMat);
   head.position.y = 1.65;
   head.castShadow = true;
   group.add(head);
 
-  // 目�E�白目�E�E
+  // 目（白目）
   var eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   var eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.05), eyeWhiteMat);
   eyeLeft.position.set(-0.12, 1.68, 0.26);
@@ -790,7 +671,7 @@ function createMinecraftCharacter(bodyColor, skinColor, hasHelmet) {
   eyeRight.position.set(0.12, 1.68, 0.26);
   group.add(eyeRight);
 
-  // 目�E�黒目�E�E
+  // 目（黒目）
   var eyeBlackMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
   var pupilLeft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.06), eyeBlackMat);
   pupilLeft.position.set(-0.1, 1.68, 0.28);
@@ -799,7 +680,7 @@ function createMinecraftCharacter(bodyColor, skinColor, hasHelmet) {
   pupilRight.position.set(0.14, 1.68, 0.28);
   group.add(pupilRight);
 
-  // ヘルメチE���E�役職あり用�E�E
+  // ヘルメット（役職あり用）
   if (hasHelmet) {
     var helmetMat = new THREE.MeshStandardMaterial({ color: bodyColor, transparent: true, opacity: 0.7 });
     var helmet = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.3, 0.56), helmetMat);
@@ -807,13 +688,13 @@ function createMinecraftCharacter(bodyColor, skinColor, hasHelmet) {
     group.add(helmet);
   }
 
-  // 佁E
+  // 体
   var body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.65, 0.28), bodyMat);
   body.position.y = 1.05;
   body.castShadow = true;
   group.add(body);
 
-  // 左腁E
+  // 左腕
   var armGroup1 = new THREE.Group();
   var arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.6, 0.18), bodyMat);
   arm1.position.y = -0.3;
@@ -822,7 +703,7 @@ function createMinecraftCharacter(bodyColor, skinColor, hasHelmet) {
   group.add(armGroup1);
   group.leftArm = armGroup1;
 
-  // 右腁E
+  // 右腕
   var armGroup2 = new THREE.Group();
   var arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.6, 0.18), bodyMat);
   arm2.position.y = -0.3;
@@ -852,14 +733,14 @@ function createMinecraftCharacter(bodyColor, skinColor, hasHelmet) {
   return group;
 }
 
-// プレイヤーアバターを作�E
+// プレイヤーアバターを作成
 function createPlayerAvatar(playerId, role, name) {
   var color = getRoleColor(role);
   var skinColor = 0xffdbac;
 
   var group = createMinecraftCharacter(color, skinColor, true);
 
-  // ネ�Eムプレート用のライト（目印�E�E
+  // ネームプレート用のライト（目印）
   var light = new THREE.PointLight(color, 1, 8);
   light.position.y = 2.2;
   group.add(light);
@@ -883,16 +764,16 @@ function createPlayerAvatar(playerId, role, name) {
   return group;
 }
 
-// 他�Eレイヤーのアバターを更新
+// 他プレイヤーのアバターを更新
 function updateOtherPlayerAvatars(delta) {
   for (var id in otherPlayers) {
     var p = otherPlayers[id];
     if (p.mesh) {
-      // 位置の補間�E�スムーズな移動！E
+      // 位置の補間（スムーズな移動）
       var oldPos = p.mesh.position.clone();
       p.mesh.position.lerp(p.targetPos, Math.min(1, delta * 10));
 
-      // 移動してぁE��かチェチE���E�歩行アニメーション用�E�E
+      // 移動しているかチェック（歩行アニメーション用）
       var moveSpeed = oldPos.distanceTo(p.mesh.position);
       var isMoving = moveSpeed > 0.01;
 
@@ -905,7 +786,7 @@ function updateOtherPlayerAvatars(delta) {
         p.mesh.leftLeg.rotation.x = -swing * 0.6;
         p.mesh.rightLeg.rotation.x = swing * 0.6;
       } else if (p.mesh.leftArm && p.mesh.rightArm) {
-        // 停止時�Eアイドル姿勢に戻ぁE
+        // 停止時はアイドル姿勢に戻す
         p.mesh.leftArm.rotation.x *= 0.9;
         p.mesh.rightArm.rotation.x *= 0.9;
         p.mesh.leftLeg.rotation.x *= 0.9;
@@ -916,7 +797,7 @@ function updateOtherPlayerAvatars(delta) {
       var targetRotY = p.targetYaw + Math.PI; // 向きを反転
       var currentRotY = p.mesh.rotation.y;
       var diff = targetRotY - currentRotY;
-      // 角度の差めEPI~PIに正規化
+      // 角度の差を-PI~PIに正規化
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
       p.mesh.rotation.y += diff * Math.min(1, delta * 10);
@@ -924,7 +805,7 @@ function updateOtherPlayerAvatars(delta) {
   }
 }
 
-// 自刁E�E位置をSupabaseに送信
+// 自分の位置をSupabaseに送信
 async function sendPositionUpdate() {
   if (!G.playing || !myData.playerId) return;
   try {
@@ -940,7 +821,7 @@ async function sendPositionUpdate() {
   }
 }
 
-// ゲーム中のリアルタイム購読を開姁E
+// ゲーム中のリアルタイム購読を開始
 function subscribeToGame() {
   // プレイヤー位置の購読
   gameSubscription = db.channel('game-' + myData.teamId)
@@ -952,7 +833,7 @@ function subscribeToGame() {
     }, function(payload) {
       var p = payload.new;
       if (!p) return;
-      // 自刁E��外�Eプレイヤーの位置を更新
+      // 自分以外のプレイヤーの位置を更新
       if (p.id !== myData.playerId) {
         if (!otherPlayers[p.id] && scene) {
           createPlayerAvatar(p.id, p.role, p.name);
@@ -970,7 +851,7 @@ function subscribeToGame() {
       filter: 'team_id=eq.' + myData.teamId
     }, function(payload) {
       var gs = payload.new;
-      // ゲーム状態を同期�E��E刁E��リーダーでなぁE��合�Eみ受信�E�E
+      // ゲーム状態を同期（自分がリーダーでない場合のみ受信）
       if (!myData.isLeader) {
         syncFromGameState(gs);
       }
@@ -993,13 +874,13 @@ function subscribeToGame() {
     .subscribe(function(status) {
       console.log('Game subscription status:', status);
       if (status === 'SUBSCRIBED') {
-        // 購読開始後に他�Eレイヤーを�E読み込み
+        // 購読開始後に他プレイヤーを再読み込み
         setTimeout(loadOtherPlayers, 500);
       }
     });
 }
 
-// 定期皁E��他�Eレイヤーを�EチェチE���E�E秒ごと�E�E
+// 定期的に他プレイヤーを再チェック（5秒ごと）
 var playerRefreshInterval = null;
 function startPlayerRefresh() {
   if (playerRefreshInterval) return;
@@ -1010,21 +891,31 @@ function startPlayerRefresh() {
   }, 5000);
 }
 
-// ゲーム状態をSupabaseに送信�E�リーダーのみ�E�E
+// ゲーム状態をSupabaseに送信（リーダーのみ）
 async function syncGameStateToServer() {
-  // game_statesチE�Eブルの同期は現在無効化！EB設定が忁E��E��E
-  // 代わりにリアルタイムチャンネルでの同期を検訁E
-  return;
+  if (!myData.isLeader || !myData.teamId) return;
+  try {
+    await db.from('game_states').update({
+      time_remaining: Math.floor(G.time),
+      rampage_level: Math.floor(G.rampage),
+      score: G.score,
+      panel_a: G.panelA,
+      panel_b: G.panelB,
+      panel_main: G.panelMain
+    }).eq('team_id', myData.teamId);
+  } catch (e) {
+    console.error('ゲーム状態送信エラー:', e);
+  }
 }
 
-// サーバ�Eからゲーム状態を受信して適用
+// サーバーからゲーム状態を受信して適用
 function syncFromGameState(gs) {
   if (!gs) return;
   G.time = gs.time_remaining || G.time;
   G.rampage = gs.rampage_level || G.rampage;
   G.score = gs.score || G.score;
 
-  // パネル状態�E同期
+  // パネル状態の同期
   if (gs.panel_a && !G.panelA) {
     G.panelA = true;
     panels.forEach(function(p) {
@@ -1035,7 +926,7 @@ function syncFromGameState(gs) {
     });
     lShoulderLight.material.color.setHex(0x00aaff);
     document.getElementById('status-a').classList.add('done');
-    document.getElementById('status-a').querySelector('span:last-child').textContent = '解除渁E;
+    document.getElementById('status-a').querySelector('span:last-child').textContent = '解除済';
   }
   if (gs.panel_b && !G.panelB) {
     G.panelB = true;
@@ -1047,7 +938,7 @@ function syncFromGameState(gs) {
     });
     rShoulderLight.material.color.setHex(0x00aaff);
     document.getElementById('status-b').classList.add('done');
-    document.getElementById('status-b').querySelector('span:last-child').textContent = '解除渁E;
+    document.getElementById('status-b').querySelector('span:last-child').textContent = '解除済';
   }
   if (gs.panel_main && !G.panelMain) {
     G.panelMain = true;
@@ -1058,13 +949,13 @@ function syncFromGameState(gs) {
       }
     });
     document.getElementById('status-main').classList.add('done');
-    document.getElementById('status-main').querySelector('span:last-child').textContent = '解除渁E;
+    document.getElementById('status-main').querySelector('span:last-child').textContent = '解除済';
   }
 
   updateGameUI();
 }
 
-// NPC救助状態をサーバ�Eに送信
+// NPC救助状態をサーバーに送信
 async function syncNpcRescue(npcIndex) {
   if (!myData.teamId) return;
   try {
@@ -1077,7 +968,7 @@ async function syncNpcRescue(npcIndex) {
   }
 }
 
-// 他�Eレイヤーの初期読み込み
+// 他プレイヤーの初期読み込み
 async function loadOtherPlayers() {
   if (!myData.teamId) return;
   try {
@@ -1102,7 +993,7 @@ async function loadOtherPlayers() {
       });
     }
   } catch (e) {
-    console.error('他�Eレイヤー読み込みエラー:', e);
+    console.error('他プレイヤー読み込みエラー:', e);
   }
 }
 
@@ -1241,25 +1132,25 @@ function updateNPCWalking(delta, rampageLevel) {
   npcs.forEach(function(npc) {
     if (!npc.canWalk) return;
 
-    // 救助対象は救助後、E��魔な研究員は話しかけ後も歩行継綁E
+    // 救助対象は救助後、邪魔な研究員は話しかけ後も歩行継続
     var isCalm = npc.needsRescue ? npc.rescued : npc.talked;
 
-    // パニチE��レベルを暴走レベルに応じて設定（落ち着ぁE��NPCはパニチE��なし！E
+    // パニックレベルを暴走レベルに応じて設定（落ち着いたNPCはパニックなし）
     npc.panicLevel = isCalm ? 0 : Math.min(1, rampageLevel / 80);
 
-    var speed = npc.walkSpeed * (1 + npc.panicLevel * 2); // パニチE��時�E速く動く
-    var wanderRadius = 8 + npc.panicLevel * 15; // パニチE��時�E庁E��E��を動ぁE
+    var speed = npc.walkSpeed * (1 + npc.panicLevel * 2); // パニック時は速く動く
+    var wanderRadius = 8 + npc.panicLevel * 15; // パニック時は広範囲を動く
 
     if (!npc.isWalking) {
-      // 征E��中
+      // 待機中
       npc.walkTimer -= delta;
       if (npc.walkTimer <= 0) {
-        // 新しい目標地点を設宁E
+        // 新しい目標地点を設定
         var angle = Math.random() * Math.PI * 2;
         var dist = Math.random() * wanderRadius;
         npc.targetX = npc.homeX + Math.cos(angle) * dist;
         npc.targetZ = npc.homeZ + Math.sin(angle) * dist;
-        // 壁�E篁E��冁E��制陁E
+        // 壁の範囲内に制限
         npc.targetX = Math.max(-55, Math.min(55, npc.targetX));
         npc.targetZ = Math.max(-50, Math.min(50, npc.targetZ));
         npc.isWalking = true;
@@ -1273,9 +1164,9 @@ function updateNPCWalking(delta, rampageLevel) {
       if (dist < 0.5) {
         // 目標に到着
         npc.isWalking = false;
-        npc.walkTimer = 1 + Math.random() * 3 * (1 - npc.panicLevel); // パニチE��時�E休�E短ぁE
+        npc.walkTimer = 1 + Math.random() * 3 * (1 - npc.panicLevel); // パニック時は休憩短い
       } else {
-        // 移勁E
+        // 移動
         var moveX = (dx / dist) * speed * delta;
         var moveZ = (dz / dist) * speed * delta;
         npc.position.x += moveX;
@@ -1294,13 +1185,13 @@ function updateNPCWalking(delta, rampageLevel) {
       }
     }
 
-    // 征E��中のアニメーション�E�周りを見回す！E
+    // 待機中のアニメーション（周りを見回す）
     if (!npc.isWalking && npc.leftArm) {
       npc.leftArm.rotation.x *= 0.9;
       npc.rightArm.rotation.x *= 0.9;
       npc.leftLeg.rotation.x *= 0.9;
       npc.rightLeg.rotation.x *= 0.9;
-      // パニチE��時�E体を揺らす
+      // パニック時は体を揺らす
       if (npc.panicLevel > 0.3) {
         npc.rotation.y += Math.sin(npc.walkTime * 3) * 0.02 * npc.panicLevel;
       }
@@ -1323,18 +1214,18 @@ function updateParticles(delta) {
   }
 }
 
-// パネル解除エフェクチE
+// パネル解除エフェクト
 function playPanelEffect(panel) {
   createParticleEffect(panel.position.x, 3, panel.position.z, 0x00ff88, 30);
   playSound('panel');
 }
 
-// 救助エフェクチE
+// 救助エフェクト
 function playRescueEffect(npc) {
   createParticleEffect(npc.position.x, 1.5, npc.position.z, 0x00f5ff, 25);
   playSound('rescue');
   
-  // 救助後にNPCを立ち上がらせめE
+  // 救助後にNPCを立ち上がらせる
   if (npc.npcType === 'fallen') {
     npc.rotation.z = 0;
     npc.position.y = 0;
@@ -1359,48 +1250,39 @@ function playRescueEffect(npc) {
 var minimapCanvas, minimapCtx;
 var scoutLight = null;
 
-// スロチE��付き役割名から基本役割を抽出�E�侁E rescue_1 ↁErescue�E�E
-function getBaseRole(roleWithSlot) {
-  if (!roleWithSlot) return null;
-  if (roleWithSlot.includes('_')) {
-    return roleWithSlot.split('_')[0];
-  }
-  return roleWithSlot;
-}
-
-// 役割に応じた�E力を取征E
+// 役割に応じた能力を取得
 function getRoleAbilities() {
-  var role = getBaseRole(myData.role); // スロチE��番号を除去
+  var role = myData.role;
   var teamSize = myData.teamSize || 3;
 
-  // 2人モード�E特別処琁E
-  // 持E��宁Eレスキュー と 惁E��員 に刁E��れる
+  // 2人モードの特別処理
+  // 指揮官+レスキュー と 情報員 に分かれる
   var isTwoPlayerMode = teamSize <= 2;
 
   if (isTwoPlayerMode) {
     if (role === 'scout') {
-      // 惁E��員プレイヤー�E�情報収集全般を担彁E
+      // 情報員プレイヤー：情報収集全般を担当
       return {
         moveSpeedMultiplier: 1.3,
         rescueSpeedMultiplier: 1.0,
         canRescueFallenAlone: false,
         hasFlashlight: true,
         hasMinimap: false,
-        canGetHintsFromRescued: true,    // 救助済みNPCからヒント取征E
+        canGetHintsFromRescued: true,    // 救助済みNPCからヒント取得
         canTalkToDistraction: true,       // 邪魔な研究員と会話可能
         canOperatePanel: false,
         canRescueNpc: false,
         isDualRole: true
       };
     } else {
-      // 持E��宁Eレスキュープレイヤー�E�救助�E�制御盤拁E��E
+      // 指揮官/レスキュープレイヤー：救助＋制御盤担当
       return {
         moveSpeedMultiplier: 1.0,
         rescueSpeedMultiplier: 1.5,
         canRescueFallenAlone: true,
         hasFlashlight: false,
         hasMinimap: true,
-        canGetHintsFromRescued: false,   // ヒント�E惁E��員に任せる
+        canGetHintsFromRescued: false,   // ヒントは情報員に任せる
         canTalkToDistraction: false,
         canOperatePanel: true,
         canRescueNpc: true,
@@ -1409,25 +1291,25 @@ function getRoleAbilities() {
     }
   }
 
-  // 3人以上：通常の役割刁E��
+  // 3人以上：通常の役割分担
   return {
-    // 移動速度�E�情報員は1.3倍！E
+    // 移動速度（情報員は1.3倍）
     moveSpeedMultiplier: role === 'scout' ? 1.3 : 1.0,
-    // 救助速度�E�レスキューは2倍！E
+    // 救助速度（レスキューは2倍）
     rescueSpeedMultiplier: role === 'rescue' ? 2.0 : 1.0,
-    // 重傷老E��1人で救助可能�E�レスキューのみ�E�E
+    // 重傷者を1人で救助可能（レスキューのみ）
     canRescueFallenAlone: role === 'rescue',
-    // フラチE��ュライト（情報員�E�E
+    // フラッシュライト（情報員）
     hasFlashlight: role === 'scout',
-    // ミニマップ（指揮官！E
+    // ミニマップ（指揮官）
     hasMinimap: role === 'commander',
-    // 救助済みNPCからヒント取得可能�E�情報員のみ�E�E
+    // 救助済みNPCからヒント取得可能（情報員のみ）
     canGetHintsFromRescued: role === 'scout',
-    // 邪魔な研究員と会話可能�E�情報員のみ�E�E
+    // 邪魔な研究員と会話可能（情報員のみ）
     canTalkToDistraction: role === 'scout',
-    // 制御盤操作可能�E�指揮官�Eみ�E�E
+    // 制御盤操作可能（指揮官のみ）
     canOperatePanel: role === 'commander',
-    // NPC救助可能�E�レスキューのみ�E�E
+    // NPC救助可能（レスキューのみ）
     canRescueNpc: role === 'rescue',
     // 2人モードフラグ
     isDualRole: false
@@ -1448,25 +1330,25 @@ function showRoleAbilityUI() {
 
   var content = '';
   if (abilities.isDualRole) {
-    // 2人モーチE
+    // 2人モード
     if (role === 'scout') {
-      content = '<h4>🔍 惁E��員</h4><p>・移動速度1.3倁E/p><p>・フラチE��ュライト裁E��</p><p>・救助後NPCからヒント取征E/p><p>・研究員の確誁E/p>';
+      content = '<h4>🔍 情報員</h4><p>・移動速度1.3倍</p><p>・フラッシュライト装備</p><p>・救助後NPCからヒント取得</p><p>・研究員の確認</p>';
       createScoutFlashlight();
     } else {
-      content = '<h4>🎖�E�E持E��宁Eレスキュー</h4><p>・ミニマップ表示</p><p>・NPCを救助</p><p>・制御盤にコード�E劁E/p>';
+      content = '<h4>🎖️ 指揮官+レスキュー</h4><p>・ミニマップ表示</p><p>・NPCを救助</p><p>・制御盤にコード入力</p>';
       document.getElementById('minimap').style.display = 'block';
       initMinimap();
     }
   } else {
-    // 3人以上モーチE
+    // 3人以上モード
     if (role === 'commander') {
-      content = '<h4>🎖�E�E持E��宁E/h4><p>・ミニマップ表示</p><p>・制御盤にコード�E劁E/p><p>・チ�Eム全体を持E��</p>';
+      content = '<h4>🎖️ 指揮官</h4><p>・ミニマップ表示</p><p>・制御盤にコード入力</p><p>・チーム全体を指揮</p>';
       document.getElementById('minimap').style.display = 'block';
       initMinimap();
     } else if (role === 'rescue') {
-      content = '<h4>🚑 レスキュー</h4><p>・救助速度2倁E/p><p>・重傷老E��1人で救助可能</p><p>・NPCの救助専門</p>';
+      content = '<h4>🚑 レスキュー</h4><p>・救助速度2倍</p><p>・重傷者を1人で救助可能</p><p>・NPCの救助専門</p>';
     } else if (role === 'scout') {
-      content = '<h4>🔍 惁E��員</h4><p>・移動速度1.3倁E/p><p>・フラチE��ュライト裁E��</p><p>・救助後NPCからヒント取征E/p><p>・研究員の確誁E/p>';
+      content = '<h4>🔍 情報員</h4><p>・移動速度1.3倍</p><p>・フラッシュライト装備</p><p>・救助後NPCからヒント取得</p><p>・研究員の確認</p>';
       createScoutFlashlight();
     }
   }
@@ -1475,7 +1357,7 @@ function showRoleAbilityUI() {
   el.style.display = 'block';
 }
 
-// 持E��官用ミニマップを初期匁E
+// 指揮官用ミニマップを初期化
 function initMinimap() {
   minimapCanvas = document.getElementById('minimap-canvas');
   minimapCanvas.width = 180;
@@ -1489,13 +1371,13 @@ function updateMinimap() {
 
   var ctx = minimapCtx;
   var w = 180, h = 180;
-  var scale = w / 120; // マップサイズ(-60~60)めE80pxに
+  var scale = w / 120; // マップサイズ(-60~60)を180pxに
 
   // 背景クリア
   ctx.fillStyle = 'rgba(10, 10, 30, 0.9)';
   ctx.fillRect(0, 0, w, h);
 
-  // グリチE��
+  // グリッド
   ctx.strokeStyle = 'rgba(0, 245, 255, 0.2)';
   ctx.lineWidth = 1;
   for (var i = 0; i <= 6; i++) {
@@ -1509,7 +1391,7 @@ function updateMinimap() {
     ctx.stroke();
   }
 
-  // ロボッチE
+  // ロボット
   var robotX = (0 + 60) * scale;
   var robotZ = (-45 + 60) * scale;
   ctx.fillStyle = '#ff3333';
@@ -1518,7 +1400,7 @@ function updateMinimap() {
   ctx.fill();
   ctx.fillStyle = '#fff';
   ctx.font = '10px sans-serif';
-  ctx.fillText('🤁E, robotX - 6, robotZ + 4);
+  ctx.fillText('🤖', robotX - 6, robotZ + 4);
 
   // 制御盤
   panels.forEach(function(p) {
@@ -1542,7 +1424,7 @@ function updateMinimap() {
     ctx.fill();
   });
 
-  // 他�Eレイヤー
+  // 他プレイヤー
   for (var id in otherPlayers) {
     var op = otherPlayers[id];
     var opx = (op.targetPos.x + 60) * scale;
@@ -1556,14 +1438,14 @@ function updateMinimap() {
     ctx.stroke();
   }
 
-  // 自刁E��常に中忁E��近い位置に大きく表示�E�E
+  // 自分（常に中心に近い位置に大きく表示）
   var myX = (playerPos.x + 60) * scale;
   var myZ = (playerPos.z + 60) * scale;
   ctx.fillStyle = '#00ff88';
   ctx.beginPath();
   ctx.arc(myX, myZ, 6, 0, Math.PI * 2);
   ctx.fill();
-  // 向いてぁE��方吁E
+  // 向いている方向
   ctx.strokeStyle = '#00ff88';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -1572,7 +1454,7 @@ function updateMinimap() {
   ctx.stroke();
 }
 
-// 惁E��員用フラチE��ュライチE
+// 情報員用フラッシュライト
 function createScoutFlashlight() {
   if (scoutLight) return;
   scoutLight = new THREE.SpotLight(0xffffee, 2, 30, Math.PI / 6, 0.5);
@@ -1581,11 +1463,11 @@ function createScoutFlashlight() {
   scene.add(scoutLight.target);
 }
 
-// フラチE��ュライトを更新
+// フラッシュライトを更新
 function updateScoutFlashlight() {
   if (!scoutLight || myData.role !== 'scout') return;
   scoutLight.position.set(playerPos.x, PLAYER_HEIGHT, playerPos.z);
-  // 向いてぁE��方向にライトを向けめE
+  // 向いている方向にライトを向ける
   var forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
   forward.y = Math.sin(pitch) * -1;
   scoutLight.target.position.set(
@@ -1595,9 +1477,9 @@ function updateScoutFlashlight() {
   );
 }
 
-// 協力チェチE���E�近くにぁE��他�Eレイヤーの数を数える
+// 協力チェック：近くにいる他プレイヤーの数を数える
 function countNearbyPlayers(distance) {
-  var count = 1; // 自刁E
+  var count = 1; // 自分
   for (var id in otherPlayers) {
     var op = otherPlayers[id];
     var dx = playerPos.x - op.targetPos.x;
@@ -1611,7 +1493,7 @@ function countNearbyPlayers(distance) {
 // 協力警告を表示
 function showCoopWarning(msg) {
   var el = document.getElementById('coop-warning');
-  el.textContent = '⚠�E�E' + msg;
+  el.textContent = '⚠️ ' + msg;
   el.style.display = 'block';
   setTimeout(function() { el.style.display = 'none'; }, 2000);
 }
@@ -1648,18 +1530,18 @@ document.querySelectorAll('.member-btn').forEach(function(b) {
 
 document.getElementById('create-team-btn').onclick = async function() {
   var teamName = document.getElementById('team-name-input').value.trim();
-  if (!teamName) { showError('チ�Eム名を入力してください'); return; }
-  showLoading('チ�Eム作�E中...');
+  if (!teamName) { showError('チーム名を入力してください'); return; }
+  showLoading('チーム作成中...');
   try {
-    // ユニ�Eクなチ�Eムコードを生�E�E�既存�E征E��中チ�Eムと重褁E��なぁE��ぁE���E�E
+    // ユニークなチームコードを生成（既存の待機中チームと重複しないように）
     var code;
     var maxRetries = 10;
     for (var retry = 0; retry < maxRetries; retry++) {
       code = String(Math.floor(1000 + Math.random() * 9000));
       var existing = await db.from('teams').select('id').eq('code', code).eq('status', 'waiting').maybeSingle();
-      if (!existing.data) break; // 重褁E��ぁE
+      if (!existing.data) break; // 重複なし
       if (retry === maxRetries - 1) {
-        throw new Error('チ�Eムコード�E生�Eに失敗しました。�E度お試しください、E);
+        throw new Error('チームコードの生成に失敗しました。再度お試しください。');
       }
     }
     var r = await db.from('teams').insert({ code: code, name: teamName, size: myData.teamSize, status: 'waiting' }).select().single();
@@ -1680,33 +1562,33 @@ document.getElementById('create-team-btn').onclick = async function() {
     showWaitingScreen();
   } catch (e) {
     hideLoading();
-    showError('チ�Eム作�Eに失敁E ' + e.message);
+    showError('チーム作成に失敗: ' + e.message);
   }
 };
 
 document.getElementById('join-team-btn').onclick = async function() {
   var code = document.getElementById('team-code-input').value.trim();
-  if (code.length !== 4) { showError('4桁�Eチ�Eム番号を�E力してください'); return; }
-  showLoading('チ�Eム参加中...');
+  if (code.length !== 4) { showError('4桁のチーム番号を入力してください'); return; }
+  showLoading('チーム参加中...');
   try {
     var tr = await db.from('teams').select('*').eq('code', code).eq('status', 'waiting').single();
-    if (tr.error || !tr.data) { hideLoading(); showError('チ�Eムが見つかりません'); return; }
+    if (tr.error || !tr.data) { hideLoading(); showError('チームが見つかりません'); return; }
     var team = tr.data;
     var cr = await db.from('players').select('*', { count: 'exact', head: true }).eq('team_id', team.id);
-    if (cr.count >= team.size) { hideLoading(); showError('チ�Eムが満員でぁE); return; }
-    var pr = await db.from('players').insert({ team_id: team.id, name: 'メンバ�E' + (cr.count + 1), is_leader: false }).select().single();
+    if (cr.count >= team.size) { hideLoading(); showError('チームが満員です'); return; }
+    var pr = await db.from('players').insert({ team_id: team.id, name: 'メンバー' + (cr.count + 1), is_leader: false }).select().single();
     if (pr.error) throw pr.error;
     myData.playerId = pr.data.id;
     myData.teamId = team.id;
     myData.teamCode = code;
     myData.teamName = team.name;
-    myData.teamSize = parseInt(team.size) || 3;
+    myData.teamSize = team.size;
     myData.isLeader = false;
     hideLoading();
     showLobby();
   } catch (e) {
     hideLoading();
-    showError('参加に失敁E ' + e.message);
+    showError('参加に失敗: ' + e.message);
   }
 };
 
@@ -1735,115 +1617,90 @@ async function showLobby() {
   document.getElementById('lobby-team-name').textContent = myData.teamName;
   document.getElementById('lobby-team-id').textContent = '#' + myData.teamCode;
   document.getElementById('lobby-max').textContent = myData.teamSize;
-
-  // チ�Eム人数に応じた役割カード生戁E
+  
+  // 2人チーム用の役割カード調整
   adjustRoleCardsForTeamSize();
-  // 念のため少し遁E��せて再度呼び出ぁE
-  setTimeout(function() {
-    var grid = document.getElementById('role-grid');
-    if (grid && grid.children.length === 0) {
-      adjustRoleCardsForTeamSize();
-    }
-  }, 100);
-
+  
   subscribeToTeam();
   await refreshLobbyData();
 }
 
-// 役割スロチE��設定（チームサイズ別�E�E
+// 役割スロット設定（チームサイズ別）
 var roleSlotsByTeamSize = {
   2: [
-    { role: 'commander', label: '指揮官+レスキュー', icon: '🎖️🚑', desc: '救助・制御盤操作', isDual: true },
-    { role: 'scout', label: '情報員', icon: '🔍', desc: '情報収集・ヒント取得', isDual: false }
+    { role: 'commander', label: '指揮官+レスキュー', icon: '🎖️🚑', desc: '救助・制御盤操作', iconClass: 'commander' },
+    { role: 'scout', label: '情報員', icon: '🔍', desc: '情報収集・ヒント取得', iconClass: 'scout' }
   ],
   3: [
-    { role: 'commander', label: '指揮官', icon: '🎖️', desc: '指揮・制御盤操作', isDual: false },
-    { role: 'rescue', label: 'レスキュー', icon: '🚑', desc: '救助活動', isDual: false },
-    { role: 'scout', label: '情報員', icon: '🔍', desc: '情報収集', isDual: false }
+    { role: 'commander', label: '指揮官', icon: '🎖️', desc: '指揮・制御盤操作', iconClass: 'commander' },
+    { role: 'rescue', label: 'レスキュー', icon: '🚑', desc: '救助活動', iconClass: 'rescue' },
+    { role: 'scout', label: '情報員', icon: '🔍', desc: '情報収集', iconClass: 'scout' }
   ],
   4: [
-    { role: 'commander', label: '指揮官', icon: '🎖️', desc: '指揮・制御盤操作', isDual: false },
-    { role: 'rescue', label: 'レスキュー①', icon: '🚑', desc: '救助活動', isDual: false },
-    { role: 'rescue', label: 'レスキュー②', icon: '🚑', desc: '救助活動', isDual: false },
-    { role: 'scout', label: '情報員', icon: '🔍', desc: '情報収集', isDual: false }
+    { role: 'commander', label: '指揮官', icon: '🎖️', desc: '指揮・制御盤操作', iconClass: 'commander' },
+    { role: 'rescue', label: 'レスキュー①', icon: '🚑', desc: '救助活動', iconClass: 'rescue' },
+    { role: 'rescue', label: 'レスキュー②', icon: '🚑', desc: '救助活動', iconClass: 'rescue' },
+    { role: 'scout', label: '情報員', icon: '🔍', desc: '情報収集', iconClass: 'scout' }
   ],
   5: [
-    { role: 'commander', label: '指揮官', icon: '🎖️', desc: '指揮・制御盤操作', isDual: false },
-    { role: 'rescue', label: 'レスキュー①', icon: '🚑', desc: '救助活動', isDual: false },
-    { role: 'rescue', label: 'レスキュー②', icon: '🚑', desc: '救助活動', isDual: false },
-    { role: 'scout', label: '情報員①', icon: '🔍', desc: '情報収集', isDual: false },
-    { role: 'scout', label: '情報員②', icon: '🔍', desc: '情報収集', isDual: false }
+    { role: 'commander', label: '指揮官', icon: '🎖️', desc: '指揮・制御盤操作', iconClass: 'commander' },
+    { role: 'rescue', label: 'レスキュー①', icon: '🚑', desc: '救助活動', iconClass: 'rescue' },
+    { role: 'rescue', label: 'レスキュー②', icon: '🚑', desc: '救助活動', iconClass: 'rescue' },
+    { role: 'scout', label: '情報員①', icon: '🔍', desc: '情報収集', iconClass: 'scout' },
+    { role: 'scout', label: '情報員②', icon: '🔍', desc: '情報収集', iconClass: 'scout' }
   ]
 };
 
 function adjustRoleCardsForTeamSize() {
-  try {
-    var grid = document.getElementById('role-grid');
-    if (!grid) {
-      grid = document.querySelector('.role-grid');
-    }
-    if (!grid) {
-      console.error('role-grid not found!');
-      return;
-    }
+  var grid = document.querySelector('.role-grid');
+  if (!grid) return;
 
-    var teamSize = parseInt(myData.teamSize) || 3; console.log("DEBUG: teamSize=", teamSize, "myData.teamSize=", myData.teamSize);
-    if (teamSize < 2) teamSize = 2;
-    if (teamSize > 5) teamSize = 5;
+  var teamSize = parseInt(myData.teamSize) || 3;
+  if (teamSize < 2) teamSize = 2;
+  if (teamSize > 5) teamSize = 5;
 
-    var slots = roleSlotsByTeamSize[teamSize]; console.log("DEBUG: slots length=", slots ? slots.length : "undefined", "for teamSize", teamSize);
-    if (!slots) {
-      slots = roleSlotsByTeamSize[3];
-    }
+  var slots = roleSlotsByTeamSize[teamSize];
 
-    // グリチE��をクリアして再生戁E
-    grid.className = 'role-grid cols-' + teamSize;
-    grid.innerHTML = '';
+  grid.innerHTML = '';
 
-    for (var i = 0; i < slots.length; i++) {
-      var slot = slots[i];
-      var card = document.createElement('div');
-      card.className = 'role-card';
-      card.dataset.role = slot.role;
-      card.dataset.slotIndex = i;
+  for (var i = 0; i < slots.length; i++) {
+    var slot = slots[i];
+    var card = document.createElement('div');
+    card.className = 'role-card';
+    card.dataset.role = slot.role;
+    card.dataset.slotIndex = i;
 
-      var iconClass = slot.role === 'commander' ? 'commander' : (slot.role === 'rescue' ? 'rescue' : 'scout');
+    card.innerHTML = '<div class="role-icon ' + slot.iconClass + '">' + slot.icon + '</div>' +
+      '<div style="flex:1"><h4>' + slot.label + '</h4>' +
+      '<p style="color:rgba(255,255,255,.5);font-size:.8rem">' + slot.desc + '</p></div>' +
+      '<div class="role-status">待機中</div>';
 
-      card.innerHTML = '<div class="role-icon ' + iconClass + '">' + slot.icon + '</div>' +
-        '<div style="flex:1"><h4>' + slot.label + '</h4>' +
-        '<p style="color:rgba(255,255,255,.5);font-size:.8rem">' + slot.desc + '</p></div>' +
-        '<div class="role-status">征E��中</div>';
+    (function(idx) {
+      card.onclick = function() {
+        if (this.classList.contains('taken')) return;
+        selectRoleSlot(idx);
+      };
+    })(i);
 
-      (function(idx) {
-        card.onclick = function() {
-          if (this.classList.contains('taken')) return;
-          selectRoleSlot(idx);
-        };
-      })(i);
-
-      grid.appendChild(card);
-    }
-  } catch (e) {
-    console.error('adjustRoleCardsForTeamSize ERROR:', e);
+    grid.appendChild(card);
   }
 }
 
 async function selectRoleSlot(slotIndex) {
   try {
-    var slots = roleSlotsByTeamSize[parseInt(myData.teamSize) || 3] || roleSlotsByTeamSize[3];
+    var slots = roleSlotsByTeamSize[parseInt(myData.teamSize) || 3];
     var slot = slots[slotIndex];
     if (!slot) return;
-    
-    await db.from('players').update({ 
-      role: slot.role + "_" + slotIndex, 
-      
-      is_ready: true 
+
+    await db.from('players').update({
+      role: slot.role + '_' + slotIndex,
+      is_ready: true
     }).eq('id', myData.playerId);
-    
+
     myData.role = slot.role;
     myData.roleSlot = slotIndex;
   } catch (e) {
-    showError('役割選択に失敁E);
+    showError('役割選択に失敗');
   }
 }
 
@@ -1882,22 +1739,22 @@ async function refreshLobbyData() {
     var btn = document.getElementById('game-start-btn');
     if (allReady && myData.isLeader) {
       btn.disabled = false;
-      btn.textContent = 'ゲーム開始！E;
+      btn.textContent = 'ゲーム開始！';
     } else if (allReady) {
       btn.disabled = true;
-      btn.textContent = 'リーダーの開始を征E��てぁE��ぁE..';
+      btn.textContent = 'リーダーの開始を待っています...';
     } else {
       btn.disabled = true;
-      btn.textContent = '準備完亁E��征E��てぁE��ぁE..';
+      btn.textContent = '準備完了を待っています...';
     }
 
     var st = document.getElementById('lobby-status');
     if (players.length >= myData.teamSize) {
       st.classList.add('ready');
-      st.innerHTML = '<h3>全員揁E��ました�E�E/h3><p>役割を選んで準備完亁E��てください</p>';
+      st.innerHTML = '<h3>全員揃いました！</h3><p>役割を選んで準備完了してください</p>';
     } else {
       st.classList.remove('ready');
-      st.innerHTML = '<h3>メンバ�E征E��中...</h3><p>あと' + (myData.teamSize - players.length) + '人</p>';
+      st.innerHTML = '<h3>メンバー待機中...</h3><p>あと' + (myData.teamSize - players.length) + '人</p>';
     }
   } catch (e) {
     console.error(e);
@@ -1905,7 +1762,6 @@ async function refreshLobbyData() {
 }
 
 function updateRoleCards(players) {
-  // 役割名からスロチE��番号を抽出�E�侁E rescue_1 ↁE1�E�E
   var takenSlots = {};
   players.forEach(function(p) {
     if (p.role && p.role.includes('_')) {
@@ -1925,18 +1781,18 @@ function updateRoleCards(players) {
     if (takenSlots[slotIndex]) {
       if (takenSlots[slotIndex].id === myData.playerId) {
         c.classList.add('selected');
-        st.textContent = '✁E選択中';
+        st.textContent = '✓ 選択中';
       } else {
         c.classList.add('taken');
         st.textContent = takenSlots[slotIndex].name;
       }
     } else {
-      st.textContent = '征E��中';
+      st.textContent = '待機中';
     }
   });
 }
 
-// 役割カード�EクリチE��はadjustRoleCardsForTeamSize冁E��設宁E
+// 役割カードのクリックはadjustRoleCardsForTeamSize内で設定
 
 document.getElementById('lobby-back-btn').onclick = async function() {
   if (myData.playerId) await db.from('players').delete().eq('id', myData.playerId);
@@ -1950,7 +1806,7 @@ document.getElementById('game-start-btn').onclick = async function() {
   try {
     await db.from('teams').update({ status: 'playing' }).eq('id', myData.teamId);
   } catch (e) {
-    showError('ゲーム開始に失敁E);
+    showError('ゲーム開始に失敗');
   }
 };
 
@@ -1978,10 +1834,10 @@ function initThreeJS() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById('game-container').appendChild(renderer.domElement);
 
-  // Lights - 基本環墁E�E�E�少し明るく！E
+  // Lights - 基本環境光（少し明るく）
   scene.add(new THREE.AmbientLight(0x334455, 0.8));
 
-  // ロボットへのメインスポットライト（赤ぁE��告色�E�E
+  // ロボットへのメインスポットライト（赤い警告色）
   robotSpotlight = new THREE.SpotLight(0xff4400, 4, 120, Math.PI / 4, 0.3);
   robotSpotlight.position.set(0, 80, -20);
   scene.add(robotSpotlight);
@@ -1990,13 +1846,13 @@ function initThreeJS() {
   scene.add(robotTarget);
   robotSpotlight.target = robotTarget;
 
-  // ロボット背面からのバックライト（シルエチE��強調�E�E
+  // ロボット背面からのバックライト（シルエット強調）
   var backLight = new THREE.SpotLight(0xff2200, 3, 100, Math.PI / 3, 0.5);
   backLight.position.set(0, 50, -80);
   scene.add(backLight);
   backLight.target = robotTarget;
 
-  // サイドから�E補助スポットライチE
+  // サイドからの補助スポットライト
   var spotlight1 = new THREE.SpotLight(0xffffff, 2, 100, Math.PI / 6, 0.5);
   spotlight1.position.set(-40, 60, -30);
   scene.add(spotlight1);
@@ -2007,7 +1863,7 @@ function initThreeJS() {
   scene.add(spotlight2);
   spotlight2.target = robotTarget;
 
-  // フロアの緊急照明（サイバ�Eパンク風�E�E
+  // フロアの緊急照明（サイバーパンク風）
   var pointLight1 = new THREE.PointLight(0x00f5ff, 2, 80);
   pointLight1.position.set(-40, 5, 0);
   scene.add(pointLight1);
@@ -2016,12 +1872,12 @@ function initThreeJS() {
   pointLight2.position.set(40, 5, 0);
   scene.add(pointLight2);
 
-  // 中央エリアの照昁E
+  // 中央エリアの照明
   var centerLight = new THREE.PointLight(0xffffaa, 1.5, 50);
   centerLight.position.set(0, 10, 20);
   scene.add(centerLight);
 
-  // 緊急回転灯�E�赤�E�E
+  // 緊急回転灯（赤）
   emergencyLight1 = new THREE.PointLight(0xff0000, 3, 40);
   emergencyLight1.position.set(-50, 8, -40);
   scene.add(emergencyLight1);
@@ -2050,7 +1906,7 @@ function initThreeJS() {
 
   // Create game objects
   createRobot();
-  // NPCチE�Eタを生成（チーム人数に応じて邪魔な研究員を追加�E�E
+  // NPCデータを生成（チーム人数に応じて邪魔な研究員を追加）
   var teamSize = myData.teamSize || 3;
   generateNpcData(teamSize);
   createNPCs();
@@ -2097,7 +1953,7 @@ function createRobot() {
   rightShoulder.position.set(12, 36, 0);
   robot.add(rightShoulder);
 
-  // Shoulder lights�E��Eるパネル�E�実際のライト！E
+  // Shoulder lights（光るパネル＋実際のライト）
   lShoulderLight = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
   lShoulderLight.position.set(-12, 36, 3);
   robot.add(lShoulderLight);
@@ -2121,7 +1977,7 @@ function createRobot() {
   glowLine2.position.set(0, 36, 4.3);
   robot.add(glowLine2);
 
-  // コアからの允E
+  // コアからの光
   var coreLight = new THREE.PointLight(0xffaa00, 3, 25);
   coreLight.position.set(0, 32, 6);
   robot.add(coreLight);
@@ -2156,38 +2012,38 @@ function createRobot() {
   scene.add(robot);
 }
 
-// NPCチE�Eタを生成（チーム人数に応じて邪魔な研究員を追加�E�E
+// NPCデータを生成（チーム人数に応じて邪魔な研究員を追加）
 function generateNpcData(teamSize) {
   npcData = [];
 
-  // 救助対象NPCを追加�E�ヒントインチE��クスを割り当て�E�E
+  // 救助対象NPCを追加（ヒントインデックスを割り当て）
   rescueNpcData.forEach(function(d, idx) {
     npcData.push({
       x: d.x, z: d.z, type: d.type,
       hint: d.hint,
       needsRescue: true,
-      hintIndex: idx // 0-5のヒントインチE��クス
+      hintIndex: idx // 0-5のヒントインデックス
     });
   });
 
-  // 邪魔な研究員を追加�E�チーム人数に応じた数�E�E
-  // メインパネルのヒントを持つNPCめE人配置�E�情報員が探す忁E��がある�E�E
+  // 邪魔な研究員を追加（チーム人数に応じた数）
+  // メインパネルのヒントを持つNPCを4人配置（情報員が探す必要がある）
   var distractionCount = distractionCountByTeamSize[teamSize] || 5;
   var shuffledPositions = distractionPositions.slice().sort(function() { return Math.random() - 0.5; });
   var shuffledDialogues = distractionDialogues.slice().sort(function() { return Math.random() - 0.5; });
-  var mainHints = generateDistractionHints(); // メインパネルのヒント！Eつ�E�E
+  var mainHints = generateDistractionHints(); // メインパネルのヒント（4つ）
 
-  // ヒントを持つNPCのインチE��クスをランダムに選抁E
+  // ヒントを持つNPCのインデックスをランダムに選択
   var hintIndices = [];
   for (var h = 0; h < Math.min(4, distractionCount); h++) {
     hintIndices.push(h);
   }
-  // シャチE��ルして刁E���E�最初�E4人がヒントを持つわけではなぁE��E
+  // シャッフルして分散（最初の4人がヒントを持つわけではない）
   var hintAssignment = [];
   for (var j = 0; j < distractionCount; j++) {
-    hintAssignment.push(j < 4 ? j : -1); // 最初�E4人にヒントインチE��クスを割り当て
+    hintAssignment.push(j < 4 ? j : -1); // 最初の4人にヒントインデックスを割り当て
   }
-  hintAssignment.sort(function() { return Math.random() - 0.5; }); // シャチE��ル
+  hintAssignment.sort(function() { return Math.random() - 0.5; }); // シャッフル
 
   for (var i = 0; i < distractionCount && i < shuffledPositions.length; i++) {
     var pos = shuffledPositions[i];
@@ -2201,7 +2057,7 @@ function generateNpcData(teamSize) {
     });
   }
 
-  // NPCチE�EタをシャチE��ル�E�救助対象と邪魔な研究員を混ぜる�E�E
+  // NPCデータをシャッフル（救助対象と邪魔な研究員を混ぜる）
   npcData.sort(function() { return Math.random() - 0.5; });
 }
 
@@ -2209,7 +2065,7 @@ function createNPCs() {
   // 研究員の白衣カラーバリエーション
   var labCoatColors = [0xeeeeee, 0xddddee, 0xeeeedd, 0xddeedd, 0xeeddee, 0xddeeff];
   var skinColors = [0xffdbac, 0xf5d0a9, 0xd4a574, 0xc68642, 0xffcd94, 0xeac086];
-  // 邪魔な研究員用の色�E�少し違う色合い�E�E
+  // 邪魔な研究員用の色（少し違う色合い）
   var distractionCoatColors = [0xdddddd, 0xccccdd, 0xddddcc, 0xccddcc, 0xddccdd, 0xccddee];
 
   npcData.forEach(function(d, i) {
@@ -2219,7 +2075,7 @@ function createNPCs() {
 
     var g = createMinecraftCharacter(labCoatColor, skinColor, false);
 
-    // 研究員っぽぁE��ガネを追加
+    // 研究員っぽいメガネを追加
     var glassMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
     var glassFrame = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.05), glassMat);
     glassFrame.position.set(0, 1.7, 0.27);
@@ -2232,7 +2088,7 @@ function createNPCs() {
     lensR.position.set(0.12, 1.68, 0.28);
     g.add(lensR);
 
-    // ポ�Eズ設宁E
+    // ポーズ設定
     if (d.type === 'standing') {
       g.leftArm.rotation.x = 0.1;
       g.rightArm.rotation.x = -0.1;
@@ -2247,7 +2103,7 @@ function createNPCs() {
       g.position.y = 0.5;
     }
 
-    // 救助対象のみSOSライト（弱めに�E�E
+    // 救助対象のみSOSライト（弱めに）
     if (isRescue) {
       g.sos = new THREE.PointLight(0xff4444, 1, 10);
       g.sos.position.y = d.type === 'standing' ? 2.5 : (d.type === 'sitting' ? 1.8 : 1.5);
@@ -2267,7 +2123,7 @@ function createNPCs() {
     g.distractionHintIndex = d.distractionHintIndex !== undefined ? d.distractionHintIndex : -1;
     g.hintIndex = d.hintIndex !== undefined ? d.hintIndex : -1;
 
-    // 歩行AI用のプロパティ�E�立ってぁE��NPCのみ�E�E
+    // 歩行AI用のプロパティ（立っているNPCのみ）
     if (d.type === 'standing') {
       g.canWalk = true;
       g.homeX = d.x;
@@ -2352,10 +2208,6 @@ function createPanels() {
 
 document.addEventListener('keydown', function(e) {
   if (!G.playing) return;
-  // コード�E力画面が開ぁE��ぁE��とき�E移動キーを無要E
-  var codeModal = document.getElementById('code-input-modal');
-  if (codeModal && codeModal.style.display === 'flex') return;
-  
   if (e.code === 'KeyW') keys.w = true;
   if (e.code === 'KeyA') keys.a = true;
   if (e.code === 'KeyS') keys.s = true;
@@ -2382,13 +2234,7 @@ document.addEventListener('mousemove', function(e) {
   pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
 });
 
-document.addEventListener('click', function(e) {
-  // コード�E力画面が開ぁE��ぁE��とき�EポインターロチE��しなぁE
-  var codeModal = document.getElementById('code-input-modal');
-  if (codeModal && codeModal.style.display === 'flex') return;
-  // モーダル冁E�EクリチE��は無要E
-  if (e.target.closest('#code-input-modal')) return;
-
+document.addEventListener('click', function() {
   if (G.playing && !isPointerLocked && !isMobile) {
     document.body.requestPointerLock();
   }
@@ -2529,12 +2375,12 @@ function checkNear() {
   });
   npcs.forEach(function(n) {
     if (n.needsRescue) {
-      // 救助対象NPC�E�近くにぁE��ば表示�E�救助済みかどぁE��に関わらず状態を表示�E�E
+      // 救助対象NPC：近くにいれば表示（救助済みかどうかに関わらず状態を表示）
       if (distXZ(playerPos, n.position) < 5) {
         near = { type: 'npc', obj: n };
       }
     } else {
-      // 邪魔な研究員�E�近くにぁE��ば表示�E�会話済みかどぁE��に関わらず状態を表示�E�E
+      // 邪魔な研究員：近くにいれば表示（会話済みかどうかに関わらず状態を表示）
       if (distXZ(playerPos, n.position) < 5) {
         near = { type: 'npc', obj: n };
       }
@@ -2560,66 +2406,59 @@ function updateInteractionUI() {
     if (!can) {
       pr.innerHTML = '<h3>🔒 主制御盤</h3><p>先に制御盤A・Bを解除してください</p>';
     } else if (!abilities.canOperatePanel) {
-      // 持E��官以外�E操作不可
-      pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p style="color:#ff6600">⚠�E�E持E��官�Eみ操作可能</p><p>持E��官を呼んでください</p>';
+      // 指揮官以外は操作不可
+      pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p style="color:#ff6600">⚠️ 指揮官のみ操作可能</p><p>指揮官を呼んでください</p>';
     } else {
-      // 持E��官：コード�E力画面を表示
-      pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p><kbd>E</kbd> でコード�E力画面を開ぁE/p>';
+      // 指揮官：コード入力画面を表示
+      pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p><kbd>E</kbd> でコード入力画面を開く</p>';
     }
   } else {
     var n = near.obj;
     if (n.needsRescue) {
       // 救助対象NPC
       var tt = n.npcType === 'fallen' ? '重傷の' : n.npcType === 'sitting' ? '負傷した' : '';
-      var timeHint = n.npcType === 'fallen' ? '�E�時間がかかります！E : n.npcType === 'sitting' ? '�E�やめE��間がかかります！E : '';
+      var timeHint = n.npcType === 'fallen' ? '（時間がかかります）' : n.npcType === 'sitting' ? '（やや時間がかかります）' : '';
 
       if (!n.rescued) {
-        // 未救助状慁E
+        // 未救助状態
         if (abilities.canRescueNpc) {
-          // レスキュー�E�救助可能�E�救助完亁E��にヒントも取得！E
-          var coopNote = n.needsCoop && !abilities.canRescueFallenAlone ? '<p style="color:#ffa500">⚠�E�E重傷老E�E2人で救助</p>' : '';
-          pr.innerHTML = '<h3>🚑 ' + tt + '研究員を発見！E/h3>' + coopNote + '<div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助 ' + timeHint + '</p><p style="color:#00f5ff;font-size:.8rem">💡 惁E��を持ってぁE��かも...</p>';
+          // レスキュー：救助可能（救助完了時にヒントも取得）
+          var coopNote = n.needsCoop && !abilities.canRescueFallenAlone ? '<p style="color:#ffa500">⚠️ 重傷者は2人で救助</p>' : '';
+          pr.innerHTML = '<h3>🚑 ' + tt + '研究員を発見！</h3>' + coopNote + '<div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助 ' + timeHint + '</p><p style="color:#00f5ff;font-size:.8rem">💡 救助するとヒントが得られる</p>';
         } else {
-          // 救助できなぁE��割
-          pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！E/h3><p style="color:#ff6600">⚠�E�Eレスキューを呼んで救助して�E�E/p><p style="font-size:.85rem">惁E��を持ってぁE��かも</p>';
+          // 救助できない役割
+          pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><p style="color:#ff6600">⚠️ レスキューを呼んで救助して！</p><p style="font-size:.85rem">レスキューが救助するとヒントが得られます</p>';
         }
       } else {
-        // 救助済み�E�ヒントも取得済み�E�E ヒントを再表示
+        // 救助済み（ヒントも取得済み）- ヒントを再表示
         var hints = generateRescueHints();
         var hint = hints[n.hintIndex];
-        if (hint) {
-          pr.innerHTML = '<h3>✁E救助完亁E/h3><p style="color:#00ff88">ヒント取得済み</p><p style="color:#fc0;font-size:.9rem;margin-top:8px">💬 "' + hint.hint + '"</p>';
-        } else {
-          pr.innerHTML = '<h3>✁E救助完亁E/h3><p style="color:#00ff88">無事です！E/p><p style="color:#aaa;font-size:.85rem">�E�この人は詳しい惁E��を持ってぁE��せんでした�E�E/p>';
-        }
+        var hintText = hint ? hint.hint : '';
+        pr.innerHTML = '<h3>✅ 救助完了</h3><p style="color:#00ff88">ヒント取得済み</p>' + (hintText ? '<p style="color:#fc0;font-size:.9rem;margin-top:8px">💬 "' + hintText + '"</p>' : '');
       }
     } else {
-      // 邪魔な研究員 - 惁E��員のみ会話可能
+      // 邪魔な研究員 - 情報員のみ会話可能
       if (n.talked && n.hintObtained) {
-        // 会話済み�E�E��ント取得済み - ヒントを再表示
+        // 会話済み＆ヒント取得済み - ヒントを再表示
         var mainHints = generateDistractionHints();
         var hint = mainHints[n.distractionHintIndex];
         var hintText = hint ? hint.hint : '';
-        pr.innerHTML = '<h3>✁E確認済み</h3><p style="color:#00f5ff">重要情報を取得しました</p>' + (hintText ? '<p style="color:#fc0;font-size:.9rem;margin-top:8px">💬 "' + hintText + '"</p>' : '');
+        pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#00f5ff">重要情報を取得しました</p>' + (hintText ? '<p style="color:#fc0;font-size:.9rem;margin-top:8px">💬 "' + hintText + '"</p>' : '');
       } else if (n.talked) {
-        // 会話済み�E�ヒントなし！E
-        pr.innerHTML = '<h3>✁E確認済み</h3><p style="color:#aaa">こ�E人は惁E��を持ってぁE��せんでした</p>';
+        // 会話済み（ヒントなし）
+        pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#aaa">この人は情報を持っていませんでした</p>';
       } else if (abilities.canTalkToDistraction) {
-        // 惁E��員�E�会話可能
-        pr.innerHTML = '<h3>👤 研究員を発要E/h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで話しかける</p><p style="color:#fc0;font-size:.8rem">💡 緊急停止コードを知ってぁE��かも...</p>';
+        // 情報員：会話可能
+        pr.innerHTML = '<h3>👤 研究員を発見</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで話しかける</p><p style="color:#fc0;font-size:.8rem">💡 緊急停止コードを知っているかも...</p>';
       } else {
-        // 惁E��員以外：会話不可
-        pr.innerHTML = '<h3>👤 研究員を発要E/h3><p style="color:#ff6600">⚠�E�E惁E��員を呼んで話を聞ぁE���E�E/p><p style="font-size:.85rem">緊急停止コードを知ってぁE��かも</p>';
+        // 情報員以外：会話不可
+        pr.innerHTML = '<h3>👤 研究員を発見</h3><p style="color:#ff6600">⚠️ 情報員を呼んで話を聞いて！</p><p style="font-size:.85rem">緊急停止コードを知っているかも</p>';
       }
     }
   }
 }
 
 function processInteraction(delta) {
-  // コード�E力モーダルが開ぁE��ぁE��とき�EスキチE�E
-  var codeModal = document.getElementById('code-input-modal');
-  if (codeModal && codeModal.style.display === 'flex') return;
-
   if (!near || !keys.e) {
     G.interacting = false;
     G.interactProgress = 0;
@@ -2628,68 +2467,68 @@ function processInteraction(delta) {
 
   var abilities = getRoleAbilities();
 
-  // パネル関連のチェチE��
+  // パネル関連のチェック
   if (near.type === 'panel') {
     var p = near.obj;
-    // 持E��官以外�E操作不可
+    // 指揮官以外は操作不可
     if (!abilities.canOperatePanel) {
-      showCoopWarning('制御盤は持E��官�Eみ操作可能�E�E);
+      showCoopWarning('制御盤は指揮官のみ操作可能！');
       return;
     }
-    // 主制御盤は制御盤A・Bが忁E��E
+    // 主制御盤は制御盤A・Bが必要
     if (p.panelId === 'main' && !(G.panelA && G.panelB)) return;
-    // 主制御盤は人数に応じた協力が忁E��E
+    // 主制御盤は人数に応じた協力が必要
     if (p.panelId === 'main') {
       var settings = getDifficultySettings();
       var nearbyCount = countNearbyPlayers(8);
       if (nearbyCount < settings.requiredCoopPlayers) {
-        showCoopWarning('主制御盤には' + settings.requiredCoopPlayers + '人以上忁E��E��E);
+        showCoopWarning('主制御盤には' + settings.requiredCoopPlayers + '人以上必要！');
         return;
       }
     }
-    // コード�E力画面を開く！Eキー1回押しで開く�E�E
+    // コード入力画面を開く（Eキー1回押しで開く）
     openCodeInputPanel(p);
     return;
   }
 
-  // NPC関連のチェチE��
+  // NPC関連のチェック
   if (near.type === 'npc') {
     var n = near.obj;
 
     if (n.needsRescue) {
       // 救助対象NPC
       if (n.rescued) {
-        // 既に救助済み�E�ヒントも取得済み�E�E
+        // 既に救助済み（ヒントも取得済み）
         return;
       }
       // 未救助 - レスキューのみ救助可能
       if (!abilities.canRescueNpc) {
-        showCoopWarning('救助はレスキューのみ可能�E�E);
+        showCoopWarning('救助はレスキューのみ可能！');
         return;
       }
-      // 重傷老E�E2人忁E��E��レスキューは1人でOK�E�E
+      // 重傷者は2人必要（レスキューは1人でOK）
       if (n.needsCoop && !abilities.canRescueFallenAlone) {
         var nearbyCount = countNearbyPlayers(6);
         if (nearbyCount < 2) {
-          showCoopWarning('重傷老E�E救助には2人忁E��E��E);
+          showCoopWarning('重傷者の救助には2人必要！');
           return;
         }
       }
       G.interacting = true;
       var rescueSpeed = calculateInteractionSpeed(true);
-      // NPCタイプ別の救助時間�E�重傷老E�E長ぁE��E
-      // 救助時間: 重傷=紁E私E 負傷=紁E私E 軽傷=紁E私E(3人モード基溁E
+      // NPCタイプ別の救助時間（重傷者は長い）
+      // 救助時間: 重傷=約8秒, 負傷=約4秒, 軽傷=約2秒 (3人モード基準)
       var typeMultiplier = n.npcType === 'fallen' ? 0.15 : (n.npcType === 'sitting' ? 0.3 : 0.6);
       G.interactProgress += delta * rescueSpeed * typeMultiplier;
       if (G.interactProgress >= 100) completeRescue(n);
     } else {
-      // 邪魔な研究員 - 惁E��員のみ会話可能
+      // 邪魔な研究員 - 情報員のみ会話可能
       if (n.talked) {
         // 既に会話済み
         return;
       }
       if (!abilities.canTalkToDistraction) {
-        showCoopWarning('惁E��員を呼んで話を聞ぁE���E�E);
+        showCoopWarning('情報員を呼んで話を聞いて！');
         return;
       }
       G.interacting = true;
@@ -2700,20 +2539,20 @@ function processInteraction(delta) {
         G.interactProgress = 0;
         playSound('click');
 
-        // ヒントを持ってぁE��NPCかチェチE��
+        // ヒントを持っているNPCかチェック
         if (n.hasHint && !n.hintObtained) {
           n.hintObtained = true;
           var mainHints = generateDistractionHints();
           var hint = mainHints[n.distractionHintIndex];
           if (hint) {
             G.score += 100;
-            showBonus('+100 重要情報�E�E, '#00f5ff');
+            showBonus('+100 重要情報！', '#00f5ff');
             setTimeout(function() {
               showBonus('💬 "' + hint.hint + '"', '#fc0');
             }, 400);
           }
         } else {
-          // ヒントを持ってぁE��いNPC
+          // ヒントを持っていないNPC
           showBonus('💬 "' + n.dialogue + '"', '#aaa');
         }
       }
@@ -2721,18 +2560,18 @@ function processInteraction(delta) {
   }
 }
 
-// ヒント取得完亁E��情報員専用�E�E
+// ヒント取得完了（情報員専用）
 function completeHintGathering(npc) {
   G.interacting = false;
   G.interactProgress = 0;
 
   npc.hintObtained = true;
   var hints = generateHints();
-  var hint = hints[npc.hintIndex] || { hint: '...よく刁E��らなぁE..' };
+  var hint = hints[npc.hintIndex] || { hint: '...よく分からない...' };
 
   playSound('click');
   G.score += 50;
-  showBonus('+50 惁E��取得！E, '#00f5ff');
+  showBonus('+50 情報取得！', '#00f5ff');
   setTimeout(function() {
     showBonus('💬 "' + hint.hint + '"', '#fc0');
   }, 400);
@@ -2742,13 +2581,13 @@ function completeHintGathering(npc) {
   updateGameUI();
 }
 
-// 救助完亁E��レスキュー専用�E�E 救助時にヒントも直接取征E
+// 救助完了（レスキュー専用）- 救助時にヒントも直接取得
 function completeRescue(npc) {
   G.interacting = false;
   G.interactProgress = 0;
 
   npc.rescued = true;
-  npc.hintObtained = true; // 救助と同時にヒント取征E
+  npc.hintObtained = true; // 救助と同時にヒント取得
   G.rescued++;
 
   playRescueEffect(npc);
@@ -2756,10 +2595,10 @@ function completeRescue(npc) {
 
   var pts = npc.needsCoop ? 300 : (npc.npcType === 'sitting' ? 200 : 150);
   G.score += pts;
-  showBonus('+' + pts + ' 救助成功�E�E, '#00ff88');
+  showBonus('+' + pts + ' 救助成功！', '#00ff88');
   if (npc.needsCoop) G.coopBonus += 50;
 
-  // ヒントを表示�E�救助NPCはパネルA,Bのヒントを持ってぁE���E�E
+  // ヒントを表示（救助NPCはパネルA,Bのヒントを持っている）
   var hints = generateRescueHints();
   var hint = hints[npc.hintIndex];
   if (hint) {
@@ -2768,11 +2607,11 @@ function completeRescue(npc) {
     }, 600);
   }
 
-  // 全員救助チェチE��
+  // 全員救助チェック
   var rescueNpcCount = npcs.filter(function(n) { return n.needsRescue; }).length;
   if (G.rescued >= rescueNpcCount) {
     G.score += 500;
-    showBonus('+500 全員救助�E�E, '#f0f');
+    showBonus('+500 全員救助！', '#f0f');
   }
 
   syncNpcRescue(npc.id);
@@ -2795,7 +2634,7 @@ function syncNpcHintObtained(npcIndex) {
   });
 }
 
-// 制御盤コード�E力画面を開ぁE
+// 制御盤コード入力画面を開く
 var currentCodePanel = null;
 var codeInput = [];
 
@@ -2810,11 +2649,11 @@ function openCodeInputPanel(panel) {
   var display = document.getElementById('code-display');
   var buttons = document.getElementById('code-buttons');
 
-  title.textContent = '制御盤 ' + panel.panelId + ' - コード�E劁E;
+  title.textContent = '制御盤 ' + panel.panelId + ' - コード入力';
 
-  // コード�E力タイプに応じた�Eタン
+  // コード入力タイプに応じたボタン
   if (panel.panelId === 'main') {
-    // 数字コーチE
+    // 数字コード
     buttons.innerHTML = '';
     for (var i = 1; i <= 9; i++) {
       var btn = document.createElement('button');
@@ -2824,7 +2663,7 @@ function openCodeInputPanel(panel) {
       buttons.appendChild(btn);
     }
   } else {
-    // 色コーチE
+    // 色コード
     buttons.innerHTML = '';
     COLOR_CODES.forEach(function(color) {
       var btn = document.createElement('button');
@@ -2837,20 +2676,12 @@ function openCodeInputPanel(panel) {
   }
 
   updateCodeDisplay();
-  
-  // キー状態をリセチE���E�Eが押されたままにならなぁE��ぁE���E�E
-  keys.e = false;
-  G.interacting = false;
-  
-  // ポインターロチE��解除してからモーダル表示
+  modal.style.display = 'flex';
+
+  // ポインターロック解除
   if (document.pointerLockElement) {
     document.exitPointerLock();
   }
-  
-  // 少し遁E��してからモーダル表示�E��EインターロチE��解除を征E���E�E
-  setTimeout(function() {
-    modal.style.display = 'flex';
-  }, 50);
 }
 
 function updateCodeDisplay() {
@@ -2903,14 +2734,14 @@ function submitCode() {
   }
 
   if (isCorrect) {
-    // 正解�E�E
+    // 正解！
     closeCodeInputPanel();
     unlockPanel(currentCodePanel);
   } else {
     // 不正解
     playSound('fail');
-    G.rampage = Math.min(100, G.rampage + 5); // ペナルチE���E�暴走レベル上�E
-    showBonus('❁Eコードが違う�E�暴走+5%', '#ff3333');
+    G.rampage = Math.min(100, G.rampage + 5); // ペナルティ：暴走レベル上昇
+    showBonus('❌ コードが違う！暴走+5%', '#ff3333');
     clearCodeInput();
   }
 }
@@ -2939,19 +2770,19 @@ function unlockPanel(panel) {
     G.panelA = true;
     lShoulderLight.material.color.setHex(0x00aaff);
     document.getElementById('status-a').classList.add('done');
-    document.getElementById('status-a').querySelector('span:last-child').textContent = '解除渁E;
-    showBonus('+100 制御盤A解除�E�E, '#0f8');
+    document.getElementById('status-a').querySelector('span:last-child').textContent = '解除済';
+    showBonus('+100 制御盤A解除！', '#0f8');
   } else if (panel.panelId === 'B') {
     G.panelB = true;
     rShoulderLight.material.color.setHex(0x00aaff);
     document.getElementById('status-b').classList.add('done');
-    document.getElementById('status-b').querySelector('span:last-child').textContent = '解除渁E;
-    showBonus('+100 制御盤B解除�E�E, '#0f8');
+    document.getElementById('status-b').querySelector('span:last-child').textContent = '解除済';
+    showBonus('+100 制御盤B解除！', '#0f8');
   } else {
     G.panelMain = true;
     document.getElementById('status-main').classList.add('done');
-    document.getElementById('status-main').querySelector('span:last-child').textContent = '解除渁E;
-    showBonus('+300 主制御盤解除�E�クリア�E�E, '#0ff');
+    document.getElementById('status-main').querySelector('span:last-child').textContent = '解除済';
+    showBonus('+300 主制御盤解除！クリア！', '#0ff');
     playSound('success');
     setTimeout(function() { endGame(true); }, 1000);
   }
@@ -3006,12 +2837,12 @@ function updateRobotAppearance(time) {
     robot.position.y = Math.sin(time * 5) * 0.3 * r;
   }
 
-  // ロボットスポットライト�E演�E�E�暴走レベルに応じて激しく�E�E
+  // ロボットスポットライトの演出（暴走レベルに応じて激しく）
   if (robotSpotlight) {
-    var pulseSpeed = 2 + r * 8; // 暴走度に応じて点滁E��度上�E
+    var pulseSpeed = 2 + r * 8; // 暴走度に応じて点滅速度上昇
     var pulseIntensity = 3 + r * 3 + Math.sin(time * pulseSpeed) * r * 2;
     robotSpotlight.intensity = pulseIntensity;
-    // 色も暴走度に応じて変化�E�オレンジ→赤�E�E
+    // 色も暴走度に応じて変化（オレンジ→赤）
     var red = 1;
     var green = 0.3 - r * 0.3;
     var blue = 0;
@@ -3031,79 +2862,36 @@ function updateRobotAppearance(time) {
 function endGame(win) {
   G.playing = false;
   G.over = true;
+  // マルチプレイヤーのクリーンアップ
   cleanupMultiplayer();
+  // 終了サウンド
   playSound(win ? 'success' : 'fail');
-
   if (win) {
     G.score += 1000;
     G.score += Math.floor(G.time * 5);
   }
-
+  // チームステータスを「完了」に更新
   if (myData.teamId) {
-    db.from('teams').update({ status: 'finished' }).eq('id', myData.teamId).then(function(){}).catch(function(){});
+    db.from('teams').update({ status: 'finished' }).eq('id', myData.teamId);
+    // 最終スコアを保存
+    db.from('game_states').update({
+      score: G.score,
+      rescued: G.rescued,
+      rampage: G.rampage
+    }).eq('team_id', myData.teamId);
   }
-
   var r = document.getElementById('result-screen');
   r.style.display = 'flex';
   r.className = win ? 'success' : 'failure';
-
-  // タイトル設宁E
-  document.getElementById('result-title').textContent = win ? 'MISSION COMPLETE' : 'MISSION FAILED';
-  document.getElementById('result-subtitle').textContent = win ? 'ROBOT SHUTDOWN SUCCESS' : 'RAMPAGE PROTOCOL';
-
-  // ランク計箁E
-  var rescueNpcCount = npcs.filter(function(npc) { return npc.needsRescue; }).length;
-  var rescueRate = G.rescued / Math.max(1, rescueNpcCount);
-  var rank, rankClass, rankLabel;
-
-  if (win) {
-    if (G.score >= 8000 && rescueRate >= 1 && G.time >= 300) {
-      rank = 'S'; rankClass = 's'; rankLabel = 'PERFECT CLEAR';
-    } else if (G.score >= 5000 && rescueRate >= 0.8) {
-      rank = 'A'; rankClass = 'a'; rankLabel = 'EXCELLENT';
-    } else if (G.score >= 3000 && rescueRate >= 0.5) {
-      rank = 'B'; rankClass = 'b'; rankLabel = 'GOOD JOB';
-    } else {
-      rank = 'C'; rankClass = 'c'; rankLabel = 'CLEARED';
-    }
-  } else {
-    rank = 'F'; rankClass = 'f'; rankLabel = 'TRY AGAIN';
-  }
-
-  var rankEl = document.getElementById('result-rank');
-  rankEl.textContent = rank;
-  rankEl.className = 'result-rank ' + rankClass;
-  document.getElementById('result-rank-label').textContent = rankLabel;
-
-  // スコア表示
+  r.querySelector('h1').textContent = win ? '🎉 MISSION COMPLETE!' : '💥 MISSION FAILED';
   document.getElementById('final-score').textContent = G.score.toLocaleString();
+  var rescueNpcCount = npcs.filter(function(npc) { return npc.needsRescue; }).length;
   document.getElementById('final-rescued').textContent = G.rescued + '/' + rescueNpcCount;
   document.getElementById('final-coop').textContent = '+' + G.coopBonus;
   var m = Math.floor(G.time / 60);
   var s = Math.floor(G.time % 60);
   document.getElementById('final-time').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-
-  // パ�EチE��クル生�E�E��E功時のみ�E�E
-  if (win) {
-    createResultParticles();
-  }
-
   document.getElementById('restart-btn').onclick = function() { location.reload(); };
-}
-
-function createResultParticles() {
-  var container = document.getElementById('result-particles');
-  container.innerHTML = '';
-  var colors = ['#0f8', '#00f5ff', '#ffd700', '#ff6b6b'];
-  for (var i = 0; i < 30; i++) {
-    var particle = document.createElement('div');
-    particle.className = 'result-particle';
-    particle.style.left = Math.random() * 100 + '%';
-    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-    particle.style.animationDelay = Math.random() * 3 + 's';
-    particle.style.animationDuration = (2 + Math.random() * 2) + 's';
-    container.appendChild(particle);
-  }
 }
 
 // ============================================
@@ -3124,14 +2912,14 @@ function animate() {
       endGame(false);
     }
     var prevRampage = G.rampage;
-    // 難易度補正付きの暴走レベル上�E�E�リーダーのみ計算、他�Eサーバ�Eから同期�E�E
+    // 難易度補正付きの暴走レベル上昇（リーダーのみ計算、他はサーバーから同期）
     if (myData.isLeader || !myData.teamId) {
       G.rampage += calculateRampageIncrease(delta, G.rampage);
     }
     // 暴走レベル80%突破時にアラーム
     if (prevRampage < 80 && G.rampage >= 80) {
       playSound('alarm');
-      showBonus('⚠�E�E暴走レベル危険�E�E, '#ff0000');
+      showBonus('⚠️ 暴走レベル危険！', '#ff0000');
     }
     if (G.rampage >= 100) endGame(false);
 
@@ -3188,40 +2976,40 @@ function animate() {
     if (n.needsRescue) {
       // 救助対象NPC
       if (!n.rescued) {
-        // 未救助�E�SOSライト点滁E
+        // 未救助：SOSライト点滅
         if (n.sos) n.sos.intensity = 1 + Math.sin(time * 8 + n.id * 2) * 0.8;
-        // 座ってぁE��NPCは腕を霁E��せる
+        // 座っているNPCは腕を震わせる
         if (n.npcType === 'sitting' && n.leftArm) {
           n.leftArm.rotation.z = Math.sin(time * 10 + n.id * 3) * 0.15;
           n.rightArm.rotation.z = Math.sin(time * 10 + n.id * 3 + 1) * 0.1;
         }
-        // 倒れてぁE��NPCは苦しそぁE��動く
+        // 倒れているNPCは苦しそうに動く
         if (n.npcType === 'fallen' && n.leftArm) {
           n.leftArm.rotation.x = Math.sin(time * 2 + n.id) * 0.2;
         }
       } else {
-        // 救助済み�E�手を振るアニメーション
+        // 救助済み：手を振るアニメーション
         if (n.sos) n.sos.intensity = 0;
-        // 歩行可能NPCは歩き回る、それ以外�E手を振めE
+        // 歩行可能NPCは歩き回る、それ以外は手を振る
         if (n.canWalk) {
           n.panicLevel = 0;
         } else if (n.rightArm) {
           n.rightArm.rotation.x = -Math.PI / 4 + Math.sin(time * 6 + n.id) * 0.3;
           n.rightArm.rotation.z = -0.5;
         }
-        // 倒れてぁE��NPCは起き上がめE
+        // 倒れていたNPCは起き上がる
         if (n.npcType === 'fallen' && n.rotation.z > 0.01) {
           n.rotation.z *= 0.95;
           n.position.y = 0.5 * n.rotation.z / (Math.PI / 2);
         }
       }
     } else {
-      // 邪魔な研究員�E�救助不要E��E
+      // 邪魔な研究員（救助不要）
       if (n.talked) {
-        // 話しかけ済み�E�落ち着ぁE��歩ぁE
+        // 話しかけ済み：落ち着いて歩く
         n.panicLevel = 0;
       }
-      // 歩行AIが制御するのでここでは何もしなぁE
+      // 歩行AIが制御するのでここでは何もしない
     }
   });
 
@@ -3235,10 +3023,34 @@ function animate() {
 async function startGame() {
   if (subscription) subscription.unsubscribe();
 
-  // パネルコード同朁E チ�Eムコードを種として決定論的に生�E
-  // 全プレイヤーが同じチームコードを持ってぁE��ので、同じコードが生�EされめE
-  generatePanelCodesFromSeed(myData.teamCode || '0000');
-  console.log('Panel codes generated from team code:', myData.teamCode, panelCodes);
+  // パネルコードの同期（リーダーが生成してDBに保存、他は取得）
+  if (myData.isLeader || !myData.teamId) {
+    // リーダー（またはソロ）：コードを生成してDBに保存
+    generatePanelCodes();
+    console.log('Panel codes generated (leader):', panelCodes);
+    if (myData.teamId) {
+      await db.from('game_states').update({
+        panel_codes: JSON.stringify(panelCodes)
+      }).eq('team_id', myData.teamId);
+    }
+  } else {
+    // 非リーダー：DBからコードを取得
+    var retries = 0;
+    while (retries < 10) {
+      var gs = await db.from('game_states').select('panel_codes').eq('team_id', myData.teamId).single();
+      if (gs.data && gs.data.panel_codes) {
+        panelCodes = JSON.parse(gs.data.panel_codes);
+        console.log('Panel codes loaded from server:', panelCodes);
+        break;
+      }
+      retries++;
+      await new Promise(function(r) { setTimeout(r, 500); });
+    }
+    if (!panelCodes.A || !panelCodes.A.length) {
+      console.error('Failed to load panel codes, generating locally');
+      generatePanelCodes();
+    }
+  }
 
   // Hide menus, show HUD
   document.getElementById('lobby-screen').style.display = 'none';
@@ -3271,17 +3083,17 @@ async function startGame() {
 
   // Start multiplayer sync
   if (myData.teamId) {
-    // マルチ�Eレイヤー購読開姁E
+    // マルチプレイヤー購読開始
     subscribeToGame();
-    // 他�Eレイヤーを読み込む
+    // 他プレイヤーを読み込む
     loadOtherPlayers();
-    // 位置同期を開始！E00ms間隔�E�E
+    // 位置同期を開始（200ms間隔）
     positionUpdateInterval = setInterval(sendPositionUpdate, POSITION_SYNC_INTERVAL);
-    // 初回位置送信�E�他�Eレイヤーに自刁E��表示させる！E
+    // 初回位置送信（他プレイヤーに自分を表示させる）
     sendPositionUpdate();
-    // 定期皁E��プレイヤー更新を開姁E
+    // 定期的なプレイヤー更新を開始
     startPlayerRefresh();
-    // リーダーはゲーム状態を定期皁E��同期�E�E秒間隔！E
+    // リーダーはゲーム状態を定期的に同期（1秒間隔）
     if (myData.isLeader) {
       setInterval(syncGameStateToServer, 1000);
     }
@@ -3290,18 +3102,18 @@ async function startGame() {
   // 役割能力UIを表示
   showRoleAbilityUI();
 
-  // オーチE��オ初期匁E
+  // オーディオ初期化
   initAudio();
 
-  // モバイルコントロール初期匁E
+  // モバイルコントロール初期化
   initMobileControls();
 
-  // 人数に応じた�E期暴走レベルを設宁E
+  // 人数に応じた初期暴走レベルを設定
   var settings = getDifficultySettings();
   G.rampage = settings.initialRampage;
-  // HUDにチ�Eムモードを表示
+  // HUDにチームモードを表示
   document.getElementById('team-mode').textContent = settings.playerCount + '人';
-  console.log('難易度設宁E', settings.playerCount + '人モーチE,
+  console.log('難易度設定:', settings.playerCount + '人モード',
     '暴走倍率:' + settings.rampageMultiplier,
     '操作倍率:' + settings.interactionMultiplier);
 
@@ -3323,7 +3135,7 @@ function cleanupMultiplayer() {
     gameSubscription.unsubscribe();
     gameSubscription = null;
   }
-  // 他�Eレイヤーのアバターを削除
+  // 他プレイヤーのアバターを削除
   for (var id in otherPlayers) {
     if (otherPlayers[id].mesh) {
       scene.remove(otherPlayers[id].mesh);
@@ -3429,7 +3241,7 @@ async function refreshAdminData() {
 function displayTeamsProgress(teams, gameStateMap, playerCounts) {
   var container = document.getElementById('teams-progress');
   if (!teams.length) {
-    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">チ�Eムがありません</p>';
+    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">チームがありません</p>';
     return;
   }
 
@@ -3439,7 +3251,7 @@ function displayTeamsProgress(teams, gameStateMap, playerCounts) {
     var playerCount = playerCounts[team.id] || 0;
     var status = team.status || 'waiting';
     var statusText = status === 'playing' ? '🎮 プレイ中' :
-                     status === 'finished' ? '✁E完亁E : '⏳ 征E��中';
+                     status === 'finished' ? '✅ 完了' : '⏳ 待機中';
     var statusClass = status === 'playing' ? 'playing' :
                       status === 'finished' ? 'finished' : '';
 
@@ -3452,7 +3264,7 @@ function displayTeamsProgress(teams, gameStateMap, playerCounts) {
 
     html += '<div class="team-card ' + statusClass + '">';
     html += '<div class="team-card-header">';
-    html += '<span class="team-card-name">' + (team.name || 'チ�Eム') + '</span>';
+    html += '<span class="team-card-name">' + (team.name || 'チーム') + '</span>';
     html += '<span class="team-card-code">#' + team.code + '</span>';
     html += '</div>';
     html += '<div class="team-card-status">' + statusText + '</div>';
@@ -3481,7 +3293,7 @@ function displayRanking(teams, gameStateMap) {
   var rankingData = teams.map(function(team) {
     var gs = gameStateMap[team.id] || {};
     return {
-      name: team.name || 'チ�Eム',
+      name: team.name || 'チーム',
       code: team.code,
       score: gs.score || 0,
       rescued: gs.rescued || 0,
@@ -3493,7 +3305,7 @@ function displayRanking(teams, gameStateMap) {
   rankingData.sort(function(a, b) { return b.score - a.score; });
 
   if (!rankingData.length) {
-    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">ランキングチE�Eタがありません</p>';
+    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">ランキングデータがありません</p>';
     return;
   }
 
@@ -3501,7 +3313,7 @@ function displayRanking(teams, gameStateMap) {
   rankingData.forEach(function(item, index) {
     var rank = index + 1;
     var rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-    var medal = rank === 1 ? '🥁E : rank === 2 ? '🥁E : rank === 3 ? '🥁E : rank + '.';
+    var medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank + '.';
 
     html += '<div class="ranking-item ' + rankClass + '">';
     html += '<span class="rank">' + medal + '</span>';
@@ -3516,12 +3328,12 @@ function displayRanking(teams, gameStateMap) {
 
 // Reset all data
 async function resetAllData() {
-  if (!confirm('全てのチ�Eム・プレイヤー・ゲームチE�Eタを削除します、En本当にリセチE��しますか�E�E)) {
+  if (!confirm('全てのチーム・プレイヤー・ゲームデータを削除します。\n本当にリセットしますか？')) {
     return;
   }
 
   try {
-    showError('リセチE��中...');
+    showError('リセット中...');
 
     // Delete in order: npc_states, game_states, players, teams
     await db.from('npc_states').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -3529,11 +3341,11 @@ async function resetAllData() {
     await db.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await db.from('teams').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-    showError('リセチE��完亁E��E);
+    showError('リセット完了！');
     refreshAdminData();
   } catch (err) {
     console.error('Reset error:', err);
-    showError('リセチE��エラー: ' + err.message);
+    showError('リセットエラー: ' + err.message);
   }
 }
 
@@ -3614,32 +3426,6 @@ document.addEventListener('keydown', function(e) {
     }
   }
 });
-
-// ============================================
-// 初期匁E- キャチE��ュ対筁Ev2.0
-// ============================================
-(function() {
-  // 古ぁE��割カードをクリア�E�キャチE��ュ対策！E
-  var grid = document.getElementById('role-grid');
-  if (grid) {
-    grid.innerHTML = '';
-  }
-
-  // ロビ�E表示時に確実にカード生戁E
-  var originalShowLobby = showLobby;
-  showLobby = async function() {
-    await originalShowLobby();
-    // 強制皁E��カード�E生�E
-    setTimeout(function() {
-      adjustRoleCardsForTeamSize();
-    }, 50);
-    setTimeout(function() {
-      adjustRoleCardsForTeamSize();
-    }, 200);
-  };
-
-  console.log('RAMPAGE PROTOCOL v2.0 - Role system initialized');
-})();
   </script>
 </body>
 </html>
