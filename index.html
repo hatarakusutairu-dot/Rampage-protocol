@@ -525,28 +525,57 @@ function generatePanelCodes() {
 }
 
 // ヒント生成（コードに基づいて動的に生成）
-// 救助NPCからのヒント（レスキューが救助完了時に取得）
-function generateRescueHints() {
+// 全ヒントを統合（A, B, メインを分散させてチーム協力を促進）
+function generateAllHints() {
   return [
-    // Panel A のヒント（3人のNPCに分散）
     { panel: 'A', hint: '制御盤Aの1番目は「' + panelCodes.A[0] + '」だ...' },
     { panel: 'A', hint: '制御盤Aの2番目は「' + panelCodes.A[1] + '」...' },
     { panel: 'A', hint: '制御盤Aの最後は「' + panelCodes.A[2] + '」で終わる' },
-    // Panel B のヒント（3人のNPCに分散）
     { panel: 'B', hint: '制御盤Bの1番目は「' + panelCodes.B[0] + '」だ...' },
     { panel: 'B', hint: '制御盤Bの2番目は「' + panelCodes.B[1] + '」...' },
-    { panel: 'B', hint: '制御盤Bの最後は「' + panelCodes.B[2] + '」だったはず' }
-  ];
-}
-
-// 邪魔なNPCからのヒント（情報員が会話で取得）
-function generateDistractionHints() {
-  return [
+    { panel: 'B', hint: '制御盤Bの最後は「' + panelCodes.B[2] + '」だったはず' },
     { panel: 'main', hint: '緊急停止コードの最初は「' + panelCodes.main[0] + '」だった気がする...' },
     { panel: 'main', hint: '緊急停止コードの2番目は「' + panelCodes.main[1] + '」...' },
     { panel: 'main', hint: '緊急停止コードの3番目は「' + panelCodes.main[2] + '」だったような...' },
     { panel: 'main', hint: '緊急停止コードの最後は「' + panelCodes.main[3] + '」だ！' }
   ];
+}
+
+// シャッフルされたヒント割り当て（ゲーム開始時に生成）
+var shuffledHintAssignment = [];
+
+function initShuffledHints() {
+  var allHints = generateAllHints();
+  shuffledHintAssignment = [];
+  for (var i = 0; i < allHints.length; i++) {
+    shuffledHintAssignment.push(i);
+  }
+  for (var i = shuffledHintAssignment.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = shuffledHintAssignment[i];
+    shuffledHintAssignment[i] = shuffledHintAssignment[j];
+    shuffledHintAssignment[j] = temp;
+  }
+}
+
+// 救助NPCからのヒント（シャッフルされた順序で取得）
+function generateRescueHints() {
+  var allHints = generateAllHints();
+  var result = [];
+  for (var i = 0; i < 6 && i < shuffledHintAssignment.length; i++) {
+    result.push(allHints[shuffledHintAssignment[i]]);
+  }
+  return result;
+}
+
+// 邪魔なNPCからのヒント（シャッフルされた順序で取得）
+function generateDistractionHints() {
+  var allHints = generateAllHints();
+  var result = [];
+  for (var i = 6; i < 10 && i < shuffledHintAssignment.length; i++) {
+    result.push(allHints[shuffledHintAssignment[i]]);
+  }
+  return result;
 }
 
 // 旧互換用
