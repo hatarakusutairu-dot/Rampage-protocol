@@ -2294,7 +2294,12 @@ document.addEventListener('mousemove', function(e) {
   pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
 });
 
-document.addEventListener('click', function() {
+document.addEventListener('click', function(e) {
+  // モーダルが開いている時はポインターロックを取得しない
+  var codeModal = document.getElementById('code-input-modal');
+  var isModalOpen = codeModal && codeModal.style.display === 'flex';
+  if (isModalOpen) return;
+
   if (G.playing && !isPointerLocked && !isMobile) {
     document.body.requestPointerLock();
   }
