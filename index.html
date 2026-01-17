@@ -2804,9 +2804,10 @@ function submitCode() {
   }
 
   if (isCorrect) {
-    // 正解！
+    // 正解！パネルを保存してからモーダルを閉じる
+    var panelToUnlock = currentCodePanel;
     closeCodeInputPanel();
-    unlockPanel(currentCodePanel);
+    unlockPanel(panelToUnlock);
   } else {
     // 不正解
     playSound('fail');
