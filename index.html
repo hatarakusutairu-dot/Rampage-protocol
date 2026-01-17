@@ -1625,6 +1625,20 @@ document.getElementById('join-team-btn').onclick = async function() {
   }
 };
 
+// チーム番号入力でEnterキー対応
+document.getElementById('team-code-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('join-team-btn').click();
+  }
+});
+
+// チーム名入力でもEnterキー対応
+document.getElementById('team-name-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('create-team-btn').click();
+  }
+});
+
 function showWaitingScreen() {
   document.getElementById('team-screen').style.display = 'none';
   document.getElementById('waiting-screen').style.display = 'flex';
