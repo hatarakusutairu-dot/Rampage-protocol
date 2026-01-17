@@ -3637,15 +3637,30 @@ document.getElementById('ranking-btn').addEventListener('click', function() {
 });
 
 // Code input panel event listeners
+// モーダル内のクリックはドキュメントに伝播させない
+document.getElementById('code-input-modal').addEventListener('click', function(e) {
+  e.stopPropagation();
+});
+
 document.getElementById('code-buttons').addEventListener('click', function(e) {
+  e.stopPropagation();
   if (e.target.classList.contains('code-btn')) {
     addCodeInput(e.target.getAttribute('data-value'));
   }
 });
 
-document.getElementById('code-submit').addEventListener('click', submitCode);
-document.getElementById('code-clear').addEventListener('click', clearCodeInput);
-document.getElementById('code-cancel').addEventListener('click', closeCodeInputPanel);
+document.getElementById('code-submit').addEventListener('click', function(e) {
+  e.stopPropagation();
+  submitCode();
+});
+document.getElementById('code-clear').addEventListener('click', function(e) {
+  e.stopPropagation();
+  clearCodeInput();
+});
+document.getElementById('code-cancel').addEventListener('click', function(e) {
+  e.stopPropagation();
+  closeCodeInputPanel();
+});
 
 // Keyboard input for code panel
 document.addEventListener('keydown', function(e) {
