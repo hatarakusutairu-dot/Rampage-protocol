@@ -923,12 +923,29 @@ function subscribeToGame() {
       filter: 'team_id=eq.' + myData.teamId
     }, function(payload) {
       var ns = payload.new;
-      // NPC救助状態を同期
+      // NPC救助状態を同期（他プレイヤーの救助を反映）
       if (ns.is_rescued && npcs[ns.npc_index] && !npcs[ns.npc_index].rescued) {
-        npcs[ns.npc_index].rescued = true;
-        npcs[ns.npc_index].visible = false;
+        var npc = npcs[ns.npc_index];
+        npc.rescued = true;
+        npc.hintObtained = true;
         G.rescued++;
+        
+        // 救助エフェクト（他プレイヤーの画面でも表示）
+        if (typeof playRescueEffect === 'function') {
+          playRescueEffect(npc);
+        }
+        
+        // standingは即座に歩行可能、fallen/sittingはメインループでアニメーション
+        if (npc.npcType === 'standing') {
+          npc.canWalk = true;
+        }
+        
+        console.log('NPC rescued by other player:', ns.npc_index, npc.npcType);
         updateGameUI();
+      }
+      // ヒント取得状態の同期
+      if (ns.hint_obtained && npcs[ns.npc_index] && !npcs[ns.npc_index].hintObtained) {
+        npcs[ns.npc_index].hintObtained = true;
       }
     })
     .subscribe(function(status) {
