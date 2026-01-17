@@ -561,41 +561,48 @@ function generateAllHints() {
 
 // シャッフルされたヒント割り当て（ゲーム開始時に生成）
 var shuffledHintAssignment = [];
-var cachedAllHints = []; // ヒントをキャッシュ
+var cachedAllHints = [];
+var resolvedRescueHints = [];
+var resolvedDistractionHints = [];
 
 function initShuffledHints() {
   // ヒントを一度だけ生成してキャッシュ
   cachedAllHints = generateAllHints();
-  console.log('Cached hints:', cachedAllHints.map(function(h) { return h.hint; }));
   
   shuffledHintAssignment = [];
   for (var i = 0; i < cachedAllHints.length; i++) {
     shuffledHintAssignment.push(i);
   }
+  // Fisher-Yatesシャッフル
   for (var i = shuffledHintAssignment.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
     var temp = shuffledHintAssignment[i];
     shuffledHintAssignment[i] = shuffledHintAssignment[j];
     shuffledHintAssignment[j] = temp;
   }
+  
+  // 解決済みヒントを直接配列に格納（重複を完全に防ぐ）
+  resolvedRescueHints = [];
+  resolvedDistractionHints = [];
+  for (var i = 0; i < 6; i++) {
+    resolvedRescueHints.push(cachedAllHints[shuffledHintAssignment[i]]);
+  }
+  for (var i = 6; i < 10; i++) {
+    resolvedDistractionHints.push(cachedAllHints[shuffledHintAssignment[i]]);
+  }
+  
+  console.log('Rescue hints:', resolvedRescueHints.map(function(h) { return h.hint; }));
+  console.log('Distraction hints:', resolvedDistractionHints.map(function(h) { return h.hint; }));
 }
 
 // 救助NPCからのヒント（シャッフルされた順序で取得）
 function generateRescueHints() {
-  var result = [];
-  for (var i = 0; i < 6 && i < shuffledHintAssignment.length; i++) {
-    result.push(cachedAllHints[shuffledHintAssignment[i]]);
-  }
-  return result;
+  return resolvedRescueHints;
 }
 
 // 邪魔なNPCからのヒント（シャッフルされた順序で取得）
 function generateDistractionHints() {
-  var result = [];
-  for (var i = 6; i < 10 && i < shuffledHintAssignment.length; i++) {
-    result.push(cachedAllHints[shuffledHintAssignment[i]]);
-  }
-  return result;
+  return resolvedDistractionHints;
 }
 
 // 旧互換用
