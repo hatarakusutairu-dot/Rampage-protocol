@@ -2710,12 +2710,15 @@ function openCodeInputPanel(panel) {
   }
 
   updateCodeDisplay();
-  modal.style.display = 'flex';
-
-  // ポインターロック解除
+  // ポインターロック解除を先に行う
   if (document.pointerLockElement) {
     document.exitPointerLock();
   }
+
+  // 少し待ってからモーダル表示
+  setTimeout(function() {
+    modal.style.display = 'flex';
+  }, 100)
 }
 
 function updateCodeDisplay() {
