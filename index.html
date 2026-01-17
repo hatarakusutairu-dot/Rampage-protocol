@@ -1257,17 +1257,11 @@ function playPanelEffect(panel) {
 function playRescueEffect(npc) {
   createParticleEffect(npc.position.x, 1.5, npc.position.z, 0x00f5ff, 25);
   playSound('rescue');
-  
-  // 救助後にNPCを立ち上がらせる
-  if (npc.npcType === 'fallen') {
-    npc.rotation.z = 0;
-    npc.position.y = 0;
-  } else if (npc.npcType === 'sitting') {
-    npc.position.y = 0;
-    if (npc.leftLeg) npc.leftLeg.rotation.x = 0;
-    if (npc.rightLeg) npc.rightLeg.rotation.x = 0;
-    if (npc.leftArm) npc.leftArm.rotation.x = 0;
-    if (npc.rightArm) npc.rightArm.rotation.x = 0;
+
+  // 救助後に歩行可能にする（standingのみ即時）
+  // fallen/sittingはメインループでアニメーション起き上がり
+  if (npc.npcType === 'standing') {
+    npc.canWalk = true;
   }
   // SOSライトを緑に変更
   if (npc.sos) {
@@ -3052,6 +3046,24 @@ function animate() {
         if (n.npcType === 'fallen' && n.rotation.z > 0.01) {
           n.rotation.z *= 0.95;
           n.position.y = 0.5 * n.rotation.z / (Math.PI / 2);
+          if (n.rotation.z <= 0.01) {
+            n.rotation.z = 0;
+            n.position.y = 0;
+            n.canWalk = true;
+          }
+        }
+        // 座っていたNPCは立ち上がる
+        if (n.npcType === 'sitting') {
+          if (n.leftLeg && n.leftLeg.rotation.x < -0.01) {
+            n.leftLeg.rotation.x *= 0.9;
+            n.rightLeg.rotation.x *= 0.9;
+          } else {
+            if (n.leftLeg) n.leftLeg.rotation.x = 0;
+            if (n.rightLeg) n.rightLeg.rotation.x = 0;
+            n.canWalk = true;
+          }
+          if (n.leftArm) n.leftArm.rotation.x = 0;
+          if (n.rightArm) n.rightArm.rotation.x = 0;
         }
       }
     } else {
