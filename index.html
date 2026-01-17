@@ -41,7 +41,11 @@
     .lobby-status h3{color:#ffa500}
     .lobby-status.ready{background:rgba(0,255,136,.2);border-color:#00ff88}
     .lobby-status.ready h3{color:#00ff88}
-    .role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;margin-bottom:20px}
+    .role-grid{display:grid;gap:12px;margin-bottom:20px;max-width:700px;margin-left:auto;margin-right:auto}
+    .role-grid.cols-2{grid-template-columns:repeat(2,1fr)}
+    .role-grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    .role-grid.cols-4{grid-template-columns:repeat(2,1fr)}
+    .role-grid.cols-5{grid-template-columns:repeat(3,1fr)}
     .role-card{background:rgba(20,30,50,.95);border:2px solid rgba(255,255,255,.2);padding:20px;display:flex;align-items:center;gap:15px;cursor:pointer;border-radius:8px}
     .role-card.selected{border-color:#00ff88;background:rgba(0,255,136,.15)}
     .role-card.taken{opacity:.5;cursor:not-allowed}
@@ -1661,6 +1665,7 @@ function adjustRoleCardsForTeamSize() {
 
   var slots = roleSlotsByTeamSize[teamSize];
 
+  grid.className = 'role-grid cols-' + teamSize;
   grid.innerHTML = '';
 
   for (var i = 0; i < slots.length; i++) {
