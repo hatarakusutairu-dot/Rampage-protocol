@@ -116,7 +116,7 @@
     #role-ability.rescue h4{color:#00ff88}
     #role-ability.scout{border-color:#00f5ff}
     #role-ability.scout h4{color:#00f5ff}
-    #team-hints{position:fixed;top:270px;left:20px;background:rgba(10,10,30,.95);border:1px solid rgba(255,200,0,.5);padding:10px 12px;border-radius:8px;z-index:100;display:none;font-size:.7rem;max-width:220px;max-height:200px;overflow-y:auto}
+    #team-hints{position:fixed;top:270px;left:20px;background:rgba(10,10,30,.95);border:1px solid rgba(255,200,0,.5);padding:10px 12px;border-radius:8px;z-index:100;display:none;font-size:.7rem;max-width:240px;max-height:300px;overflow-y:auto;pointer-events:auto}
     #team-hints h4{color:#ffc800;margin-bottom:8px;font-size:.75rem}
     #team-hints .hint-item{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.1);color:#fff;font-size:.65rem}
     #team-hints .hint-item.panel-a{border-left:3px solid #ff6b6b;padding-left:6px}
@@ -402,7 +402,7 @@ var DifficultyConfig = {
   // 人数が多い → 暴走が速い（分担して効率化必要）
   rampageMultiplier: {
     1: 0.5,   // テスト用
-    2: 0.75,  // 2人: 暴走遅め
+    2: 0.95,  // 2人: ほぼ通常速度（緊張感を維持）
     3: 1.0,   // 3人: 基準
     4: 1.1,   // 4人: やや速い（調整）
     5: 1.2    // 5人: 速い（調整）
@@ -1144,7 +1144,16 @@ async function pollGameState() {
 // サーバーからゲーム状態を受信して適用
 function syncFromGameState(gs) {
   if (!gs) return;
-  
+
+  // ゲーム終了の同期（非リーダー用）
+  if (gs.game_over && !G.over) {
+    console.log('Game over synced from leader, win:', gs.game_won);
+    G.score = gs.score || G.score;
+    G.rescued = gs.rescued || G.rescued;
+    endGame(gs.game_won);
+    return;
+  }
+
   // チームヒントの同期
   if (gs.collected_hints) {
     loadTeamHints(gs.collected_hints);
@@ -1367,7 +1376,23 @@ function createParticleEffect(x, y, z, color, count) {
 
 // NPC歩行AI更新
 function updateNPCWalking(delta, rampageLevel) {
+  var time = Date.now() / 1000;
+
   npcs.forEach(function(npc) {
+    // お祝いアニメーション（クリア時）
+    if (npc.celebrating && npc.leftArm) {
+      // 両手を上げて喜ぶ
+      npc.leftArm.rotation.x = -2.5 + Math.sin(time * 8) * 0.3;
+      npc.leftArm.rotation.z = 0.3 + Math.sin(time * 6) * 0.2;
+      npc.rightArm.rotation.x = -2.5 + Math.sin(time * 8 + 1) * 0.3;
+      npc.rightArm.rotation.z = -0.3 + Math.sin(time * 6 + 1) * 0.2;
+      // 小さくジャンプ
+      npc.position.y = Math.abs(Math.sin(time * 6)) * 0.3;
+      // 左右に揺れる
+      npc.rotation.y += Math.sin(time * 4) * 0.02;
+      return; // 通常の歩行AIは無効
+    }
+
     if (!npc.canWalk) return;
 
     // 救助対象は救助後、邪魔な研究員は話しかけ後も歩行継続
@@ -3106,7 +3131,10 @@ function unlockPanel(panel) {
     document.getElementById('status-main').querySelector('span:last-child').textContent = '解除済';
     showBonus('+300 主制御盤解除！クリア！', '#0ff');
     playSound('success');
-    setTimeout(function() { endGame(true); }, 1000);
+    // クリアアニメーションを再生してからゲーム終了
+    playClearAnimation(function() {
+      endGame(true);
+    });
   }
 
   updateGameUI();
@@ -3259,7 +3287,16 @@ function playClearAnimation(callback) {
     // Turn off emergency lights
     if (emergencyLight1) emergencyLight1.intensity = 0;
     if (emergencyLight2) emergencyLight2.intensity = 0;
-    
+
+    // ロボットの安定化（揺れを止める、青/緑に変化）
+    if (robot) {
+      robot.position.y = robot.position.y * (1 - eased * 0.1); // 徐々に地面に戻る
+    }
+    if (robotSpotlight) {
+      robotSpotlight.color.setRGB(0, 0.8 + eased * 0.2, 0.5 + eased * 0.3);
+      robotSpotlight.intensity = 2 + eased * 2;
+    }
+
     if (progress < 1) {
       requestAnimationFrame(animateClear);
     } else {
@@ -3278,46 +3315,61 @@ function playClearAnimation(callback) {
 function fetchAndDisplayRanking() {
   var rankingSection = document.getElementById('team-ranking');
   var rankingList = document.getElementById('ranking-list');
-  
+
   if (rankingSection.style.display === 'none') {
     rankingSection.style.display = 'block';
-    
-    // Fetch rankings from Supabase
+    rankingList.innerHTML = '<p style="color:#888;">読み込み中...</p>';
+
+    // クリア済みのゲームのみ取得（game_wonがtrueのもの）
     db.from('game_states')
-      .select('team_id, score, rescued, teams!inner(name, code)')
+      .select('team_id, score, rescued, game_won')
+      .eq('game_won', true)
       .order('score', { ascending: false })
       .limit(10)
-      .then(function(result) {
+      .then(async function(result) {
         if (result.error) {
+          console.error('Ranking fetch error:', result.error);
           rankingList.innerHTML = '<p style="color:#ff6666;">ランキング取得エラー</p>';
           return;
         }
-        
-        var html = '';
+
         var data = result.data || [];
-        
+
         if (data.length === 0) {
-          rankingList.innerHTML = '<p style="color:#888;">まだランキングデータがありません</p>';
+          rankingList.innerHTML = '<p style="color:#888;">まだクリアしたチームがありません</p>';
           return;
         }
-        
+
+        // チーム情報を個別に取得
+        var teamIds = data.map(function(d) { return d.team_id; });
+        var teamsResult = await db.from('teams').select('id, name, code').in('id', teamIds);
+        var teamsMap = {};
+        if (teamsResult.data) {
+          teamsResult.data.forEach(function(t) {
+            teamsMap[t.id] = t;
+          });
+        }
+
+        var html = '';
         for (var i = 0; i < data.length; i++) {
           var item = data[i];
           var isCurrentTeam = item.team_id === myData.teamId;
-          var teamName = item.teams ? item.teams.name : 'Unknown';
+          var team = teamsMap[item.team_id];
+          var teamName = team ? team.name : 'チーム' + (team ? team.code : '???');
           var rankNum = i + 1;
           var rankIcon = rankNum === 1 ? '🥇' : rankNum === 2 ? '🥈' : rankNum === 3 ? '🥉' : rankNum + '.';
-          
+
           html += '<div class="ranking-item' + (isCurrentTeam ? ' current' : '') + '">';
           html += '<span class="rank">' + rankIcon + '</span>';
           html += '<span class="name">' + teamName + '</span>';
           html += '<span class="score">' + (item.score || 0).toLocaleString() + '</span>';
           html += '</div>';
         }
-        
+
         rankingList.innerHTML = html;
       })
       .catch(function(err) {
+        console.error('Ranking error:', err);
         rankingList.innerHTML = '<p style="color:#ff6666;">ランキング取得エラー</p>';
       });
   } else {
@@ -3339,11 +3391,13 @@ function endGame(win) {
   // チームステータスを「完了」に更新
   if (myData.teamId) {
     db.from('teams').update({ status: 'finished' }).eq('id', myData.teamId);
-    // 最終スコアを保存
+    // 最終スコアを保存（ゲーム終了フラグも追加）
     db.from('game_states').update({
       score: G.score,
       rescued: G.rescued,
-      rampage: G.rampage
+      rampage: G.rampage,
+      game_over: true,
+      game_won: win
     }).eq('team_id', myData.teamId);
   }
   var r = document.getElementById('result-screen');
@@ -3944,6 +3998,28 @@ document.addEventListener('keydown', function(e) {
     }
   }
 });
+
+// ヒントパネルのスクロールを有効化（ポインターロック中でもスクロール可能）
+(function() {
+  var hintsPanel = document.getElementById('team-hints');
+  if (hintsPanel) {
+    // マウスがパネル上にある時はスクロールを優先
+    hintsPanel.addEventListener('wheel', function(e) {
+      e.stopPropagation();
+      // スクロール可能な場合のみ処理
+      if (hintsPanel.scrollHeight > hintsPanel.clientHeight) {
+        hintsPanel.scrollTop += e.deltaY;
+      }
+    }, { passive: true });
+
+    // パネルホバー時はポインターロックを一時解除
+    hintsPanel.addEventListener('mouseenter', function() {
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    });
+  }
+})();
   </script>
 </body>
 </html>
