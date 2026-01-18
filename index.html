@@ -3400,30 +3400,43 @@ async function startGame() {
   if (myData.isLeader || !myData.teamId) {
     // リーダー（またはソロ）：コードを生成してDBに保存
     generatePanelCodes();
-    console.log('Panel codes generated (leader):', panelCodes);
+    console.log('Panel codes generated (leader):', JSON.stringify(panelCodes));
     if (myData.teamId) {
       await db.from('game_states').update({
         panel_codes: JSON.stringify(panelCodes)
       }).eq('team_id', myData.teamId);
+      console.log('Panel codes saved to server');
     }
   } else {
-    // 非リーダー：DBからコードを取得
+    // 非リーダー：DBからコードを取得（リーダーが保存するまで待機）
+    console.log('Waiting for panel codes from leader...');
     var retries = 0;
-    while (retries < 10) {
+    var maxRetries = 30; // 最大15秒待機
+    while (retries < maxRetries) {
       var gs = await db.from('game_states').select('panel_codes').eq('team_id', myData.teamId).single();
       if (gs.data && gs.data.panel_codes) {
         panelCodes = JSON.parse(gs.data.panel_codes);
-        console.log('Panel codes loaded from server:', panelCodes);
+        console.log('Panel codes loaded from server:', JSON.stringify(panelCodes));
         break;
       }
       retries++;
+      console.log('Waiting for panel codes... attempt', retries);
       await new Promise(function(r) { setTimeout(r, 500); });
     }
     if (!panelCodes.A || !panelCodes.A.length) {
-      console.error('Failed to load panel codes, generating locally');
-      generatePanelCodes();
+      // コード取得失敗 - エラー表示してリロード促す
+      console.error('CRITICAL: Failed to load panel codes from server!');
+      alert('パネルコードの同期に失敗しました。ページをリロードしてください。');
+      location.reload();
+      return;
     }
   }
+  
+  // パネルコードの検証ログ
+  console.log('=== PANEL CODES VERIFIED ===');
+  console.log('Panel A:', panelCodes.A.join('-'));
+  console.log('Panel B:', panelCodes.B.join('-'));
+  console.log('Panel Main:', panelCodes.main.join('-'));
 
   // ヒントのシャッフル初期化（panelCodes設定後に実行）
   initShuffledHints();
