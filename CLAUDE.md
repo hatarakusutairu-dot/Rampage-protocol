@@ -44,3 +44,163 @@ Global `G` object holds all game state:
 
 ### Role System
 Three roles: Commander (指揮官), Rescue (レスキュー), Scout (情報員) - stored in `players.role`
+
+---
+
+## Common Issues and Solutions (学んだ教訓)
+
+### 1. マルチプレイヤー同期の順序問題
+
+**問題**: リーダーがゲーム開始時にDBを更新する前に、他プレイヤーがデータを読み込もうとして失敗する
+
+**解決策**:
+- データを先に保存してから、ステータス更新で他プレイヤーに通知する
+- 例: パネルコード生成 → DB保存 → 待機(300ms) → チームステータスを'playing'に更新
+
+```javascript
+// ❌ 悪い例
+await db.from('teams').update({ status: 'playing' });
+generatePanelCodes();
+await db.from('game_states').update({ panel_codes: ... });
+
+// ✅ 良い例
+generatePanelCodes();
+await db.from('game_states').update({ panel_codes: ... });
+await new Promise(r => setTimeout(r, 300)); // DB反映待ち
+await db.from('teams').update({ status: 'playing' });
+```
+
+### 2. 変数のnull参照問題
+
+**問題**: モーダルを閉じた後に変数がnullになり、その後の処理で参照エラー
+
+**解決策**: 変数を使う処理の前に、別の変数に保存しておく
+
+```javascript
+// ❌ 悪い例
+closeCodeInputPanel(); // currentCodePanel = null になる
+unlockPanel(currentCodePanel); // null が渡される
+
+// ✅ 良い例
+var panelToUnlock = currentCodePanel;
+closeCodeInputPanel();
+unlockPanel(panelToUnlock);
+```
+
+### 3. ポインターロックとモーダルの競合
+
+**問題**: モーダル内のボタンをクリックしても、ポインターロックが再取得されてしまう
+
+**解決策**:
+- モーダル内のクリックで`e.stopPropagation()`を呼ぶ
+- documentのクリックハンドラでモーダルが開いているかチェック
+
+```javascript
+document.getElementById('modal').addEventListener('click', function(e) {
+  e.stopPropagation();
+});
+
+document.addEventListener('click', function(e) {
+  var modal = document.getElementById('modal');
+  if (modal && modal.style.display === 'flex') return;
+  // ポインターロック取得処理
+});
+```
+
+### 4. マルチプレイヤーでのヒント同期
+
+**問題**: 各プレイヤーが独自にヒントをシャッフルして、異なるヒントが表示される
+
+**解決策**:
+- シード付き乱数を使用（teamIdやpanelCodesをシードにする）
+- ヒントをキャッシュして毎回再生成しない
+- チームヒント共有システムで取得したヒントをDB経由で共有
+
+```javascript
+function seededRandom(seed) {
+  var x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+// シード生成（全員同じ値になる）
+var seed = 0;
+for (var c = 0; c < teamId.length; c++) {
+  seed += teamId.charCodeAt(c) * (c + 1);
+}
+```
+
+### 5. NPC状態の同期不足
+
+**問題**: 他プレイヤーが救助したNPCが、自分の画面では倒れたまま/座ったまま
+
+**解決策**: NPC状態変更時に必要なプロパティをすべて更新する
+
+```javascript
+// 他プレイヤーの救助を受信した時
+if (ns.is_rescued && !npc.rescued) {
+  npc.rescued = true;
+  npc.hintObtained = true;
+  playRescueEffect(npc); // エフェクトも再生
+  if (npc.npcType === 'standing') {
+    npc.canWalk = true; // 歩行可能フラグも設定
+  }
+}
+```
+
+### 6. Supabaseリアルタイム購読の信頼性
+
+**問題**: リアルタイム購読が遅延したり、通知が届かない場合がある
+
+**解決策**: ポーリングをバックアップとして併用する
+
+```javascript
+// リアルタイム購読
+subscription = db.channel('lobby-' + teamId)
+  .on('postgres_changes', { ... }, callback)
+  .subscribe();
+
+// バックアップポーリング（2秒ごと）
+setInterval(function() {
+  refreshLobbyData();
+}, 2000);
+```
+
+### 7. 初期化関数の呼び出し忘れ
+
+**問題**: 関数を定義したが、呼び出しを忘れて機能しない
+
+**解決策**:
+- 新しい初期化関数を追加したら、startGame()やshowLobby()などの適切な場所で呼び出す
+- 呼び出し箇所をコメントで明記
+
+```javascript
+// initShuffledHints() - startGame()内でpanelCodes設定後に呼び出す必要あり
+```
+
+### 8. Edit toolの「unexpectedly modified」エラー
+
+**問題**: Edit toolでファイル編集時に「File has been unexpectedly modified」エラー
+
+**解決策**: Node.jsスクリプトを使用して編集する
+
+```bash
+node << 'SCRIPT'
+const fs = require('fs');
+let content = fs.readFileSync('index.html', 'utf8');
+content = content.replace(oldCode, newCode);
+fs.writeFileSync('index.html', content, 'utf8');
+SCRIPT
+```
+
+---
+
+## Testing Checklist
+
+マルチプレイヤー機能をテストする際のチェックリスト:
+
+1. [ ] パネルコードが全員同じか（コンソールで`Panel A/B/Main:`を確認）
+2. [ ] ヒントが全員同じ内容か
+3. [ ] チームヒントパネルに全員のヒントが表示されるか
+4. [ ] 救助したNPCが他プレイヤーの画面でも立ち上がるか
+5. [ ] 制御盤の正解が全員で一致するか
+6. [ ] ゲーム開始時に全員が3D空間に入れるか
