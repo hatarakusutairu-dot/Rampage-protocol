@@ -2033,8 +2033,24 @@ document.getElementById('lobby-back-btn').onclick = async function() {
 document.getElementById('game-start-btn').onclick = async function() {
   if (!myData.isLeader) return;
   try {
+    // 1. まずパネルコードを生成してDBに保存（他プレイヤーが先に読み込めるように）
+    generatePanelCodes();
+    console.log('Panel codes generated before game start:', JSON.stringify(panelCodes));
+    await db.from('game_states').update({
+      panel_codes: JSON.stringify(panelCodes)
+    }).eq('team_id', myData.teamId);
+    console.log('Panel codes saved to server BEFORE notifying other players');
+    
+    // 2. 少し待機してDBへの書き込みが確実に反映されるようにする
+    await new Promise(function(r) { setTimeout(r, 300); });
+    
+    // 3. チームステータスを更新（他プレイヤーにゲーム開始を通知）
     await db.from('teams').update({ status: 'playing' }).eq('id', myData.teamId);
+    
+    // 4. リーダー自身もゲーム開始（パネルコードは既に生成済み）
+    startGame();
   } catch (e) {
+    console.error('Game start error:', e);
     showError('ゲーム開始に失敗');
   }
 };
@@ -3428,14 +3444,18 @@ async function startGame() {
 
   // パネルコードの同期（リーダーが生成してDBに保存、他は取得）
   if (myData.isLeader || !myData.teamId) {
-    // リーダー（またはソロ）：コードを生成してDBに保存
-    generatePanelCodes();
-    console.log('Panel codes generated (leader):', JSON.stringify(panelCodes));
-    if (myData.teamId) {
-      await db.from('game_states').update({
-        panel_codes: JSON.stringify(panelCodes)
-      }).eq('team_id', myData.teamId);
-      console.log('Panel codes saved to server');
+    // リーダー（またはソロ）：コードがまだ生成されていなければ生成
+    if (!panelCodes.A || !panelCodes.A.length) {
+      generatePanelCodes();
+      console.log('Panel codes generated (leader) in startGame:', JSON.stringify(panelCodes));
+      if (myData.teamId) {
+        await db.from('game_states').update({
+          panel_codes: JSON.stringify(panelCodes)
+        }).eq('team_id', myData.teamId);
+        console.log('Panel codes saved to server');
+      }
+    } else {
+      console.log('Panel codes already generated, skipping:', JSON.stringify(panelCodes));
     }
   } else {
     // 非リーダー：DBからコードを取得（リーダーが保存するまで待機）
