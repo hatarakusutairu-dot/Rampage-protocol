@@ -1946,6 +1946,14 @@ function subscribeToTeam() {
 
 async function refreshLobbyData() {
   try {
+    // チームステータスもチェック（リアルタイム購読のバックアップ）
+    var teamCheck = await db.from('teams').select('status').eq('id', myData.teamId).single();
+    if (teamCheck.data && teamCheck.data.status === 'playing') {
+      console.log('Team status is playing, starting game via polling');
+      startGame();
+      return;
+    }
+    
     var r = await db.from('players').select('*').eq('team_id', myData.teamId);
     if (r.error) throw r.error;
     var players = r.data;
@@ -3440,7 +3448,12 @@ function animate() {
 // ============================================
 
 async function startGame() {
-  if (subscription) subscription.unsubscribe();
+  console.log('=== startGame called ===');
+  console.log('isLeader:', myData.isLeader);
+  console.log('teamId:', myData.teamId);
+  
+  try {
+    if (subscription) subscription.unsubscribe();
 
   // パネルコードの同期（リーダーが生成してDBに保存、他は取得）
   if (myData.isLeader || !myData.teamId) {
@@ -3560,7 +3573,12 @@ async function startGame() {
 
   // Start the game
   G.playing = true;
+  console.log('=== Game started successfully ===');
   animate();
+  } catch (e) {
+    console.error('=== startGame ERROR ===', e);
+    alert('ゲーム開始エラー: ' + e.message);
+  }
 }
 
 // ============================================
