@@ -351,3 +351,23 @@ generatePanelCodes(myData.teamId);
 **原因**: `syncGameStateToServer()`がリーダーのみ実行可能だった
 
 **解決策**: 全プレイヤーが制御盤解除を同期できる専用関数`syncPanelUnlock()`を追加
+
+### 15. リアルタイム購読が機能しない場合のバックアップ
+
+**問題**: Supabase Realtimeの購読が遅延または失敗し、ゲーム状態が同期されない
+
+**解決策**: 非リーダーはポーリングでゲーム状態を定期的に取得
+
+```javascript
+// 非リーダー用ポーリング（1秒間隔）
+if (!myData.isLeader) {
+  setInterval(pollGameState, 1000);
+}
+
+async function pollGameState() {
+  var gs = await db.from('game_states').select('*').eq('team_id', myData.teamId);
+  if (gs.data && gs.data.length > 0) {
+    syncFromGameState(gs.data[0]);
+  }
+}
+```
