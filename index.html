@@ -684,7 +684,7 @@ function seededRandom(seed) {
 function initShuffledHints() {
   // ヒントを一度だけ生成してキャッシュ
   cachedAllHints = generateAllHints();
-  
+
   // チームIDまたはパネルコードからシードを生成（全員同じ値になる）
   var seedStr = myData.teamId || (panelCodes.A.join('') + panelCodes.B.join('') + panelCodes.main.join(''));
   var seed = 0;
@@ -692,33 +692,44 @@ function initShuffledHints() {
     seed += seedStr.charCodeAt(c) * (c + 1);
   }
   console.log('Hint shuffle seed:', seed, 'from:', seedStr.substring(0, 20));
-  
-  shuffledHintAssignment = [];
-  for (var i = 0; i < cachedAllHints.length; i++) {
-    shuffledHintAssignment.push(i);
-  }
-  // シード付きFisher-Yatesシャッフル（全員同じ順序になる）
-  for (var i = shuffledHintAssignment.length - 1; i > 0; i--) {
+
+  // A/Bヒント（0-5）とメインヒント（6-9）を分けてシャッフル
+  // これにより、メイン制御盤の4つのヒントは必ず陽動NPCに割り当てられる
+  var rescueIndices = [0, 1, 2, 3, 4, 5];  // A/Bヒント用（救助NPC）
+  var distractionIndices = [6, 7, 8, 9];    // メインヒント用（陽動NPC）
+
+  // 救助ヒントのシャッフル（シード付き）
+  for (var i = rescueIndices.length - 1; i > 0; i--) {
     seed++;
     var j = Math.floor(seededRandom(seed) * (i + 1));
-    var temp = shuffledHintAssignment[i];
-    shuffledHintAssignment[i] = shuffledHintAssignment[j];
-    shuffledHintAssignment[j] = temp;
+    var temp = rescueIndices[i];
+    rescueIndices[i] = rescueIndices[j];
+    rescueIndices[j] = temp;
   }
-  
-  // 解決済みヒントを直接配列に格納（重複を完全に防ぐ）
+
+  // 陽動ヒント（メイン制御盤用）のシャッフル（シード付き）
+  for (var i = distractionIndices.length - 1; i > 0; i--) {
+    seed++;
+    var j = Math.floor(seededRandom(seed) * (i + 1));
+    var temp = distractionIndices[i];
+    distractionIndices[i] = distractionIndices[j];
+    distractionIndices[j] = temp;
+  }
+
+  // 解決済みヒントを直接配列に格納
   resolvedRescueHints = [];
   resolvedDistractionHints = [];
   for (var i = 0; i < 6; i++) {
-    resolvedRescueHints.push(cachedAllHints[shuffledHintAssignment[i]]);
+    resolvedRescueHints.push(cachedAllHints[rescueIndices[i]]);
   }
-  for (var i = 6; i < 10; i++) {
-    resolvedDistractionHints.push(cachedAllHints[shuffledHintAssignment[i]]);
+  for (var i = 0; i < 4; i++) {
+    resolvedDistractionHints.push(cachedAllHints[distractionIndices[i]]);
   }
-  
-  console.log('Shuffle order:', shuffledHintAssignment);
-  console.log('Rescue hints:', resolvedRescueHints.map(function(h) { return h.hint; }));
-  console.log('Distraction hints:', resolvedDistractionHints.map(function(h) { return h.hint; }));
+
+  console.log('Rescue indices:', rescueIndices);
+  console.log('Distraction indices:', distractionIndices);
+  console.log('Rescue hints (A/B):', resolvedRescueHints.map(function(h) { return h.panel + ': ' + h.hint; }));
+  console.log('Distraction hints (Main):', resolvedDistractionHints.map(function(h) { return h.panel + ': ' + h.hint; }));
 }
 
 // 救助NPCからのヒント（シャッフルされた順序で取得）
