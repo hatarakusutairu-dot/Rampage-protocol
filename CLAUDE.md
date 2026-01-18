@@ -409,3 +409,55 @@ roleSlotsByTeamSize[2] = [
 **能力配分**:
 - 指揮官+情報員: 制御盤操作、陽動NPC会話、救助済みNPCからヒント取得、ミニマップ、フラッシュライト
 - レスキュー: 救助速度2倍、重傷者1人救助可能、救助時ヒント取得
+
+### 18. ミッションクリア画面が全員に表示されない問題
+
+**問題**: リーダーだけミッションクリア画面が表示され、他プレイヤーは3D空間に残される
+
+**解決策**: ゲーム終了状態をDBで同期
+
+```javascript
+// endGame()でゲーム終了フラグを保存
+db.from('game_states').update({
+  game_over: true,
+  game_won: win
+}).eq('team_id', myData.teamId);
+
+// syncFromGameState()でゲーム終了を検知
+if (gs.game_over && !G.over) {
+  endGame(gs.game_won);
+  return;
+}
+```
+
+### 19. クリアアニメーションの実装
+
+**機能**: ミッションクリア時に演出を追加
+- 部屋が明るくなる（霧・環境光の調整）
+- ロボットが緑/青に変化し安定
+- NPCが両手を上げて喜ぶアニメーション
+- 緊急灯が消灯
+
+```javascript
+playClearAnimation(function() {
+  endGame(true);
+});
+```
+
+### 20. ヒントパネルのスクロール問題
+
+**問題**: ポインターロック中はヒントパネルをスクロールできない
+
+**解決策**: パネルにホバー時にポインターロック解除 + wheelイベント処理
+
+```javascript
+hintsPanel.addEventListener('mouseenter', function() {
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+});
+hintsPanel.addEventListener('wheel', function(e) {
+  e.stopPropagation();
+  hintsPanel.scrollTop += e.deltaY;
+}, { passive: true });
+```
