@@ -461,3 +461,42 @@ hintsPanel.addEventListener('wheel', function(e) {
   hintsPanel.scrollTop += e.deltaY;
 }, { passive: true });
 ```
+
+### 21. 管理画面のデータ表示問題
+
+**問題**: 管理画面で救助数や暴走レベルが表示されない
+
+**原因**: DBフィールド名の不一致（`rampage_level`を`rampage`として読んでいた）
+
+**解決策**:
+- `syncGameStateToServer()`に`rescued`フィールドを追加
+- 管理画面で正しいフィールド名`rampage_level`を使用
+- パネル状態はboolean→チェックマーク表示
+
+### 22. 非リーダーのゲーム終了同期
+
+**問題**: リーダーがクリアしても他メンバーが3D空間に残る
+
+**解決策**: `pollGameState()`でチームステータスも確認
+
+```javascript
+// game_overフィールドに加え、チームステータスも確認
+var teamCheck = await db.from('teams').select('status').eq('id', myData.teamId);
+if (teamCheck.data[0].status === 'finished' && !G.over) {
+  endGame(true);
+}
+```
+
+### 23. ランキングが表示されない問題
+
+**問題**: `game_won`フィールドがDBに存在しない可能性
+
+**解決策**: チームの`status = 'finished'`をベースにランキング取得
+
+```javascript
+// teamsテーブルからfinishedのみ取得
+var teamsResult = await db.from('teams')
+  .select('id, name, code')
+  .eq('status', 'finished');
+// game_statesと結合してスコア順にソート
+```
