@@ -693,43 +693,33 @@ function initShuffledHints() {
   }
   console.log('Hint shuffle seed:', seed, 'from:', seedStr.substring(0, 20));
 
-  // A/Bヒント（0-5）とメインヒント（6-9）を分けてシャッフル
-  // これにより、メイン制御盤の4つのヒントは必ず陽動NPCに割り当てられる
-  var rescueIndices = [0, 1, 2, 3, 4, 5];  // A/Bヒント用（救助NPC）
-  var distractionIndices = [6, 7, 8, 9];    // メインヒント用（陽動NPC）
+  // 全10ヒントをミックスしてシャッフル（A/B/メインが両方のNPCタイプに分散）
+  // これにより、レスキューも情報員も全種類の制御盤ヒントを取得できる
+  var allIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-  // 救助ヒントのシャッフル（シード付き）
-  for (var i = rescueIndices.length - 1; i > 0; i--) {
+  // Fisher-Yatesシャッフル（シード付き）
+  for (var i = allIndices.length - 1; i > 0; i--) {
     seed++;
     var j = Math.floor(seededRandom(seed) * (i + 1));
-    var temp = rescueIndices[i];
-    rescueIndices[i] = rescueIndices[j];
-    rescueIndices[j] = temp;
+    var temp = allIndices[i];
+    allIndices[i] = allIndices[j];
+    allIndices[j] = temp;
   }
 
-  // 陽動ヒント（メイン制御盤用）のシャッフル（シード付き）
-  for (var i = distractionIndices.length - 1; i > 0; i--) {
-    seed++;
-    var j = Math.floor(seededRandom(seed) * (i + 1));
-    var temp = distractionIndices[i];
-    distractionIndices[i] = distractionIndices[j];
-    distractionIndices[j] = temp;
-  }
-
-  // 解決済みヒントを直接配列に格納
+  // シャッフル後の配列から救助NPC用（6つ）と陽動NPC用（4つ）に分配
+  // A/B/メインのヒントが両方のNPCタイプにミックスされる
   resolvedRescueHints = [];
   resolvedDistractionHints = [];
   for (var i = 0; i < 6; i++) {
-    resolvedRescueHints.push(cachedAllHints[rescueIndices[i]]);
+    resolvedRescueHints.push(cachedAllHints[allIndices[i]]);
   }
-  for (var i = 0; i < 4; i++) {
-    resolvedDistractionHints.push(cachedAllHints[distractionIndices[i]]);
+  for (var i = 6; i < 10; i++) {
+    resolvedDistractionHints.push(cachedAllHints[allIndices[i]]);
   }
 
-  console.log('Rescue indices:', rescueIndices);
-  console.log('Distraction indices:', distractionIndices);
-  console.log('Rescue hints (A/B):', resolvedRescueHints.map(function(h) { return h.panel + ': ' + h.hint; }));
-  console.log('Distraction hints (Main):', resolvedDistractionHints.map(function(h) { return h.panel + ': ' + h.hint; }));
+  console.log('Mixed hint indices:', allIndices);
+  console.log('Rescue hints (mixed):', resolvedRescueHints.map(function(h) { return h.panel + ': ' + h.hint; }));
+  console.log('Distraction hints (mixed):', resolvedDistractionHints.map(function(h) { return h.panel + ': ' + h.hint; }));
 }
 
 // 救助NPCからのヒント（シャッフルされた順序で取得）
@@ -796,7 +786,8 @@ var distractionPositions = [
 
 // チーム人数に応じた邪魔な研究員の数
 // 邪魔なNPCの数（大人数でも多すぎないように調整）
-var distractionCountByTeamSize = { 1: 2, 2: 4, 3: 5, 4: 6, 5: 7 };
+// 2人チームは5人に増加（ヒント4つ必要なので余裕を持たせる）
+var distractionCountByTeamSize = { 1: 2, 2: 5, 3: 5, 4: 6, 5: 7 };
 
 // 実際のNPCデータ（ゲーム開始時に生成）
 var npcData = [];
@@ -1497,36 +1488,36 @@ function getRoleAbilities() {
   var teamSize = myData.teamSize || 3;
 
   // 2人モードの特別処理
-  // 指揮官+レスキュー と 情報員 に分かれる
+  // 指揮官+情報員 と レスキュー に分かれる
   var isTwoPlayerMode = teamSize <= 2;
 
   if (isTwoPlayerMode) {
-    if (role === 'scout') {
-      // 情報員プレイヤー：情報収集全般を担当
+    if (role === 'rescue') {
+      // レスキュープレイヤー：救助活動を担当（救助時にヒント取得）
+      return {
+        moveSpeedMultiplier: 1.0,
+        rescueSpeedMultiplier: 2.0,
+        canRescueFallenAlone: true,
+        hasFlashlight: false,
+        hasMinimap: false,
+        canGetHintsFromRescued: false,   // 救助時に自動でヒント取得
+        canTalkToDistraction: false,      // 陽動NPCとの会話は指揮官に任せる
+        canOperatePanel: false,
+        canRescueNpc: true,
+        isDualRole: true
+      };
+    } else {
+      // 指揮官+情報員プレイヤー：制御盤操作＋情報収集担当
       return {
         moveSpeedMultiplier: 1.3,
         rescueSpeedMultiplier: 1.0,
         canRescueFallenAlone: false,
         hasFlashlight: true,
-        hasMinimap: false,
+        hasMinimap: true,
         canGetHintsFromRescued: true,    // 救助済みNPCからヒント取得
         canTalkToDistraction: true,       // 邪魔な研究員と会話可能
-        canOperatePanel: false,
-        canRescueNpc: false,
-        isDualRole: true
-      };
-    } else {
-      // 指揮官/レスキュープレイヤー：救助＋制御盤担当
-      return {
-        moveSpeedMultiplier: 1.0,
-        rescueSpeedMultiplier: 1.5,
-        canRescueFallenAlone: true,
-        hasFlashlight: false,
-        hasMinimap: true,
-        canGetHintsFromRescued: false,   // ヒントは情報員に任せる
-        canTalkToDistraction: false,
         canOperatePanel: true,
-        canRescueNpc: true,
+        canRescueNpc: false,
         isDualRole: true
       };
     }
@@ -1572,13 +1563,13 @@ function showRoleAbilityUI() {
   var content = '';
   if (abilities.isDualRole) {
     // 2人モード
-    if (role === 'scout') {
-      content = '<h4>🔍 情報員</h4><p>・移動速度1.3倍</p><p>・フラッシュライト装備</p><p>・救助後NPCからヒント取得</p><p>・研究員の確認</p>';
-      createScoutFlashlight();
+    if (role === 'rescue') {
+      content = '<h4>🚑 レスキュー</h4><p>・救助速度2倍</p><p>・重傷者を1人で救助可能</p><p>・救助時にヒント取得</p>';
     } else {
-      content = '<h4>🎖️ 指揮官+レスキュー</h4><p>・ミニマップ表示</p><p>・NPCを救助</p><p>・制御盤にコード入力</p>';
+      content = '<h4>🎖️ 指揮官+情報員</h4><p>・ミニマップ表示</p><p>・フラッシュライト装備</p><p>・制御盤にコード入力</p><p>・研究員の確認</p>';
       document.getElementById('minimap').style.display = 'block';
       initMinimap();
+      createScoutFlashlight();
     }
   } else {
     // 3人以上モード
@@ -1893,8 +1884,8 @@ async function showLobby() {
 // 役割スロット設定（チームサイズ別）
 var roleSlotsByTeamSize = {
   2: [
-    { role: 'commander', label: '指揮官+レスキュー', icon: '🎖️🚑', desc: '救助・制御盤操作', iconClass: 'commander' },
-    { role: 'scout', label: '情報員', icon: '🔍', desc: '情報収集・ヒント取得', iconClass: 'scout' }
+    { role: 'commander', label: '指揮官+情報員', icon: '🎖️🔍', desc: '制御盤操作・情報収集', iconClass: 'commander' },
+    { role: 'rescue', label: 'レスキュー', icon: '🚑', desc: '救助活動・ヒント取得', iconClass: 'rescue' }
   ],
   3: [
     { role: 'commander', label: '指揮官', icon: '🎖️', desc: '指揮・制御盤操作', iconClass: 'commander' },
