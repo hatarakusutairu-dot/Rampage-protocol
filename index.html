@@ -1111,6 +1111,21 @@ async function syncGameStateToServer() {
   }
 }
 
+// パネル解除状態を同期（全プレイヤーが実行可能）
+async function syncPanelUnlock(panelId) {
+  if (!myData.teamId) return;
+  try {
+    var updateData = {};
+    if (panelId === 'A') updateData.panel_a = true;
+    else if (panelId === 'B') updateData.panel_b = true;
+    else if (panelId === 'main') updateData.panel_main = true;
+    console.log('Syncing panel unlock:', panelId);
+    await db.from('game_states').update(updateData).eq('team_id', myData.teamId);
+  } catch (e) {
+    console.error('パネル解除同期エラー:', e);
+  }
+}
+
 // サーバーからゲーム状態を受信して適用
 function syncFromGameState(gs) {
   if (!gs) return;
@@ -3080,7 +3095,7 @@ function unlockPanel(panel) {
   }
 
   updateGameUI();
-  syncGameStateToServer();
+  syncPanelUnlock(panel.panelId);
 }
 
 function updateGameUI() {
