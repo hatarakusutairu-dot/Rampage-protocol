@@ -500,3 +500,35 @@ var teamsResult = await db.from('teams')
   .eq('status', 'finished');
 // game_statesと結合してスコア順にソート
 ```
+
+### 24. 途中参加・再参加機能
+
+**機能**: 切断した生徒やゲーム途中から参加したい生徒用の再参加システム
+
+**実装内容**:
+1. チーム画面に「🔄 再参加」タブを追加
+2. プレイヤーの活動状態を`last_active`タイムスタンプで追跡
+3. 非アクティブプレイヤー（30秒以上移動なし）を検出
+4. チーム番号を入力して再参加可能
+
+**再参加ロジック**:
+```javascript
+// 位置更新時にlast_activeを更新
+await db.from('players').update({
+  pos_x: playerPos.x,
+  pos_y: playerPos.y,
+  pos_z: playerPos.z,
+  last_active: new Date().toISOString()
+}).eq('id', myData.playerId);
+
+// 再参加時の処理
+// 1. チームがplaying状態か確認
+// 2. 非アクティブプレイヤー（30秒以上）を検索
+// 3. 見つかれば置き換え、なければ空きがあれば追加
+// 4. ロビーをスキップして直接ゲーム開始
+```
+
+**条件**:
+- チームが`status = 'playing'`の場合のみ再参加可能
+- 非アクティブ判定: 30秒以上`last_active`が更新されていない
+- 再参加者は自動的にゲームに参加（ロビースキップ）
