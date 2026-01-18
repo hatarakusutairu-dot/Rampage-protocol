@@ -278,7 +278,7 @@
   <div class="loading-overlay" id="loading-overlay"><div class="loading-spinner"></div><div id="loading-text">接続中...</div></div>
   <div class="error-toast" id="error-toast"></div>
   <div id="title-screen"><h1>RAMPAGE PROTOCOL</h1><p class="subtitle">巨大ロボ暴走停止ミッション</p><div class="start-text" id="start-title">▶ CLICK TO START ◀</div><button id="title-admin-btn" style="position:absolute;bottom:20px;left:20px;background:rgba(100,100,100,.8);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 15px;font-size:.85rem;cursor:pointer;border-radius:4px">⚙️ 管理画面</button></div>
-  <div id="team-screen"><div class="team-container"><div class="tab-buttons"><button class="tab-btn active" data-tab="create">チーム作成</button><button class="tab-btn" data-tab="join">チーム参加</button></div><div class="tab-content active" id="tab-create"><div class="form-group"><label>チーム名</label><input type="text" id="team-name-input" placeholder="チーム名を入力" maxlength="10"></div><div class="form-group"><label>チーム人数</label><div class="member-select"><button class="member-btn" data-count="2">2人</button><button class="member-btn" data-count="3">3人</button><button class="member-btn" data-count="4">4人</button><button class="member-btn selected" data-count="5">5人</button></div></div><button class="btn-primary" id="create-team-btn">チーム作成</button></div><div class="tab-content" id="tab-join"><div class="form-group"><label>チーム番号（4桁）</label><input type="text" id="team-code-input" placeholder="0000" maxlength="4" style="font-size:2rem;letter-spacing:10px;font-family:Orbitron"></div><button class="btn-primary" id="join-team-btn">チーム参加</button></div></div></div>
+  <div id="team-screen"><div class="team-container"><div class="tab-buttons"><button class="tab-btn active" data-tab="create">チーム作成</button><button class="tab-btn" data-tab="join">チーム参加</button><button class="tab-btn" data-tab="rejoin">🔄 再参加</button></div><div class="tab-content active" id="tab-create"><div class="form-group"><label>チーム名</label><input type="text" id="team-name-input" placeholder="チーム名を入力" maxlength="10"></div><div class="form-group"><label>チーム人数</label><div class="member-select"><button class="member-btn" data-count="2">2人</button><button class="member-btn" data-count="3">3人</button><button class="member-btn" data-count="4">4人</button><button class="member-btn selected" data-count="5">5人</button></div></div><button class="btn-primary" id="create-team-btn">チーム作成</button></div><div class="tab-content" id="tab-join"><div class="form-group"><label>チーム番号（4桁）</label><input type="text" id="team-code-input" placeholder="0000" maxlength="4" style="font-size:2rem;letter-spacing:10px;font-family:Orbitron"></div><button class="btn-primary" id="join-team-btn">チーム参加</button></div><div class="tab-content" id="tab-rejoin"><div class="form-group"><label>チーム番号（4桁）</label><input type="text" id="rejoin-code-input" placeholder="0000" maxlength="4" style="font-size:2rem;letter-spacing:10px;font-family:Orbitron"></div><p style="color:rgba(255,255,255,.6);font-size:.85rem;margin:10px 0">途中で落ちた場合、チーム番号を入力して再参加できます。<br>非アクティブなプレイヤーと入れ替わります。</p><button class="btn-primary" id="rejoin-btn">🔄 再参加</button><div id="rejoin-status" style="margin-top:15px;padding:10px;border-radius:8px;display:none"></div></div></div></div>
   <div id="waiting-screen"><div class="waiting-container"><h2 style="font-family:Orbitron;color:#00f5ff;margin-bottom:30px">待機室</h2><div><label style="color:rgba(255,255,255,.6)">チーム名</label><div id="waiting-team-name" style="font-size:1.2rem">-</div></div><div style="margin-top:15px"><label style="color:rgba(255,255,255,.6)">チーム人数</label><div id="waiting-team-size">-</div></div><div class="team-code-display"><label style="color:#00f5ff">チーム番号</label><div class="code" id="waiting-team-code">0000</div></div><div class="waiting-buttons"><button class="btn-primary" id="go-lobby-btn">ロビーに入る →</button><button class="btn-secondary" id="back-team-btn">← 戻る</button></div></div></div>
   <div id="lobby-screen"><div class="lobby-header"><div><div class="team-name" id="lobby-team-name">チーム名</div><div style="color:rgba(255,255,255,.5)" id="lobby-team-id">#0000</div></div><div style="text-align:right"><div style="color:rgba(255,255,255,.6)">参加者</div><div style="font-family:Orbitron;font-size:1.5rem"><span id="lobby-current">1</span>/<span id="lobby-max">5</span>名</div></div></div><div class="lobby-status" id="lobby-status"><h3>メンバー待機中...</h3><p>全員揃ったら役割を選べます</p></div><div class="role-grid"><div class="role-card" data-role="commander"><div class="role-icon commander">🎖️</div><div style="flex:1"><h4>指揮官</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">指揮・情報統合</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="rescue"><div class="role-icon rescue">🚑</div><div style="flex:1"><h4>レスキュー</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">救助・回復</p></div><div class="role-status">待機中</div></div><div class="role-card" data-role="scout"><div class="role-icon scout">🔍</div><div style="flex:1"><h4>情報員</h4><p style="color:rgba(255,255,255,.5);font-size:.8rem">探索・情報収集</p></div><div class="role-status">待機中</div></div></div><div style="background:rgba(20,30,50,.95);border:1px solid rgba(255,255,255,.2);padding:15px;border-radius:8px"><h4 style="color:rgba(255,255,255,.6);margin-bottom:10px">メンバー状況</h4><div class="member-badges" id="member-badges"></div></div><div class="lobby-footer"><button class="btn-secondary" id="lobby-back-btn">← 戻る</button><button class="btn-primary" id="game-start-btn" disabled>準備完了を待っています...</button></div><button class="test-btn" id="test-start-btn">🔧 テスト：1人でゲーム開始</button><button id="admin-btn">⚙️ 管理画面</button></div>
   <div id="hud"><div class="hud-panel"><h3>残り時間</h3><div id="timer" class="hud-value">20:00</div></div><div class="hud-panel"><h3>暴走レベル</h3><div id="rampage-level" class="hud-value">30%</div><div class="rampage-bar"><div class="rampage-bar-inner" style="width:30%"></div></div></div><div class="hud-panel"><h3>スコア</h3><div id="score-display" class="hud-value">0</div></div><div class="hud-panel" id="team-mode-panel" style="background:rgba(10,10,20,.7);border-color:rgba(255,255,255,.3)"><h3>チーム</h3><div id="team-mode" class="hud-value" style="font-size:1rem;color:#ffa500">-人</div></div></div>
@@ -1002,7 +1002,8 @@ async function sendPositionUpdate() {
       pos_y: playerPos.y,
       pos_z: playerPos.z,
       yaw: yaw,
-      pitch: pitch
+      pitch: pitch,
+      last_active: new Date().toISOString()
     }).eq('id', myData.playerId);
   } catch (e) {
     console.error('位置送信エラー:', e);
@@ -1870,6 +1871,137 @@ document.getElementById('join-team-btn').onclick = async function() {
 document.getElementById('team-code-input').addEventListener('keypress', function(e) {
   if (e.key === 'Enter') {
     document.getElementById('join-team-btn').click();
+  }
+});
+
+// 再参加ボタン
+document.getElementById('rejoin-btn').onclick = async function() {
+  var code = document.getElementById('rejoin-code-input').value.trim();
+  var statusDiv = document.getElementById('rejoin-status');
+
+  if (code.length !== 4) {
+    showError('4桁のチーム番号を入力してください');
+    return;
+  }
+
+  statusDiv.style.display = 'block';
+  statusDiv.style.background = 'rgba(0,100,255,.3)';
+  statusDiv.innerHTML = '🔍 チームを検索中...';
+
+  try {
+    // チームを検索（プレイ中のチームのみ）
+    var tr = await db.from('teams').select('*').eq('code', code).single();
+    if (tr.error || !tr.data) {
+      statusDiv.style.background = 'rgba(255,50,50,.3)';
+      statusDiv.innerHTML = '❌ チームが見つかりません';
+      return;
+    }
+    var team = tr.data;
+
+    if (team.status === 'finished') {
+      statusDiv.style.background = 'rgba(255,50,50,.3)';
+      statusDiv.innerHTML = '❌ このチームは既にゲーム終了しています';
+      return;
+    }
+
+    if (team.status === 'waiting') {
+      statusDiv.style.background = 'rgba(255,150,0,.3)';
+      statusDiv.innerHTML = '⚠️ このチームはまだゲーム開始していません。<br>「チーム参加」から参加してください。';
+      return;
+    }
+
+    // プレイ中のチーム - プレイヤー一覧を取得
+    var playersResult = await db.from('players').select('*').eq('team_id', team.id);
+    if (playersResult.error) throw playersResult.error;
+    var players = playersResult.data || [];
+
+    // 非アクティブプレイヤーを検索（30秒以上更新がない）
+    var now = new Date();
+    var inactiveThreshold = 30 * 1000; // 30秒
+    var inactivePlayer = null;
+
+    for (var i = 0; i < players.length; i++) {
+      var p = players[i];
+      if (p.last_active) {
+        var lastActive = new Date(p.last_active);
+        var diff = now - lastActive;
+        if (diff > inactiveThreshold) {
+          inactivePlayer = p;
+          break;
+        }
+      } else if (!p.is_leader) {
+        // last_activeがnullの場合も非アクティブとみなす（リーダー以外）
+        inactivePlayer = p;
+        break;
+      }
+    }
+
+    if (!inactivePlayer && players.length >= team.size) {
+      statusDiv.style.background = 'rgba(255,50,50,.3)';
+      statusDiv.innerHTML = '❌ 全員アクティブです。入れ替わる枠がありません。';
+      return;
+    }
+
+    statusDiv.innerHTML = '✨ 再参加処理中...';
+
+    if (inactivePlayer) {
+      // 非アクティブプレイヤーを置き換え
+      var updateResult = await db.from('players').update({
+        name: '再参加メンバー',
+        last_active: new Date().toISOString(),
+        pos_x: 0,
+        pos_y: 0,
+        pos_z: 5
+      }).eq('id', inactivePlayer.id).select().single();
+
+      if (updateResult.error) throw updateResult.error;
+
+      myData.playerId = inactivePlayer.id;
+      myData.role = inactivePlayer.role ? inactivePlayer.role.split('_')[0] : null;
+      statusDiv.innerHTML = '🔄 ' + (inactivePlayer.name || 'プレイヤー') + 'と入れ替わりました';
+    } else {
+      // 空きがある場合は新規追加
+      var insertResult = await db.from('players').insert({
+        team_id: team.id,
+        name: '再参加メンバー',
+        is_leader: false,
+        last_active: new Date().toISOString()
+      }).select().single();
+
+      if (insertResult.error) throw insertResult.error;
+
+      myData.playerId = insertResult.data.id;
+      myData.role = null;
+      statusDiv.innerHTML = '➕ 新規参加しました';
+    }
+
+    myData.teamId = team.id;
+    myData.teamCode = code;
+    myData.teamName = team.name;
+    myData.teamSize = team.size;
+    myData.isLeader = false;
+
+    statusDiv.style.background = 'rgba(0,255,100,.3)';
+
+    // 1秒後にゲーム開始
+    setTimeout(function() {
+      statusDiv.innerHTML = '🎮 ゲームに参加します...';
+      setTimeout(function() {
+        startGame();
+      }, 500);
+    }, 1000);
+
+  } catch (e) {
+    console.error('Rejoin error:', e);
+    statusDiv.style.background = 'rgba(255,50,50,.3)';
+    statusDiv.innerHTML = '❌ 再参加エラー: ' + e.message;
+  }
+};
+
+// 再参加番号入力でEnterキー対応
+document.getElementById('rejoin-code-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('rejoin-btn').click();
   }
 });
 
