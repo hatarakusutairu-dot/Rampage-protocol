@@ -1126,6 +1126,19 @@ async function syncPanelUnlock(panelId) {
   }
 }
 
+// 非リーダー用：ゲーム状態をポーリングで取得
+async function pollGameState() {
+  if (!myData.teamId || myData.isLeader) return;
+  try {
+    var gs = await db.from('game_states').select('*').eq('team_id', myData.teamId);
+    if (gs.data && gs.data.length > 0) {
+      syncFromGameState(gs.data[0]);
+    }
+  } catch (e) {
+    // エラーは無視（ネットワーク問題など）
+  }
+}
+
 // サーバーからゲーム状態を受信して適用
 function syncFromGameState(gs) {
   if (!gs) return;
@@ -3575,6 +3588,9 @@ async function startGame() {
     // リーダーはゲーム状態を定期的に同期（1秒間隔）
     if (myData.isLeader) {
       setInterval(syncGameStateToServer, 1000);
+    } else {
+      // 非リーダーはゲーム状態をポーリングで取得
+      setInterval(pollGameState, 1000);
     }
   }
 
