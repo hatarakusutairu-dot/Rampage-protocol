@@ -1104,6 +1104,7 @@ async function syncGameStateToServer() {
       time_remaining: Math.floor(G.time),
       rampage_level: Math.floor(G.rampage),
       score: G.score,
+      rescued: G.rescued,
       panel_a: G.panelA,
       panel_b: G.panelB,
       panel_main: G.panelMain
@@ -1130,14 +1131,30 @@ async function syncPanelUnlock(panelId) {
 
 // 非リーダー用：ゲーム状態をポーリングで取得
 async function pollGameState() {
-  if (!myData.teamId || myData.isLeader) return;
+  if (!myData.teamId || myData.isLeader || G.over) return;
   try {
+    // ゲーム状態を取得
     var gs = await db.from('game_states').select('*').eq('team_id', myData.teamId);
     if (gs.data && gs.data.length > 0) {
       syncFromGameState(gs.data[0]);
     }
+
+    // チームステータスも確認（バックアップ：game_overフィールドがない場合）
+    var teamCheck = await db.from('teams').select('status').eq('id', myData.teamId);
+    if (teamCheck.data && teamCheck.data.length > 0) {
+      var teamStatus = teamCheck.data[0].status;
+      if (teamStatus === 'finished' && !G.over) {
+        console.log('Team finished detected via status, ending game...');
+        // ゲーム状態から最終スコアを取得
+        if (gs.data && gs.data.length > 0) {
+          G.score = gs.data[0].score || G.score;
+          G.rescued = gs.data[0].rescued || G.rescued;
+        }
+        endGame(true); // finishedならクリア扱い
+      }
+    }
   } catch (e) {
-    // エラーは無視（ネットワーク問題など）
+    console.error('pollGameState error:', e);
   }
 }
 
@@ -3320,58 +3337,73 @@ function fetchAndDisplayRanking() {
     rankingSection.style.display = 'block';
     rankingList.innerHTML = '<p style="color:#888;">読み込み中...</p>';
 
-    // クリア済みのゲームのみ取得（game_wonがtrueのもの）
-    db.from('game_states')
-      .select('team_id, score, rescued, game_won')
-      .eq('game_won', true)
-      .order('score', { ascending: false })
-      .limit(10)
-      .then(async function(result) {
-        if (result.error) {
-          console.error('Ranking fetch error:', result.error);
-          rankingList.innerHTML = '<p style="color:#ff6666;">ランキング取得エラー</p>';
-          return;
-        }
+    // クリア済みチームを取得（status = 'finished'）
+    (async function() {
+      try {
+        // 完了したチームを取得
+        var teamsResult = await db.from('teams')
+          .select('id, name, code')
+          .eq('status', 'finished');
 
-        var data = result.data || [];
+        if (teamsResult.error) throw teamsResult.error;
 
-        if (data.length === 0) {
+        var finishedTeams = teamsResult.data || [];
+        if (finishedTeams.length === 0) {
           rankingList.innerHTML = '<p style="color:#888;">まだクリアしたチームがありません</p>';
           return;
         }
 
-        // チーム情報を個別に取得
-        var teamIds = data.map(function(d) { return d.team_id; });
-        var teamsResult = await db.from('teams').select('id, name, code').in('id', teamIds);
-        var teamsMap = {};
-        if (teamsResult.data) {
-          teamsResult.data.forEach(function(t) {
-            teamsMap[t.id] = t;
-          });
-        }
+        // ゲーム状態（スコア）を取得
+        var teamIds = finishedTeams.map(function(t) { return t.id; });
+        var gsResult = await db.from('game_states')
+          .select('team_id, score, rescued')
+          .in('team_id', teamIds);
+
+        if (gsResult.error) throw gsResult.error;
+
+        // スコアでソートしたランキングデータを作成
+        var scoreMap = {};
+        (gsResult.data || []).forEach(function(gs) {
+          scoreMap[gs.team_id] = gs;
+        });
+
+        var rankingData = finishedTeams.map(function(team) {
+          var gs = scoreMap[team.id] || {};
+          return {
+            teamId: team.id,
+            teamName: team.name || 'チーム' + team.code,
+            teamCode: team.code,
+            score: gs.score || 0,
+            rescued: gs.rescued || 0
+          };
+        });
+
+        // スコア順にソート
+        rankingData.sort(function(a, b) { return b.score - a.score; });
+
+        // 上位10件のみ表示
+        rankingData = rankingData.slice(0, 10);
 
         var html = '';
-        for (var i = 0; i < data.length; i++) {
-          var item = data[i];
-          var isCurrentTeam = item.team_id === myData.teamId;
-          var team = teamsMap[item.team_id];
-          var teamName = team ? team.name : 'チーム' + (team ? team.code : '???');
+        for (var i = 0; i < rankingData.length; i++) {
+          var item = rankingData[i];
+          var isCurrentTeam = item.teamId === myData.teamId;
           var rankNum = i + 1;
           var rankIcon = rankNum === 1 ? '🥇' : rankNum === 2 ? '🥈' : rankNum === 3 ? '🥉' : rankNum + '.';
 
           html += '<div class="ranking-item' + (isCurrentTeam ? ' current' : '') + '">';
           html += '<span class="rank">' + rankIcon + '</span>';
-          html += '<span class="name">' + teamName + '</span>';
-          html += '<span class="score">' + (item.score || 0).toLocaleString() + '</span>';
+          html += '<span class="name">' + item.teamName + '</span>';
+          html += '<span class="score">' + item.score.toLocaleString() + '</span>';
           html += '</div>';
         }
 
         rankingList.innerHTML = html;
-      })
-      .catch(function(err) {
+      } catch (err) {
         console.error('Ranking error:', err);
         rankingList.innerHTML = '<p style="color:#ff6666;">ランキング取得エラー</p>';
-      });
+      }
+    })();
   } else {
     rankingSection.style.display = 'none';
   }
@@ -3812,11 +3844,11 @@ function displayTeamsProgress(teams, gameStateMap, playerCounts) {
     var statusClass = status === 'playing' ? 'playing' :
                       status === 'finished' ? 'finished' : '';
 
-    var rampage = gs.rampage || 30;
+    var rampage = gs.rampage_level || 30;
     var rescued = gs.rescued || 0;
-    var panelA = gs.panel_a || 0;
-    var panelB = gs.panel_b || 0;
-    var panelMain = gs.panel_main || 0;
+    var panelA = gs.panel_a;
+    var panelB = gs.panel_b;
+    var panelMain = gs.panel_main;
     var score = gs.score || 0;
 
     html += '<div class="team-card ' + statusClass + '">';
@@ -3826,15 +3858,15 @@ function displayTeamsProgress(teams, gameStateMap, playerCounts) {
     html += '</div>';
     html += '<div class="team-card-status">' + statusText + '</div>';
     html += '<div class="team-card-stats">';
-    html += '<div class="stat"><span>👥 ' + playerCount + '/' + team.max_players + '</span></div>';
+    html += '<div class="stat"><span>👥 ' + playerCount + '/' + (team.size || team.max_players || '?') + '</span></div>';
     html += '<div class="stat"><span>⚡ 暴走 ' + Math.round(rampage) + '%</span></div>';
     html += '<div class="stat"><span>🚑 救助 ' + rescued + '/6</span></div>';
     html += '<div class="stat"><span>🎯 スコア ' + score + '</span></div>';
     html += '</div>';
     html += '<div class="team-card-panels">';
-    html += '<span class="panel-status ' + (panelA >= 100 ? 'done' : '') + '">A: ' + Math.round(panelA) + '%</span>';
-    html += '<span class="panel-status ' + (panelB >= 100 ? 'done' : '') + '">B: ' + Math.round(panelB) + '%</span>';
-    html += '<span class="panel-status ' + (panelMain >= 100 ? 'done' : '') + '">Main: ' + Math.round(panelMain) + '%</span>';
+    html += '<span class="panel-status ' + (panelA ? 'done' : '') + '">A: ' + (panelA ? '✓' : '−') + '</span>';
+    html += '<span class="panel-status ' + (panelB ? 'done' : '') + '">B: ' + (panelB ? '✓' : '−') + '</span>';
+    html += '<span class="panel-status ' + (panelMain ? 'done' : '') + '">Main: ' + (panelMain ? '✓' : '−') + '</span>';
     html += '</div>';
     html += '</div>';
   });
@@ -3846,15 +3878,17 @@ function displayTeamsProgress(teams, gameStateMap, playerCounts) {
 function displayRanking(teams, gameStateMap) {
   var container = document.getElementById('ranking-list');
 
+  // クリア済みチームのみ抽出（status = 'finished'）
+  var finishedTeams = teams.filter(function(t) { return t.status === 'finished'; });
+
   // Create ranking data
-  var rankingData = teams.map(function(team) {
+  var rankingData = finishedTeams.map(function(team) {
     var gs = gameStateMap[team.id] || {};
     return {
       name: team.name || 'チーム',
       code: team.code,
       score: gs.score || 0,
-      rescued: gs.rescued || 0,
-      status: team.status || 'waiting'
+      rescued: gs.rescued || 0
     };
   });
 
@@ -3862,7 +3896,7 @@ function displayRanking(teams, gameStateMap) {
   rankingData.sort(function(a, b) { return b.score - a.score; });
 
   if (!rankingData.length) {
-    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">ランキングデータがありません</p>';
+    container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,.5)">まだクリアしたチームがありません</p>';
     return;
   }
 
