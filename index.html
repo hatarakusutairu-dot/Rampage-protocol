@@ -116,6 +116,14 @@
     #role-ability.rescue h4{color:#00ff88}
     #role-ability.scout{border-color:#00f5ff}
     #role-ability.scout h4{color:#00f5ff}
+    #team-hints{position:fixed;top:270px;left:20px;background:rgba(10,10,30,.95);border:1px solid rgba(255,200,0,.5);padding:10px 12px;border-radius:8px;z-index:100;display:none;font-size:.7rem;max-width:220px;max-height:200px;overflow-y:auto}
+    #team-hints h4{color:#ffc800;margin-bottom:8px;font-size:.75rem}
+    #team-hints .hint-item{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.1);color:#fff;font-size:.65rem}
+    #team-hints .hint-item.panel-a{border-left:3px solid #ff6b6b;padding-left:6px}
+    #team-hints .hint-item.panel-b{border-left:3px solid #4ecdc4;padding-left:6px}
+    #team-hints .hint-item.panel-main{border-left:3px solid #ffe66d;padding-left:6px}
+    #team-hints .hint-panel{color:#888;font-size:.6rem}
+    #team-hints .no-hints{color:#666;font-style:italic}
     .coop-warning{position:fixed;top:40%;left:50%;transform:translateX(-50%);background:rgba(255,100,0,.9);color:#fff;padding:15px 30px;border-radius:8px;z-index:250;display:none;font-family:Orbitron;text-align:center}
     .bonus-popup{position:fixed;left:50%;top:30%;transform:translateX(-50%);pointer-events:none;z-index:300;font-family:Orbitron;font-size:1.3rem;animation:floatup 2.5s forwards;padding:10px 20px;background:rgba(0,0,0,.5);border-radius:5px}
     @keyframes floatup{to{opacity:0;transform:translateX(-50%) translateY(-100px)}}
@@ -285,6 +293,7 @@
   <div id="crosshair"></div>
   <div id="minimap"><span id="minimap-title">🎖️ 指揮官マップ</span><canvas id="minimap-canvas"></canvas></div>
   <div id="role-ability"></div>
+  <div id="team-hints"><h4>📋 チームヒント</h4><div id="hints-list"><div class="no-hints">まだヒントがありません</div></div></div>
   <div class="coop-warning" id="coop-warning">⚠️ あと1人必要！</div>
   <div id="mobile-controls">
     <div id="mobile-joystick"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
@@ -564,6 +573,89 @@ var shuffledHintAssignment = [];
 var cachedAllHints = [];
 var resolvedRescueHints = [];
 var resolvedDistractionHints = [];
+
+// チーム共有ヒント
+var teamCollectedHints = [];
+
+function addTeamHint(hint, panel, collectedBy) {
+  // 既に同じヒントがあれば追加しない
+  var exists = teamCollectedHints.some(function(h) {
+    return h.hint === hint;
+  });
+  if (exists) return;
+
+  teamCollectedHints.push({
+    hint: hint,
+    panel: panel,
+    collectedBy: collectedBy,
+    time: Date.now()
+  });
+
+  updateTeamHintsUI();
+  syncTeamHints();
+}
+
+function updateTeamHintsUI() {
+  var list = document.getElementById('hints-list');
+  var hintsPanel = document.getElementById('team-hints');
+
+  if (!list || !hintsPanel) return;
+
+  if (teamCollectedHints.length === 0) {
+    list.innerHTML = '<div class="no-hints">まだヒントがありません</div>';
+    return;
+  }
+
+  // パネル別にソート
+  var sorted = teamCollectedHints.slice().sort(function(a, b) {
+    var order = { A: 1, B: 2, main: 3 };
+    return (order[a.panel] || 4) - (order[b.panel] || 4);
+  });
+
+  var html = '';
+  sorted.forEach(function(h) {
+    var panelClass = 'panel-' + (h.panel === 'main' ? 'main' : h.panel.toLowerCase());
+    var panelLabel = h.panel === 'main' ? 'メイン' : h.panel;
+    html += '<div class="hint-item ' + panelClass + '">';
+    html += '<div class="hint-panel">制御盤' + panelLabel + '</div>';
+    html += h.hint;
+    html += '</div>';
+  });
+
+  list.innerHTML = html;
+}
+
+async function syncTeamHints() {
+  if (!myData.teamId) return;
+  try {
+    await db.from('game_states').update({
+      collected_hints: JSON.stringify(teamCollectedHints)
+    }).eq('team_id', myData.teamId);
+  } catch (e) {
+    console.error('Hint sync error:', e);
+  }
+}
+
+function loadTeamHints(hintsJson) {
+  if (!hintsJson) return;
+  try {
+    var hints = JSON.parse(hintsJson);
+    if (Array.isArray(hints)) {
+      hints.forEach(function(h) {
+        var exists = teamCollectedHints.some(function(existing) {
+          return existing.hint === h.hint;
+        });
+        if (!exists) {
+          teamCollectedHints.push(h);
+        }
+      });
+      updateTeamHintsUI();
+    }
+  } catch (e) {
+    console.error('Hint load error:', e);
+  }
+}
+
 
 // シード付き乱数生成（チーム全員で同じシャッフルにするため）
 function seededRandom(seed) {
@@ -1004,6 +1096,11 @@ async function syncGameStateToServer() {
 // サーバーからゲーム状態を受信して適用
 function syncFromGameState(gs) {
   if (!gs) return;
+  
+  // チームヒントの同期
+  if (gs.collected_hints) {
+    loadTeamHints(gs.collected_hints);
+  }
   G.time = gs.time_remaining || G.time;
   G.rampage = gs.rampage_level || G.rampage;
   G.score = gs.score || G.score;
@@ -2654,6 +2751,7 @@ function processInteraction(delta) {
           if (hint) {
             G.score += 100;
             showBonus('+100 重要情報！', '#00f5ff');
+            addTeamHint(hint.hint, hint.panel, myData.name || 'プレイヤー');
             setTimeout(function() {
               showBonus('💬 "' + hint.hint + '"', '#fc0');
             }, 400);
@@ -2674,11 +2772,12 @@ function completeHintGathering(npc) {
 
   npc.hintObtained = true;
   var hints = generateHints();
-  var hint = hints[npc.hintIndex] || { hint: '...よく分からない...' };
+  var hint = hints[npc.hintIndex] || { hint: '...よく分からない...', panel: 'unknown'  };
 
   playSound('click');
   G.score += 50;
   showBonus('+50 情報取得！', '#00f5ff');
+  if (hint.panel) addTeamHint(hint.hint, hint.panel, myData.name || 'プレイヤー');
   setTimeout(function() {
     showBonus('💬 "' + hint.hint + '"', '#fc0');
   }, 400);
@@ -2709,6 +2808,7 @@ function completeRescue(npc) {
   var hints = generateRescueHints();
   var hint = hints[npc.hintIndex];
   if (hint) {
+    addTeamHint(hint.hint, hint.panel, myData.name || 'プレイヤー');
     setTimeout(function() {
       showBonus('💬 "' + hint.hint + '"', '#fc0');
     }, 600);
@@ -3336,6 +3436,7 @@ async function startGame() {
   document.getElementById('controls-help').style.display = 'block';
   document.getElementById('crosshair').style.display = 'block';
   document.getElementById('robot-status').style.display = 'block';
+  document.getElementById('team-hints').style.display = 'block';
 
   // Initialize Three.js if not already done
   if (!scene) {
