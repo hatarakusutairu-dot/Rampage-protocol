@@ -189,6 +189,17 @@
     .ranking-score{font-family:Orbitron;font-size:1.3rem;color:#00f5ff}
     .no-teams{color:rgba(255,255,255,.5);text-align:center;padding:30px}
     #password-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;z-index:3000}
+    #rejoin-role-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,20,.95);display:none;justify-content:center;align-items:center;z-index:3100}
+    .rejoin-role-box{background:linear-gradient(135deg,#1a1a2e,#16213e);border:3px solid #00f5ff;padding:30px;border-radius:12px;text-align:center;min-width:350px;max-width:500px}
+    .rejoin-role-box h3{font-family:Orbitron;color:#00f5ff;margin-bottom:10px;font-size:1.2rem}
+    .rejoin-role-box p{color:rgba(255,255,255,.7);font-size:.9rem;margin-bottom:20px}
+    .rejoin-role-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+    .rejoin-role-btn{display:flex;align-items:center;gap:15px;padding:15px 20px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);border-radius:8px;cursor:pointer;text-align:left;transition:all .2s}
+    .rejoin-role-btn:hover{background:rgba(0,245,255,.15);border-color:#00f5ff}
+    .rejoin-role-btn .role-icon{font-size:1.8rem;width:50px;text-align:center}
+    .rejoin-role-btn .role-info h4{font-family:Orbitron;color:#fff;font-size:1rem;margin:0}
+    .rejoin-role-btn .role-info p{color:rgba(255,255,255,.5);font-size:.8rem;margin:5px 0 0}
+    #rejoin-role-cancel{background:transparent;border:2px solid rgba(255,255,255,.3);color:#fff;padding:12px 30px;border-radius:6px;cursor:pointer;font-family:Orbitron}
     .password-box{background:rgba(20,30,50,.98);border:2px solid #ffa500;padding:30px;border-radius:8px;text-align:center;min-width:300px}
     .password-box h3{font-family:Orbitron;color:#ffa500;margin-bottom:20px}
     .password-box input{width:100%;padding:15px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1rem;text-align:center;margin-bottom:15px;border-radius:4px}
@@ -333,6 +344,14 @@
         <button id="password-cancel">キャンセル</button>
       </div>
       <div id="password-error" style="color:#ff4444;font-size:.8rem;margin-top:10px;display:none">パスワードが違います</div>
+    </div>
+  </div>
+  <div id="rejoin-role-modal">
+    <div class="rejoin-role-box">
+      <h3>🎮 役割を選択</h3>
+      <p>ゲームに参加する役割を選んでください</p>
+      <div class="rejoin-role-grid" id="rejoin-role-grid"></div>
+      <button id="rejoin-role-cancel">キャンセル</button>
     </div>
   </div>
   <div id="code-input-modal">
@@ -1983,13 +2002,21 @@ document.getElementById('rejoin-btn').onclick = async function() {
 
     statusDiv.style.background = 'rgba(0,255,100,.3)';
 
-    // 1秒後にゲーム開始
-    setTimeout(function() {
-      statusDiv.innerHTML = '🎮 ゲームに参加します...';
+    // 役割がない場合は役割選択モーダルを表示
+    if (!myData.role) {
+      statusDiv.innerHTML = '📋 役割を選択してください...';
       setTimeout(function() {
-        startGame();
+        showRejoinRoleModal();
       }, 500);
-    }, 1000);
+    } else {
+      // 役割がある場合は直接ゲーム開始
+      setTimeout(function() {
+        statusDiv.innerHTML = '🎮 ゲームに参加します...';
+        setTimeout(function() {
+          startGame();
+        }, 500);
+      }, 1000);
+    }
 
   } catch (e) {
     console.error('Rejoin error:', e);
@@ -2004,6 +2031,78 @@ document.getElementById('rejoin-code-input').addEventListener('keypress', functi
     document.getElementById('rejoin-btn').click();
   }
 });
+
+
+// 再参加用役割選択モーダル
+function showRejoinRoleModal() {
+  var modal = document.getElementById('rejoin-role-modal');
+  var grid = document.getElementById('rejoin-role-grid');
+  
+  // チームサイズに応じた役割を取得
+  var teamSize = parseInt(myData.teamSize) || 3;
+  if (teamSize < 2) teamSize = 2;
+  if (teamSize > 5) teamSize = 5;
+  
+  var slots = roleSlotsByTeamSize[teamSize];
+  
+  // グリッドをクリアして役割ボタンを生成
+  grid.innerHTML = '';
+  
+  for (var i = 0; i < slots.length; i++) {
+    var slot = slots[i];
+    var btn = document.createElement('button');
+    btn.className = 'rejoin-role-btn';
+    btn.dataset.role = slot.role;
+    btn.dataset.slotIndex = i;
+    btn.innerHTML = '<div class="role-icon">' + slot.icon + '</div>' +
+      '<div class="role-info"><h4>' + slot.label + '</h4>' +
+      '<p>' + slot.desc + '</p></div>';
+    
+    (function(role, idx) {
+      btn.onclick = function() {
+        selectRejoinRole(role, idx);
+      };
+    })(slot.role, i);
+    
+    grid.appendChild(btn);
+  }
+  
+  modal.style.display = 'flex';
+  document.getElementById('team-screen').style.display = 'none';
+}
+
+function hideRejoinRoleModal() {
+  document.getElementById('rejoin-role-modal').style.display = 'none';
+}
+
+async function selectRejoinRole(role, slotIndex) {
+  try {
+    // DBに役割を保存
+    await db.from('players').update({
+      role: role + '_' + slotIndex,
+      is_ready: true
+    }).eq('id', myData.playerId);
+    
+    myData.role = role;
+    myData.roleSlot = slotIndex;
+    
+    hideRejoinRoleModal();
+    
+    // ゲーム開始
+    startGame();
+  } catch (e) {
+    console.error('Role selection error:', e);
+    showError('役割選択に失敗しました');
+  }
+}
+
+// 再参加役割選択キャンセルボタン
+document.getElementById('rejoin-role-cancel').onclick = function() {
+  hideRejoinRoleModal();
+  document.getElementById('team-screen').style.display = 'flex';
+  document.getElementById('rejoin-status').innerHTML = 'キャンセルしました';
+  document.getElementById('rejoin-status').style.background = 'rgba(255,150,0,.3)';
+};
 
 // チーム名入力でもEnterキー対応
 document.getElementById('team-name-input').addEventListener('keypress', function(e) {
