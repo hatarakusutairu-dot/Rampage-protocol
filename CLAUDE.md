@@ -192,6 +192,145 @@ fs.writeFileSync('index.html', content, 'utf8');
 SCRIPT
 ```
 
+### 9. 非リーダーがゲーム開始できない問題
+
+**問題**: リーダーがゲーム開始ボタンを押しても、他のチームメンバーが3D空間に入れない
+
+**原因**:
+- Supabaseリアルタイム購読が遅延または失敗している
+- `startGame()`が複数回呼ばれて競合状態になる
+- ポーリング間隔が長すぎてステータス変更を検知できない
+
+**解決策**:
+
+1. 重複呼び出し防止ガードを追加:
+```javascript
+var gameStarting = false;
+
+async function startGame() {
+  if (gameStarting || G.playing) {
+    console.log('startGame blocked: already starting or playing');
+    return;
+  }
+  gameStarting = true;
+
+  try {
+    // ... ゲーム開始処理
+  } catch (e) {
+    gameStarting = false; // エラー時はリセット
+    throw e;
+  }
+}
+```
+
+2. ポーリング間隔を短くする（2秒→1秒）:
+```javascript
+lobbyRefreshInterval = setInterval(function() {
+  refreshLobbyData();
+}, 1000); // 2000から1000に短縮
+```
+
+3. ステータスチェックにログを追加してデバッグしやすくする:
+```javascript
+if (teamCheck.data) {
+  console.log('Team status check:', teamCheck.data.status);
+  if (teamCheck.data.status === 'playing') {
+    console.log('Starting game via polling...');
+    startGame();
+  }
+}
+```
+
+### 10. 非同期関数の重複実行問題
+
+**問題**: 同じ非同期関数が複数回同時に呼ばれて予期しない動作をする
+
+**解決策**: フラグ変数でガードする
+
+```javascript
+var isProcessing = false;
+
+async function doSomething() {
+  if (isProcessing) return;
+  isProcessing = true;
+
+  try {
+    await someAsyncOperation();
+  } finally {
+    isProcessing = false;
+  }
+}
+```
+
+### 11. Supabase `.single()` による400エラー
+
+**問題**: Supabaseの`.single()`メソッドを使ったクエリが400 Bad Requestを返す
+
+**原因**:
+- `.single()`はレコードが0件または2件以上の場合に400エラーを返す
+- マルチプレイヤー同期で、レコードがまだ作成されていない/まだ更新されていない場合に発生
+
+**解決策**: `.single()`を使わず、通常の配列として取得する
+
+```javascript
+// ❌ 悪い例 - レコードがない場合に400エラー
+var result = await db.from('game_states')
+  .select('panel_codes')
+  .eq('team_id', teamId)
+  .single();
+if (result.data) { ... }
+
+// ✅ 良い例 - 配列として取得
+var result = await db.from('game_states')
+  .select('panel_codes')
+  .eq('team_id', teamId);
+if (result.data && result.data.length > 0) {
+  var record = result.data[0];
+  // ...
+}
+```
+
+**注意**: `insert().select().single()`は新規作成直後なので問題ない。問題になるのは既存レコードを検索する場合。
+
+### 12. Supabase updateが失敗してもエラーにならない問題
+
+**問題**: Supabaseの`update()`はレコードが存在しない場合、エラーを返さず空の結果を返す
+
+**解決策**: update後に`.select()`を追加し、結果をチェックしてupsertパターンを使用
+
+```javascript
+// ❌ 悪い例 - updateが失敗してもわからない
+await db.from('game_states').update({
+  panel_codes: JSON.stringify(panelCodes)
+}).eq('team_id', teamId);
+
+// ✅ 良い例 - 結果をチェックしてレコードがなければinsert
+var result = await db.from('game_states').update({
+  panel_codes: JSON.stringify(panelCodes)
+}).eq('team_id', teamId).select();
+
+if (!result.data || result.data.length === 0) {
+  // レコードが存在しない場合は作成
+  await db.from('game_states').insert({
+    team_id: teamId,
+    panel_codes: JSON.stringify(panelCodes)
+  });
+}
+```
+
+### 13. パネルコード同期の最終解決策（シード生成）
+
+**問題**: データベースを使ったパネルコード同期が400エラーになる
+
+**最終解決策**: DB同期を使わず、team_idをシードにして全員が同じコードを生成
+
+```javascript
+// シード付き乱数で全員が同じコードを生成
+generatePanelCodes(myData.teamId);
+```
+
+**メリット**: DB保存/取得不要、400エラーなし、必ず同じコード
+
 ---
 
 ## Testing Checklist
