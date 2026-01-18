@@ -1820,7 +1820,17 @@ async function showLobby() {
   adjustRoleCardsForTeamSize();
   
   subscribeToTeam();
+  
+  // 初期の高速リフレッシュ（最初の5秒間は0.5秒ごと）
   await refreshLobbyData();
+  var fastRefreshCount = 0;
+  var fastRefreshInterval = setInterval(async function() {
+    fastRefreshCount++;
+    await refreshLobbyData();
+    if (fastRefreshCount >= 10 || document.getElementById('lobby-screen').style.display === 'none') {
+      clearInterval(fastRefreshInterval);
+    }
+  }, 500);
 }
 
 // 役割スロット設定（チームサイズ別）
@@ -1903,7 +1913,10 @@ async function selectRoleSlot(slotIndex) {
   }
 }
 
+var lobbyRefreshInterval = null;
+
 function subscribeToTeam() {
+  // リアルタイム購読
   subscription = db.channel('lobby-' + myData.teamId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: 'team_id=eq.' + myData.teamId }, function() {
       refreshLobbyData();
@@ -1911,7 +1924,24 @@ function subscribeToTeam() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'teams', filter: 'id=eq.' + myData.teamId }, function(p) {
       if (p.new && p.new.status === 'playing') startGame();
     })
-    .subscribe();
+    .subscribe(function(status) {
+      console.log('Lobby subscription:', status);
+      if (status === 'SUBSCRIBED') {
+        // 購読開始後に即座にリフレッシュ
+        refreshLobbyData();
+      }
+    });
+  
+  // バックアップとして2秒ごとにポーリング（リアルタイムが遅い場合の補助）
+  if (lobbyRefreshInterval) clearInterval(lobbyRefreshInterval);
+  lobbyRefreshInterval = setInterval(function() {
+    if (document.getElementById('lobby-screen').style.display !== 'none') {
+      refreshLobbyData();
+    } else {
+      clearInterval(lobbyRefreshInterval);
+      lobbyRefreshInterval = null;
+    }
+  }, 2000);
 }
 
 async function refreshLobbyData() {
