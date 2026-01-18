@@ -565,17 +565,32 @@ var cachedAllHints = [];
 var resolvedRescueHints = [];
 var resolvedDistractionHints = [];
 
+// シード付き乱数生成（チーム全員で同じシャッフルにするため）
+function seededRandom(seed) {
+  var x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
 function initShuffledHints() {
   // ヒントを一度だけ生成してキャッシュ
   cachedAllHints = generateAllHints();
+  
+  // チームIDまたはパネルコードからシードを生成（全員同じ値になる）
+  var seedStr = myData.teamId || (panelCodes.A.join('') + panelCodes.B.join('') + panelCodes.main.join(''));
+  var seed = 0;
+  for (var c = 0; c < seedStr.length; c++) {
+    seed += seedStr.charCodeAt(c) * (c + 1);
+  }
+  console.log('Hint shuffle seed:', seed, 'from:', seedStr.substring(0, 20));
   
   shuffledHintAssignment = [];
   for (var i = 0; i < cachedAllHints.length; i++) {
     shuffledHintAssignment.push(i);
   }
-  // Fisher-Yatesシャッフル
+  // シード付きFisher-Yatesシャッフル（全員同じ順序になる）
   for (var i = shuffledHintAssignment.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
+    seed++;
+    var j = Math.floor(seededRandom(seed) * (i + 1));
     var temp = shuffledHintAssignment[i];
     shuffledHintAssignment[i] = shuffledHintAssignment[j];
     shuffledHintAssignment[j] = temp;
@@ -591,6 +606,7 @@ function initShuffledHints() {
     resolvedDistractionHints.push(cachedAllHints[shuffledHintAssignment[i]]);
   }
   
+  console.log('Shuffle order:', shuffledHintAssignment);
   console.log('Rescue hints:', resolvedRescueHints.map(function(h) { return h.hint; }));
   console.log('Distraction hints:', resolvedDistractionHints.map(function(h) { return h.hint; }));
 }
