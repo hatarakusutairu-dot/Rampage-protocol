@@ -1146,11 +1146,75 @@ async function syncPanelUnlock(panelId) {
   } catch (e) {
     console.error('パネル解除同期エラー:', e);
   }
+
+// スコアをサーバーに即時同期（全プレイヤーが実行可能）
+async function syncScoreToServer(scoreIncrement, reason) {
+  if (!myData.teamId) return;
+  try {
+    // 現在のスコアを取得して加算
+    var gs = await db.from('game_states').select('score').eq('team_id', myData.teamId);
+    if (gs.data && gs.data.length > 0) {
+      var newScore = (gs.data[0].score || 0) + scoreIncrement;
+      await db.from('game_states').update({ score: newScore }).eq('team_id', myData.teamId);
+      console.log('Score synced:', reason, '+' + scoreIncrement, '→', newScore);
+    }
+  } catch (e) {
+    console.error('スコア同期エラー:', e);
+  }
+}
+
+// 救助数をDBから取得して同期
+async function syncRescuedCountFromDB() {
+  if (!myData.teamId) return;
+  try {
+    var npcResult = await db.from('npc_states').select('is_rescued').eq('team_id', myData.teamId);
+    if (npcResult.data) {
+      var rescuedCount = npcResult.data.filter(function(n) { return n.is_rescued; }).length;
+      G.rescued = rescuedCount;
+      await db.from('game_states').update({ rescued: rescuedCount }).eq('team_id', myData.teamId);
+    }
+  } catch (e) {
+    console.error('救助数同期エラー:', e);
+  }
+}
+
+// NPC状態をDBからポーリングして同期（リアルタイム購読のバックアップ）
+async function pollNpcStates() {
+  if (!myData.teamId || G.over) return;
+  try {
+    var npcResult = await db.from('npc_states').select('*').eq('team_id', myData.teamId);
+    if (npcResult.data) {
+      npcResult.data.forEach(function(ns) {
+        if (ns.is_rescued && npcs[ns.npc_index] && !npcs[ns.npc_index].rescued) {
+          var npc = npcs[ns.npc_index];
+          npc.rescued = true;
+          npc.hintObtained = true;
+          
+          if (typeof playRescueEffect === 'function') {
+            playRescueEffect(npc);
+          }
+          
+          if (npc.npcType === 'standing') {
+            npc.canWalk = true;
+          }
+          
+          console.log('NPC state synced via polling:', ns.npc_index, npc.npcType);
+        }
+      });
+      
+      var rescuedCount = npcResult.data.filter(function(n) { return n.is_rescued; }).length;
+      G.rescued = rescuedCount;
+      updateGameUI();
+    }
+  } catch (e) {
+    console.error('NPC状態ポーリングエラー:', e);
+  }
+}
 }
 
 // 非リーダー用：ゲーム状態をポーリングで取得
 async function pollGameState() {
-  if (!myData.teamId || myData.isLeader || G.over) return;
+  if (!myData.teamId || G.over) return;
   try {
     // ゲーム状態を取得
     var gs = await db.from('game_states').select('*').eq('team_id', myData.teamId);
@@ -3202,6 +3266,12 @@ function completeRescue(npc) {
 
   syncNpcRescue(npc.id);
   syncNpcHintObtained(npc.id); // ヒント取得も同期
+
+  // スコアと救助数をサーバーに同期（全プレイヤーが実行）
+  var totalPts = pts + (G.rescued >= rescueNpcCount ? 500 : 0);
+  syncScoreToServer(totalPts, '救助:NPC' + npc.id);
+  syncRescuedCountFromDB();
+
   updateGameUI();
 }
 
@@ -3899,13 +3969,15 @@ async function startGame() {
     sendPositionUpdate();
     // 定期的なプレイヤー更新を開始
     startPlayerRefresh();
-    // リーダーはゲーム状態を定期的に同期（1秒間隔）
+    // リーダーはゲーム状態（時間・暴走レベル）を送信（1秒間隔）
     if (myData.isLeader) {
       setInterval(syncGameStateToServer, 1000);
-    } else {
-      // 非リーダーはゲーム状態をポーリングで取得
-      setInterval(pollGameState, 1000);
     }
+    // 全プレイヤーがゲーム状態（スコア・救助数）をポーリング（1秒間隔）
+    setInterval(pollGameState, 1000);
+    // 全プレイヤーがNPC状態をポーリング（2秒間隔）
+    setInterval(pollNpcStates, 2000);
+  }
   }
 
   // 役割能力UIを表示
