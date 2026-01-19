@@ -1146,6 +1146,7 @@ async function syncPanelUnlock(panelId) {
   } catch (e) {
     console.error('パネル解除同期エラー:', e);
   }
+}
 
 // スコアをサーバーに即時同期（全プレイヤーが実行可能）
 async function syncScoreToServer(scoreIncrement, reason) {
@@ -3977,7 +3978,6 @@ async function startGame() {
     setInterval(pollGameState, 1000);
     // 全プレイヤーがNPC状態をポーリング（2秒間隔）
     setInterval(pollNpcStates, 2000);
-  }
   }
 
   // 役割能力UIを表示
