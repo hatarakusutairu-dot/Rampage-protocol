@@ -96,7 +96,6 @@
     .result-stats{display:flex;gap:15px;flex-wrap:wrap;justify-content:center}
     .result-stat{background:rgba(10,10,20,.9);border:1px solid rgba(255,255,255,.2);padding:15px 20px;text-align:center}
     .result-stat .value{font-family:Orbitron;font-size:1.5rem;color:#00f5ff}
-    #restart-btn{background:transparent;border:2px solid #00f5ff;color:#00f5ff;font-family:Orbitron;padding:15px 40px;cursor:pointer;margin-top:30px}
     #alert-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50}
     #alert-overlay.active{animation:flash .5s infinite}
     @keyframes flash{50%{background:rgba(255,0,50,.15)}}
@@ -131,17 +130,6 @@
     @keyframes clear-pulse{0%{opacity:0}50%{opacity:1}100%{opacity:0.3}}
     .clear-text{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-family:Orbitron;font-size:4rem;color:#0f8;text-shadow:0 0 30px rgba(0,255,136,.8),0 0 60px rgba(0,255,136,.5);z-index:450;opacity:0;animation:clear-text-anim 4s forwards}
     @keyframes clear-text-anim{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}40%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) translateY(-50px)}}
-    #result-screen .team-ranking{margin-top:20px;padding:15px;background:rgba(0,0,0,.5);border:1px solid rgba(0,245,255,.3);border-radius:8px;max-width:500px;width:90%}
-    #result-screen .team-ranking h3{font-family:Orbitron;color:#ffa500;margin-bottom:10px;font-size:1rem}
-    #result-screen .ranking-list{max-height:150px;overflow-y:auto}
-    #result-screen .ranking-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
-    #result-screen .ranking-item.current{background:rgba(0,245,255,.2);border:1px solid #00f5ff;border-radius:4px}
-    #result-screen .ranking-item .rank{font-family:Orbitron;color:#ffa500;width:30px}
-    #result-screen .ranking-item .name{flex:1;color:#fff}
-    #result-screen .ranking-item .score{font-family:Orbitron;color:#00f5ff}
-    #result-screen .result-buttons{display:flex;gap:15px;margin-top:20px;flex-wrap:wrap;justify-content:center}
-    #result-screen .result-buttons button{background:transparent;border:2px solid #00f5ff;color:#00f5ff;font-family:Orbitron;padding:12px 25px;cursor:pointer;transition:all .3s}
-    #result-screen .result-buttons button:hover{background:rgba(0,245,255,.2)}
     #admin-btn{position:absolute;bottom:20px;left:20px;background:rgba(100,100,100,.8);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 15px;font-size:.85rem;cursor:pointer;border-radius:4px}
     #admin-btn:hover{background:rgba(150,150,150,.8)}
     #admin-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:none;flex-direction:column;z-index:2000;overflow:hidden}
@@ -235,9 +223,6 @@
     .password-buttons button{flex:1;padding:12px;border-radius:4px;cursor:pointer}
     #password-submit{background:#ffa500;border:none;color:#000;font-weight:bold}
     #password-cancel{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff}
-    .result-buttons{display:flex;gap:15px;justify-content:center;flex-wrap:wrap}
-    #ranking-btn{background:rgba(255,215,0,.2);border:2px solid #ffd700;color:#ffd700;padding:15px 30px;font-size:1rem;border-radius:8px;cursor:pointer;font-family:Orbitron}
-    #ranking-btn:hover{background:rgba(255,215,0,.4)}
     #code-input-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,20,.95);display:none;justify-content:center;align-items:center;z-index:2500}
     .code-input-panel{background:linear-gradient(135deg,#1a1a2e,#16213e);border:3px solid #00f5ff;border-radius:12px;padding:30px;min-width:350px;text-align:center}
     .code-input-panel h3{font-family:Orbitron;color:#00f5ff;margin-bottom:20px;font-size:1.2rem}
@@ -298,7 +283,7 @@
   <div id="interaction-prompt"></div>
   <div id="clear-overlay"></div>
   <div class="clear-text" id="clear-text">SHUTDOWN COMPLETE!</div>
-  <div id="result-screen"><h1>MISSION COMPLETE</h1><div class="result-stats"><div class="result-stat"><h4>最終スコア</h4><div class="value" id="final-score">0</div></div><div class="result-stat"><h4>救助</h4><div class="value" id="final-rescued">0/6</div></div><div class="result-stat"><h4>協力</h4><div class="value" id="final-coop">+0</div></div><div class="result-stat"><h4>残り時間</h4><div class="value" id="final-time">00:00</div></div></div><div class="result-buttons"><button id="restart-btn">もう一度プレイ</button><button id="ranking-btn">🏆 ランキング表示</button></div><div class="team-ranking" id="team-ranking" style="display:none"><h3>🏆 チームランキング</h3><div class="ranking-list" id="ranking-list"></div></div></div>
+  <div id="result-screen"><h1>MISSION COMPLETE</h1><div class="result-stats"><div class="result-stat"><h4>最終スコア</h4><div class="value" id="final-score">0</div></div><div class="result-stat"><h4>救助</h4><div class="value" id="final-rescued">0/6</div></div><div class="result-stat"><h4>協力</h4><div class="value" id="final-coop">+0</div></div><div class="result-stat"><h4>残り時間</h4><div class="value" id="final-time">00:00</div></div></div></div>
   <div id="alert-overlay"></div>
   <div id="crosshair"></div>
   <div id="minimap"><span id="minimap-title">🎖️ 指揮官マップ</span><canvas id="minimap-canvas"></canvas></div>
@@ -3625,86 +3610,6 @@ function playClearAnimation(callback) {
   animateClear();
 }
 
-function fetchAndDisplayRanking() {
-  var rankingSection = document.getElementById('team-ranking');
-  var rankingList = document.getElementById('ranking-list');
-
-  if (rankingSection.style.display === 'none') {
-    rankingSection.style.display = 'block';
-    rankingList.innerHTML = '<p style="color:#888;">読み込み中...</p>';
-
-    // クリア済みチームを取得（status = 'finished'）
-    (async function() {
-      try {
-        // 完了したチームを取得
-        var teamsResult = await db.from('teams')
-          .select('id, name, code')
-          .eq('status', 'finished');
-
-        if (teamsResult.error) throw teamsResult.error;
-
-        var finishedTeams = teamsResult.data || [];
-        if (finishedTeams.length === 0) {
-          rankingList.innerHTML = '<p style="color:#888;">まだクリアしたチームがありません</p>';
-          return;
-        }
-
-        // ゲーム状態（スコア）を取得
-        var teamIds = finishedTeams.map(function(t) { return t.id; });
-        var gsResult = await db.from('game_states')
-          .select('team_id, score, rescued')
-          .in('team_id', teamIds);
-
-        if (gsResult.error) throw gsResult.error;
-
-        // スコアでソートしたランキングデータを作成
-        var scoreMap = {};
-        (gsResult.data || []).forEach(function(gs) {
-          scoreMap[gs.team_id] = gs;
-        });
-
-        var rankingData = finishedTeams.map(function(team) {
-          var gs = scoreMap[team.id] || {};
-          return {
-            teamId: team.id,
-            teamName: team.name || 'チーム' + team.code,
-            teamCode: team.code,
-            score: gs.score || 0,
-            rescued: gs.rescued || 0
-          };
-        });
-
-        // スコア順にソート
-        rankingData.sort(function(a, b) { return b.score - a.score; });
-
-        // 上位10件のみ表示
-        rankingData = rankingData.slice(0, 10);
-
-        var html = '';
-        for (var i = 0; i < rankingData.length; i++) {
-          var item = rankingData[i];
-          var isCurrentTeam = item.teamId === myData.teamId;
-          var rankNum = i + 1;
-          var rankIcon = rankNum === 1 ? '🥇' : rankNum === 2 ? '🥈' : rankNum === 3 ? '🥉' : rankNum + '.';
-
-          html += '<div class="ranking-item' + (isCurrentTeam ? ' current' : '') + '">';
-          html += '<span class="rank">' + rankIcon + '</span>';
-          html += '<span class="name">' + item.teamName + '</span>';
-          html += '<span class="score">' + item.score.toLocaleString() + '</span>';
-          html += '</div>';
-        }
-
-        rankingList.innerHTML = html;
-      } catch (err) {
-        console.error('Ranking error:', err);
-        rankingList.innerHTML = '<p style="color:#ff6666;">ランキング取得エラー</p>';
-      }
-    })();
-  } else {
-    rankingSection.style.display = 'none';
-  }
-}
-
 function endGame(win) {
   G.playing = false;
   G.over = true;
@@ -3739,7 +3644,6 @@ function endGame(win) {
   var m = Math.floor(G.time / 60);
   var s = Math.floor(G.time % 60);
   document.getElementById('final-time').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-  document.getElementById('restart-btn').onclick = function() { location.reload(); };
 }
 
 // ============================================
@@ -4272,21 +4176,6 @@ document.querySelectorAll('.admin-tab').forEach(function(tab) {
     document.getElementById('progress-tab').style.display = tabName === 'progress' ? 'block' : 'none';
     document.getElementById('ranking-tab').style.display = tabName === 'ranking' ? 'block' : 'none';
   });
-});
-
-// Public ranking view (no password needed for viewing after game)
-document.getElementById('ranking-btn').addEventListener('click', function() {
-  // Switch to ranking tab directly
-  document.querySelectorAll('.admin-tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelector('.admin-tab[data-tab="ranking"]').classList.add('active');
-  document.getElementById('progress-tab').style.display = 'none';
-  document.getElementById('ranking-tab').style.display = 'block';
-  // Open admin panel without authentication for ranking view
-  document.getElementById('admin-screen').classList.add('active');
-  refreshAdminData();
-  // Auto refresh every 3 seconds
-  if (adminRefreshInterval) clearInterval(adminRefreshInterval);
-  adminRefreshInterval = setInterval(refreshAdminData, 3000);
 });
 
 // Code input panel event listeners
