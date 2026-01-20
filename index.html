@@ -4721,10 +4721,12 @@ async function startGame() {
   G.over = false;
   G.time = 1200; // 20分にリセット
 
-  // クロックをリセット（deltaが正常に動くように）
-  if (clock) {
-    clock.start();
+  // クロックを確実に初期化
+  if (!clock) {
+    clock = new THREE.Clock();
   }
+  clock.start();
+  clock.getDelta(); // 最初の大きなdeltaを捨てる
 
   console.log('=== Game started successfully ===');
   animate();
