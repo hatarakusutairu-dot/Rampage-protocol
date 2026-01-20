@@ -293,6 +293,49 @@
     .minigame-lives span{font-size:1.2rem;margin:0 3px}
     .minigame-cancel{position:absolute;top:15px;right:15px;background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.5);padding:8px 15px;border-radius:6px;cursor:pointer;font-size:.8rem}
     .minigame-cancel:hover{background:rgba(255,255,255,.1);color:#fff}
+    /* Intel Gathering Minigame Styles */
+    #intel-minigame{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:3000}
+    #intel-minigame.active{display:flex}
+    .intel-container{background:#1a1a2e;border-radius:16px;padding:24px;max-width:420px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+    .intel-header{text-align:center;margin-bottom:20px}
+    .intel-badge{display:inline-block;padding:4px 12px;background:#4a5568;border-radius:20px;color:#fff;font-size:12px;font-weight:bold;margin-bottom:8px}
+    .intel-title{color:#fff;font-size:20px;margin-bottom:4px;font-family:Orbitron}
+    .intel-subtitle{color:#a0aec0;font-size:13px}
+    .intel-npc{background:#2d3748;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center}
+    .intel-npc-icon{font-size:48px;margin-bottom:8px}
+    .intel-npc-status{color:#e2e8f0;font-size:14px}
+    .intel-npc-status.alert{color:#fc8181}
+    .intel-npc-status.relaxed{color:#68d391}
+    .intel-gauge{margin-bottom:16px}
+    .intel-gauge-label{display:flex;justify-content:space-between;color:#a0aec0;font-size:12px;margin-bottom:4px}
+    .intel-gauge-bar{height:10px;background:#2d3748;border-radius:5px;overflow:hidden}
+    .intel-gauge-fill{height:100%;transition:width .3s,background-color .3s;border-radius:5px}
+    .intel-gauge-fill.alert{background:linear-gradient(90deg,#f56565,#c53030)}
+    .intel-gauge-fill.trust{background:linear-gradient(90deg,#48bb78,#38a169)}
+    .intel-progress{margin-bottom:20px}
+    .intel-prompt{color:#e2e8f0;font-size:14px;margin-bottom:12px;text-align:center}
+    .intel-choices{display:flex;flex-direction:column;gap:10px}
+    .intel-choice{background:#2d3748;border:2px solid #4a5568;border-radius:10px;padding:14px 16px;color:#e2e8f0;font-size:14px;cursor:pointer;transition:all .2s;text-align:left}
+    .intel-choice:hover:not(:disabled){background:#4a5568;border-color:#63b3ed;transform:translateX(4px)}
+    .intel-choice:disabled{cursor:not-allowed;opacity:.6}
+    .intel-choice.correct{background:#276749;border-color:#48bb78}
+    .intel-choice.wrong{background:#742a2a;border-color:#fc8181}
+    .intel-feedback{text-align:center;padding:12px;border-radius:8px;margin-top:12px;font-weight:bold;display:none}
+    .intel-feedback.show{display:block}
+    .intel-feedback.correct{background:rgba(72,187,120,.2);color:#68d391}
+    .intel-feedback.wrong{background:rgba(252,129,129,.2);color:#fc8181}
+    .intel-result{text-align:center;display:none}
+    .intel-result.show{display:block}
+    .intel-result-icon{font-size:64px;margin-bottom:16px}
+    .intel-result-title{font-size:24px;font-weight:bold;margin-bottom:8px;font-family:Orbitron}
+    .intel-result-title.success{color:#68d391}
+    .intel-result-title.failure{color:#fc8181}
+    .intel-result-message{color:#a0aec0;font-size:14px;margin-bottom:20px}
+    .intel-result-btn{background:#4299e1;border:none;border-radius:10px;padding:12px 32px;color:#fff;font-size:16px;font-weight:bold;cursor:pointer;transition:background .2s}
+    .intel-result-btn:hover{background:#3182ce}
+    .intel-warning{position:fixed;inset:0;background:rgba(185,28,28,.2);pointer-events:none;opacity:0;transition:opacity .3s}
+    .intel-warning.show{opacity:1;animation:intel-pulse .5s ease-in-out}
+    @keyframes intel-pulse{0%,100%{opacity:.2}50%{opacity:.4}}
   </style>
 </head>
 <body>
@@ -335,6 +378,39 @@
         <div class="minigame-key" id="key-enter">ENTER</div>
         <div class="minigame-key" id="key-j">J</div>
         <div class="minigame-key" id="key-f">F</div>
+      </div>
+    </div>
+  </div>
+  <div id="intel-minigame">
+    <div class="intel-warning" id="intel-warning"></div>
+    <div class="intel-container">
+      <div id="intel-game-screen">
+        <div class="intel-header">
+          <div class="intel-badge">🔍 情報収集</div>
+          <h1 class="intel-title">研究員との会話</h1>
+          <p class="intel-subtitle">落ち着かせて情報を引き出せ</p>
+        </div>
+        <div class="intel-npc">
+          <div class="intel-npc-icon" id="intel-npc-icon">👨‍🔬</div>
+          <div class="intel-npc-status" id="intel-npc-status">研究員が怯えている...</div>
+        </div>
+        <div class="intel-gauge">
+          <div class="intel-gauge-label"><span>パニック度</span><span id="intel-alert-value">0%</span></div>
+          <div class="intel-gauge-bar"><div class="intel-gauge-fill alert" id="intel-alert-gauge" style="width:0%"></div></div>
+        </div>
+        <div class="intel-progress">
+          <div class="intel-gauge-label"><span>情報収集</span><span id="intel-progress-value">0/3</span></div>
+          <div class="intel-gauge-bar"><div class="intel-gauge-fill trust" id="intel-progress-gauge" style="width:0%"></div></div>
+        </div>
+        <div class="intel-prompt" id="intel-prompt">何を聞く？</div>
+        <div class="intel-choices" id="intel-choices"></div>
+        <div class="intel-feedback" id="intel-feedback"></div>
+      </div>
+      <div class="intel-result" id="intel-result-screen">
+        <div class="intel-result-icon" id="intel-result-icon">🎉</div>
+        <h2 class="intel-result-title" id="intel-result-title">情報収集成功！</h2>
+        <p class="intel-result-message" id="intel-result-message">研究員から重要な情報を入手した</p>
+        <button class="intel-result-btn" id="intel-result-btn">閉じる</button>
       </div>
     </div>
   </div>
@@ -747,6 +823,379 @@ document.getElementById('minigame-cancel').addEventListener('click', function(e)
 document.getElementById('rescue-minigame').addEventListener('click', function(e) {
   if (e.target.id === 'minigame-cancel') return;
   handleMinigameTap();
+});
+
+// ============================================
+// Intel Gathering Minigame System
+// ============================================
+var intelQuestionSets = {
+  researcher_01: {
+    npcName: "研究員",
+    npcIcon: "👨‍🔬",
+    hint: "制御室は3階の奥にある",
+    questions: [
+      {
+        prompt: "研究員が壁に背をつけて怯えている...",
+        choices: [
+          { text: "早く情報を教えろ！", correct: false },
+          { text: "大丈夫ですか？落ち着いて", correct: true },
+          { text: "邪魔だ、どけ！", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が少し落ち着いてきた...",
+        choices: [
+          { text: "何が起きたか知っていますか？", correct: true },
+          { text: "お前のせいでこうなったんだろ", correct: false },
+          { text: "逃げ道を教えろ、早く！", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が状況を説明してくれている...",
+        choices: [
+          { text: "ロボットを止める方法はありますか？", correct: true },
+          { text: "もういい、自分で探す", correct: false },
+          { text: "使えない情報だな", correct: false }
+        ]
+      }
+    ]
+  },
+  researcher_02: {
+    npcName: "研究員",
+    npcIcon: "👩‍🔬",
+    hint: "非常停止ボタンは赤いカバーの中",
+    questions: [
+      {
+        prompt: "研究員が机の下に隠れている...",
+        choices: [
+          { text: "そこから出てこい！", correct: false },
+          { text: "もう大丈夫、助けに来ました", correct: true },
+          { text: "何やってるんだ、邪魔だ", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が恐る恐る出てきた...",
+        choices: [
+          { text: "ロボットを止める手がかりを知りませんか？", correct: true },
+          { text: "さっさと教えろ", correct: false },
+          { text: "お前が暴走させたのか？", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が思い出そうとしている...",
+        choices: [
+          { text: "緊急停止の方法は？", correct: true },
+          { text: "思い出せないなら用はない", correct: false },
+          { text: "嘘をついてるんじゃないだろうな", correct: false }
+        ]
+      }
+    ]
+  },
+  researcher_03: {
+    npcName: "研究員",
+    npcIcon: "👨‍🔬",
+    hint: "東側の階段が安全なルート",
+    questions: [
+      {
+        prompt: "研究員が廊下で立ち尽くしている...",
+        choices: [
+          { text: "そこにいると危ない、どけ！", correct: false },
+          { text: "怪我はないですか？", correct: true },
+          { text: "何をボーっとしてる", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員がこちらを見て少し安心した様子...",
+        choices: [
+          { text: "この辺りの構造を知っていますか？", correct: true },
+          { text: "逃げ道を全部教えろ", correct: false },
+          { text: "一人で逃げればいいだろ", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が建物について話してくれている...",
+        choices: [
+          { text: "安全に移動できるルートは？", correct: true },
+          { text: "早く案内しろ", correct: false },
+          { text: "それだけか？使えないな", correct: false }
+        ]
+      }
+    ]
+  },
+  researcher_04: {
+    npcName: "研究員",
+    npcIcon: "👩‍🔬",
+    hint: "ロボットは大きな音に反応する",
+    questions: [
+      {
+        prompt: "研究員が小声で何か呟いている...",
+        choices: [
+          { text: "何をブツブツ言ってる！", correct: false },
+          { text: "何か気づいたことがありますか？", correct: true },
+          { text: "うるさい、黙れ", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が振り向いてこちらを見た...",
+        choices: [
+          { text: "ロボットの動きに何かパターンは？", correct: true },
+          { text: "さっさと教えろ", correct: false },
+          { text: "お前の研究のせいだろ", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員がロボットの特性について話し始めた...",
+        choices: [
+          { text: "何に反応するか分かりますか？", correct: true },
+          { text: "そんなの知ってる", correct: false },
+          { text: "もっと役に立つ情報はないのか", correct: false }
+        ]
+      }
+    ]
+  },
+  researcher_05: {
+    npcName: "研究員",
+    npcIcon: "👨‍🔬",
+    hint: "地下に予備の電源室がある",
+    questions: [
+      {
+        prompt: "研究員が震えながら座り込んでいる...",
+        choices: [
+          { text: "立て！時間がないんだ", correct: false },
+          { text: "一緒に逃げましょう、立てますか？", correct: true },
+          { text: "足手まといになるなよ", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が立ち上がって話し始めた...",
+        choices: [
+          { text: "電源を落とせばロボットは止まりますか？", correct: true },
+          { text: "早く要点だけ言え", correct: false },
+          { text: "お前は先に逃げてろ", correct: false }
+        ]
+      },
+      {
+        prompt: "研究員が施設の構造を思い出している...",
+        choices: [
+          { text: "電源設備はどこにありますか？", correct: true },
+          { text: "もたもたするな", correct: false },
+          { text: "本当に知ってるのか？", correct: false }
+        ]
+      }
+    ]
+  }
+};
+
+var intelGame = {
+  active: false,
+  currentNpc: null,
+  questionSet: null,
+  currentQuestion: 0,
+  successCount: 0,
+  alertLevel: 0,
+  requiredSuccess: 3,
+  maxAlert: 100,
+  alertPerMiss: 35,
+  isProcessing: false
+};
+
+function startIntelMinigame(npc) {
+  // ランダムにパターンを選択
+  var patterns = Object.keys(intelQuestionSets);
+  var randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
+  var questionSet = intelQuestionSets[randomPattern];
+
+  intelGame.active = true;
+  intelGame.currentNpc = npc;
+  intelGame.questionSet = questionSet;
+  intelGame.currentQuestion = 0;
+  intelGame.successCount = 0;
+  intelGame.alertLevel = 0;
+  intelGame.isProcessing = false;
+
+  // ポインターロックを解除
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+
+  // キー状態をリセット
+  if (typeof keys !== 'undefined') {
+    keys.w = false;
+    keys.a = false;
+    keys.s = false;
+    keys.d = false;
+    keys.e = false;
+  }
+
+  // UI初期化
+  document.getElementById('intel-npc-icon').textContent = questionSet.npcIcon;
+  document.getElementById('intel-npc-status').textContent = '研究員が怯えている...';
+  document.getElementById('intel-npc-status').className = 'intel-npc-status';
+  document.getElementById('intel-game-screen').style.display = 'block';
+  document.getElementById('intel-result-screen').classList.remove('show');
+  document.getElementById('intel-feedback').classList.remove('show');
+
+  updateIntelUI();
+  showIntelQuestion();
+
+  document.getElementById('intel-minigame').classList.add('active');
+}
+
+function updateIntelUI() {
+  var alertPercent = Math.min(100, (intelGame.alertLevel / intelGame.maxAlert) * 100);
+  document.getElementById('intel-alert-value').textContent = Math.round(alertPercent) + '%';
+  document.getElementById('intel-alert-gauge').style.width = alertPercent + '%';
+
+  var progressPercent = (intelGame.successCount / intelGame.requiredSuccess) * 100;
+  document.getElementById('intel-progress-value').textContent = intelGame.successCount + '/' + intelGame.requiredSuccess;
+  document.getElementById('intel-progress-gauge').style.width = progressPercent + '%';
+
+  // NPC状態更新
+  var npcStatus = document.getElementById('intel-npc-status');
+  if (alertPercent >= 70) {
+    npcStatus.textContent = '研究員がパニック状態だ！';
+    npcStatus.className = 'intel-npc-status alert';
+  } else if (alertPercent >= 40) {
+    npcStatus.textContent = '研究員がまだ怯えている...';
+    npcStatus.className = 'intel-npc-status';
+  } else if (intelGame.successCount >= 1) {
+    npcStatus.textContent = '研究員が少し落ち着いてきた';
+    npcStatus.className = 'intel-npc-status relaxed';
+  } else {
+    npcStatus.textContent = '研究員が怯えている...';
+    npcStatus.className = 'intel-npc-status';
+  }
+}
+
+function showIntelQuestion() {
+  var question = intelGame.questionSet.questions[intelGame.currentQuestion];
+  if (!question) {
+    handleIntelSuccess();
+    return;
+  }
+
+  document.getElementById('intel-prompt').textContent = question.prompt;
+  document.getElementById('intel-feedback').classList.remove('show');
+
+  var choicesContainer = document.getElementById('intel-choices');
+  choicesContainer.innerHTML = '';
+
+  // 選択肢をシャッフル
+  var shuffledChoices = question.choices.slice().sort(function() { return Math.random() - 0.5; });
+
+  shuffledChoices.forEach(function(choice) {
+    var btn = document.createElement('button');
+    btn.className = 'intel-choice';
+    btn.textContent = choice.text;
+    btn.onclick = function() { handleIntelChoice(choice, btn); };
+    choicesContainer.appendChild(btn);
+  });
+}
+
+function handleIntelChoice(choice, btnElement) {
+  if (intelGame.isProcessing) return;
+  intelGame.isProcessing = true;
+
+  // 全ボタン無効化
+  var allBtns = document.querySelectorAll('.intel-choice');
+  allBtns.forEach(function(btn) { btn.disabled = true; });
+
+  var feedback = document.getElementById('intel-feedback');
+
+  if (choice.correct) {
+    btnElement.classList.add('correct');
+    intelGame.successCount++;
+    feedback.textContent = '落ち着いてきた！';
+    feedback.className = 'intel-feedback show correct';
+    playSound('click');
+  } else {
+    btnElement.classList.add('wrong');
+    intelGame.alertLevel += intelGame.alertPerMiss;
+    feedback.textContent = '怯えさせてしまった...';
+    feedback.className = 'intel-feedback show wrong';
+    playSound('fail');
+
+    // 警告エフェクト
+    var warning = document.getElementById('intel-warning');
+    warning.classList.add('show');
+    setTimeout(function() { warning.classList.remove('show'); }, 500);
+  }
+
+  updateIntelUI();
+
+  setTimeout(function() {
+    if (intelGame.alertLevel >= intelGame.maxAlert) {
+      handleIntelFailure();
+    } else if (intelGame.successCount >= intelGame.requiredSuccess) {
+      handleIntelSuccess();
+    } else {
+      intelGame.currentQuestion++;
+      if (intelGame.currentQuestion >= intelGame.questionSet.questions.length) {
+        intelGame.currentQuestion = 0;
+      }
+      intelGame.isProcessing = false;
+      showIntelQuestion();
+    }
+  }, 1200);
+}
+
+function handleIntelSuccess() {
+  document.getElementById('intel-game-screen').style.display = 'none';
+  document.getElementById('intel-result-screen').classList.add('show');
+
+  document.getElementById('intel-result-icon').textContent = '🎉';
+  document.getElementById('intel-result-title').textContent = '情報収集成功！';
+  document.getElementById('intel-result-title').className = 'intel-result-title success';
+  document.getElementById('intel-result-message').textContent = intelGame.questionSet.hint;
+
+  playSound('success');
+}
+
+function handleIntelFailure() {
+  document.getElementById('intel-game-screen').style.display = 'none';
+  document.getElementById('intel-result-screen').classList.add('show');
+
+  document.getElementById('intel-result-icon').textContent = '😰';
+  document.getElementById('intel-result-title').textContent = '情報収集失敗...';
+  document.getElementById('intel-result-title').className = 'intel-result-title failure';
+  document.getElementById('intel-result-message').textContent = '研究員がパニックになって逃げてしまった';
+}
+
+function closeIntelMinigame(success) {
+  intelGame.active = false;
+  document.getElementById('intel-minigame').classList.remove('active');
+
+  if (success && intelGame.currentNpc) {
+    // 成功時：NPCを会話済みにしてヒントを取得
+    var npc = intelGame.currentNpc;
+    npc.talked = true;
+
+    if (npc.hasHint && !npc.hintObtained) {
+      npc.hintObtained = true;
+      G.score += 100;
+      showBonus('+100 重要情報！', '#00f5ff');
+
+      var hint = intelGame.questionSet.hint;
+      // パネル情報はNPCのdistractionHintIndexから取得
+      var mainHints = generateDistractionHints();
+      var hintData = mainHints[npc.distractionHintIndex];
+      if (hintData) {
+        addTeamHint(hintData.hint, hintData.panel, myData.name || 'プレイヤー');
+      }
+    }
+  } else if (!success && intelGame.currentNpc) {
+    // 失敗時：もう一度話しかけられるようにする（talkedはfalseのまま）
+  }
+
+  intelGame.currentNpc = null;
+  G.interacting = false;
+  G.interactProgress = 0;
+}
+
+// 結果画面の閉じるボタン
+document.getElementById('intel-result-btn').addEventListener('click', function() {
+  var success = document.getElementById('intel-result-title').classList.contains('success');
+  closeIntelMinigame(success);
 });
 
 // ============================================
@@ -3194,7 +3643,7 @@ function createPanels() {
 document.addEventListener('keydown', function(e) {
   if (!G.playing) return;
   // ミニゲーム中はゲーム操作を無効化
-  if (minigame.active) return;
+  if (minigame.active || intelGame.active) return;
   if (e.code === 'KeyW') keys.w = true;
   if (e.code === 'KeyA') keys.a = true;
   if (e.code === 'KeyS') keys.s = true;
@@ -3442,7 +3891,7 @@ function updateInteractionUI() {
         pr.innerHTML = '<h3>✅ 確認済み</h3><p style="color:#aaa">この人は情報を持っていませんでした</p>';
       } else if (abilities.canTalkToDistraction) {
         // 情報員：会話可能
-        pr.innerHTML = '<h3>👤 研究員を発見</h3><div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで話しかける</p><p style="color:#fc0;font-size:.8rem">💡 緊急停止コードを知っているかも...</p>';
+        pr.innerHTML = '<h3>👤 研究員を発見</h3><p><kbd>E</kbd> で情報収集ミニゲーム開始</p><p style="color:#fc0;font-size:.8rem">💡 緊急停止コードを知っているかも...</p>';
       } else {
         // 情報員以外：会話不可
         pr.innerHTML = '<h3>👤 研究員を発見</h3><p style="color:#ff6600">⚠️ 情報員を呼んで話を聞いて！</p><p style="font-size:.85rem">緊急停止コードを知っているかも</p>';
@@ -3523,32 +3972,12 @@ function processInteraction(delta) {
         showCoopWarning('情報員を呼んで話を聞いて！');
         return;
       }
-      G.interacting = true;
-      G.interactProgress += delta * 20;
-      if (G.interactProgress >= 100) {
-        n.talked = true;
-        G.interacting = false;
-        G.interactProgress = 0;
-        playSound('click');
-
-        // ヒントを持っているNPCかチェック
-        if (n.hasHint && !n.hintObtained) {
-          n.hintObtained = true;
-          var mainHints = generateDistractionHints();
-          var hint = mainHints[n.distractionHintIndex];
-          if (hint) {
-            G.score += 100;
-            showBonus('+100 重要情報！', '#00f5ff');
-            addTeamHint(hint.hint, hint.panel, myData.name || 'プレイヤー');
-            setTimeout(function() {
-              showBonus('💬 "' + hint.hint + '"', '#fc0');
-            }, 400);
-          }
-        } else {
-          // ヒントを持っていないNPC
-          showBonus('💬 "' + n.dialogue + '"', '#aaa');
-        }
+      // ミニゲームを開始（まだアクティブでない場合）
+      if (!intelGame.active) {
+        startIntelMinigame(n);
       }
+      // ミニゲーム中は処理をスキップ
+      return;
     }
   }
 }
