@@ -543,7 +543,7 @@ var minigameDifficulty = {
     requiredSuccess: 5,
     lives: 5,
     markerSpeed: 1.5,
-    targetWidth: 30,
+    targetWidth: 35,
     burstChance: 0,
     burstTriple: false
   },
@@ -551,7 +551,7 @@ var minigameDifficulty = {
     requiredSuccess: 8,
     lives: 4,
     markerSpeed: 2.2,
-    targetWidth: 25,
+    targetWidth: 30,
     burstChance: 0.2,
     burstTriple: false
   },
@@ -559,7 +559,7 @@ var minigameDifficulty = {
     requiredSuccess: 12,
     lives: 4,
     markerSpeed: 2.5,
-    targetWidth: 25,
+    targetWidth: 28,
     burstChance: 0.25,
     burstTriple: false
   }
@@ -691,7 +691,9 @@ function handleMinigameTap() {
   if (!minigame.active) return;
 
   var pos = minigame.markerPosition;
-  var inZone = pos >= minigame.targetStart && pos <= minigame.targetEnd;
+  // マーカー幅を考慮して判定に余裕を持たせる（±2%）
+  var tolerance = 2;
+  var inZone = pos >= (minigame.targetStart - tolerance) && pos <= (minigame.targetEnd + tolerance);
 
   var statusEl = document.getElementById('minigame-status');
 
