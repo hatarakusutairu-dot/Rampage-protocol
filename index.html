@@ -1929,9 +1929,9 @@ function startPlayerRefresh() {
 async function syncGameStateToServer() {
   if (!myData.isLeader || !myData.teamId) return;
   try {
-    // upsertを使用してレコードがなければ作成、あれば更新
-    await db.from('game_states').upsert({
-      team_id: myData.teamId,
+    // まず更新を試みる
+    console.log("Sync attempt:", myData.teamId, G.time, G.rampage);
+    var result = await db.from('game_states').update({
       time_remaining: Math.floor(G.time),
       rampage_level: Math.floor(G.rampage),
       score: G.score,
@@ -1939,7 +1939,22 @@ async function syncGameStateToServer() {
       panel_a: G.panelA,
       panel_b: G.panelB,
       panel_main: G.panelMain
-    }, { onConflict: 'team_id' });
+    }).eq('team_id', myData.teamId).select();
+    console.log('Update result:', result);
+    
+    // 更新できなかった場合は新規作成
+    if (!result.data || result.data.length === 0) {
+      await db.from('game_states').insert({
+        team_id: myData.teamId,
+        time_remaining: Math.floor(G.time),
+        rampage_level: Math.floor(G.rampage),
+        score: G.score,
+        rescued: G.rescued,
+        panel_a: G.panelA,
+        panel_b: G.panelB,
+        panel_main: G.panelMain
+      });
+    }
   } catch (e) {
     console.error('ゲーム状態送信エラー:', e);
   }
@@ -2727,7 +2742,7 @@ document.getElementById('create-team-btn').onclick = async function() {
     var team = r.data;
     var pr = await db.from('players').insert({ team_id: team.id, name: teamName, is_leader: true }).select().single();
     if (pr.error) throw pr.error;
-    await db.from('game_states').insert({ team_id: team.id });
+    await db.from('game_states').insert({ team_id: team.id, time_remaining: 1200, rampage_level: 30, score: 0, rescued: 0, panel_a: false, panel_b: false, panel_main: false });
     var npc = [];
     for (var i = 0; i < 6; i++) npc.push({ team_id: team.id, npc_index: i });
     await db.from('npc_states').insert(npc);
