@@ -1927,6 +1927,7 @@ function startPlayerRefresh() {
 
 // ゲーム状態をSupabaseに送信（リーダーのみ）
 async function syncGameStateToServer() {
+  console.log("Leader sending:", G.time, G.rampage);
   if (!myData.isLeader || !myData.teamId) return;
   try {
     await db.from('game_states').update({
@@ -2070,12 +2071,14 @@ function syncFromGameState(gs) {
   }
   // 時間と暴走レベルは非リーダーのみサーバーから取得（リーダーはローカル計算）
   if (!myData.isLeader) {
+    console.log('Member sync - server data:', gs.time_remaining, gs.rampage_level);
     if (gs.time_remaining !== undefined && gs.time_remaining !== null) {
       G.time = gs.time_remaining;
     }
     if (gs.rampage_level !== undefined && gs.rampage_level !== null) {
       G.rampage = gs.rampage_level;
     }
+    updateGameUI(); // UIを更新
   }
   G.score = gs.score || G.score;
 
