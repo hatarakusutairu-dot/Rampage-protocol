@@ -750,11 +750,14 @@ function minigameSuccess() {
 
   playSound('success');
 
+  // NPCの参照を保存（closeMinigameでnullになるため）
+  var npcToRescue = minigame.currentNpc;
+
   // 少し待ってから閉じて救助完了
   setTimeout(function() {
     closeMinigame();
-    if (minigame.currentNpc) {
-      completeRescue(minigame.currentNpc);
+    if (npcToRescue) {
+      completeRescue(npcToRescue);
     }
   }, 800);
 }
