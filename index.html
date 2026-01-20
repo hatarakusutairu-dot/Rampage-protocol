@@ -4713,6 +4713,14 @@ async function startGame() {
 
   // Start the game
   G.playing = true;
+  G.over = false;
+  G.time = 1200; // 20分にリセット
+
+  // クロックをリセット（deltaが正常に動くように）
+  if (clock) {
+    clock.start();
+  }
+
   console.log('=== Game started successfully ===');
   animate();
   } catch (e) {
