@@ -266,6 +266,33 @@
       #role-ability{font-size:.8rem;padding:10px}
       #interaction-prompt{bottom:180px;font-size:.9rem}
     }
+    /* Rescue Minigame Styles */
+    #rescue-minigame{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);display:none;justify-content:center;align-items:center;z-index:3000;flex-direction:column}
+    #rescue-minigame.active{display:flex}
+    .minigame-container{background:linear-gradient(135deg,#1a1a2e,#16213e);border:3px solid #ff4466;border-radius:16px;padding:30px 40px;text-align:center;min-width:400px;box-shadow:0 0 40px rgba(255,68,102,.3)}
+    .minigame-title{font-family:Orbitron;font-size:1.5rem;color:#ff4466;margin-bottom:5px}
+    .minigame-severity{font-size:.9rem;color:rgba(255,255,255,.6);margin-bottom:20px}
+    .minigame-progress{display:flex;justify-content:center;gap:8px;margin-bottom:20px}
+    .progress-heart{width:20px;height:20px;background:rgba(255,68,102,.2);border-radius:50%;transition:all .2s}
+    .progress-heart.filled{background:#ff4466;box-shadow:0 0 10px rgba(255,68,102,.5)}
+    .heartbeat-zone{position:relative;width:320px;height:80px;background:rgba(0,0,0,.5);border:2px solid rgba(255,68,102,.4);border-radius:12px;margin:0 auto 20px;overflow:hidden}
+    .target-zone{position:absolute;top:10px;bottom:10px;background:rgba(0,255,136,.25);border:2px solid #00ff88;border-radius:8px}
+    .target-zone.burst{background:rgba(255,200,0,.25);border-color:#ffc800}
+    .heartbeat-marker{position:absolute;top:50%;width:4px;height:60px;background:#ff4466;border-radius:2px;transform:translateY(-50%);box-shadow:0 0 15px rgba(255,68,102,.8);transition:left 0.05s linear}
+    .minigame-status{font-family:Orbitron;font-size:1.2rem;margin-bottom:15px;min-height:30px}
+    .minigame-status.success{color:#00ff88}
+    .minigame-status.fail{color:#ff4466}
+    .minigame-status.burst{color:#ffc800}
+    .minigame-hint{color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:15px}
+    .minigame-keys{display:flex;justify-content:center;gap:10px}
+    .minigame-key{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-family:Orbitron;font-size:.9rem;color:#fff}
+    .minigame-key.active{background:rgba(255,68,102,.3);border-color:#ff4466}
+    .minigame-result{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:Orbitron;font-size:2rem;opacity:0;transition:all .3s}
+    .minigame-result.show{opacity:1}
+    .minigame-lives{margin-bottom:15px}
+    .minigame-lives span{font-size:1.2rem;margin:0 3px}
+    .minigame-cancel{position:absolute;top:15px;right:15px;background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.5);padding:8px 15px;border-radius:6px;cursor:pointer;font-size:.8rem}
+    .minigame-cancel:hover{background:rgba(255,255,255,.1);color:#fff}
   </style>
 </head>
 <body>
@@ -290,6 +317,27 @@
   <div id="role-ability"></div>
   <div id="team-hints"><h4>📋 チームヒント</h4><div id="hints-list"><div class="no-hints">まだヒントがありません</div></div></div>
   <div class="coop-warning" id="coop-warning">⚠️ あと1人必要！</div>
+  <div id="rescue-minigame">
+    <div class="minigame-container">
+      <button class="minigame-cancel" id="minigame-cancel">ESC キャンセル</button>
+      <div class="minigame-title">💓 心拍安定化</div>
+      <div class="minigame-severity" id="minigame-severity">軽傷</div>
+      <div class="minigame-lives" id="minigame-lives"></div>
+      <div class="minigame-progress" id="minigame-progress"></div>
+      <div class="heartbeat-zone" id="heartbeat-zone">
+        <div class="target-zone" id="target-zone"></div>
+        <div class="heartbeat-marker" id="heartbeat-marker"></div>
+      </div>
+      <div class="minigame-status" id="minigame-status"></div>
+      <div class="minigame-hint">緑のゾーンでタイミングよくキーを押せ！</div>
+      <div class="minigame-keys">
+        <div class="minigame-key" id="key-space">SPACE</div>
+        <div class="minigame-key" id="key-enter">ENTER</div>
+        <div class="minigame-key" id="key-j">J</div>
+        <div class="minigame-key" id="key-f">F</div>
+      </div>
+    </div>
+  </div>
   <div id="mobile-controls">
     <div id="mobile-joystick"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
     <div id="mobile-camera"></div>
@@ -390,6 +438,316 @@ var G = {
   interacting: false,
   interactProgress: 0
 };
+
+// ============================================
+// Rescue Minigame System
+// ============================================
+var minigame = {
+  active: false,
+  currentNpc: null,
+  difficulty: 'mild', // mild, moderate, severe
+  successCount: 0,
+  requiredSuccess: 5,
+  lives: 3,
+  markerPosition: 0,
+  markerDirection: 1,
+  markerSpeed: 2,
+  targetStart: 35,
+  targetEnd: 65,
+  isBurst: false,
+  burstChance: 0,
+  animationId: null,
+  lastTime: 0
+};
+
+// 難易度設定
+var minigameDifficulty = {
+  mild: {     // 軽傷（standing）
+    requiredSuccess: 5,
+    lives: 5,
+    markerSpeed: 1.5,
+    targetWidth: 30,
+    burstChance: 0,
+    burstTriple: false
+  },
+  moderate: { // 中傷（sitting）
+    requiredSuccess: 8,
+    lives: 4,
+    markerSpeed: 2.2,
+    targetWidth: 25,
+    burstChance: 0.2,
+    burstTriple: false
+  },
+  severe: {   // 重傷（fallen）
+    requiredSuccess: 12,
+    lives: 3,
+    markerSpeed: 3.0,
+    targetWidth: 20,
+    burstChance: 0.4,
+    burstTriple: true
+  }
+};
+
+function startMinigame(npc) {
+  // NPCタイプから難易度を決定
+  var difficulty = 'mild';
+  var severityText = '軽傷';
+  if (npc.npcType === 'fallen') {
+    difficulty = 'severe';
+    severityText = '重傷（難しい）';
+  } else if (npc.npcType === 'sitting') {
+    difficulty = 'moderate';
+    severityText = '中傷（普通）';
+  }
+
+  var config = minigameDifficulty[difficulty];
+
+  minigame.active = true;
+  minigame.currentNpc = npc;
+  minigame.difficulty = difficulty;
+  minigame.successCount = 0;
+  minigame.requiredSuccess = config.requiredSuccess;
+  minigame.lives = config.lives;
+  minigame.markerPosition = 0;
+  minigame.markerDirection = 1;
+  minigame.markerSpeed = config.markerSpeed;
+  minigame.isBurst = false;
+  minigame.burstChance = config.burstChance;
+
+  // ターゲットゾーンの位置をランダムに設定
+  var zoneWidth = config.targetWidth;
+  minigame.targetStart = 20 + Math.random() * (60 - zoneWidth);
+  minigame.targetEnd = minigame.targetStart + zoneWidth;
+
+  // UI更新
+  document.getElementById('minigame-severity').textContent = severityText;
+  updateMinigameUI();
+
+  // ポインターロックを解除
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+
+  // キー状態をリセット（移動を止める）
+  if (typeof keys !== 'undefined') {
+    keys.w = false;
+    keys.a = false;
+    keys.s = false;
+    keys.d = false;
+    keys.e = false;
+  }
+
+  // 表示
+  document.getElementById('rescue-minigame').classList.add('active');
+  document.getElementById('minigame-status').textContent = '';
+  document.getElementById('minigame-status').className = 'minigame-status';
+
+  // アニメーション開始
+  minigame.lastTime = performance.now();
+  minigameLoop();
+}
+
+function updateMinigameUI() {
+  // プログレスハート表示
+  var progressHtml = '';
+  for (var i = 0; i < minigame.requiredSuccess; i++) {
+    progressHtml += '<div class="progress-heart' + (i < minigame.successCount ? ' filled' : '') + '"></div>';
+  }
+  document.getElementById('minigame-progress').innerHTML = progressHtml;
+
+  // ライフ表示
+  var livesHtml = '';
+  for (var i = 0; i < minigame.lives; i++) {
+    livesHtml += '<span>❤️</span>';
+  }
+  document.getElementById('minigame-lives').innerHTML = livesHtml;
+
+  // ターゲットゾーン位置更新
+  var targetZone = document.getElementById('target-zone');
+  targetZone.style.left = minigame.targetStart + '%';
+  targetZone.style.width = (minigame.targetEnd - minigame.targetStart) + '%';
+  targetZone.className = 'target-zone' + (minigame.isBurst ? ' burst' : '');
+}
+
+function minigameLoop() {
+  if (!minigame.active) return;
+
+  var now = performance.now();
+  var delta = (now - minigame.lastTime) / 16.67; // 60FPSを基準に正規化
+  minigame.lastTime = now;
+
+  // マーカー移動
+  minigame.markerPosition += minigame.markerDirection * minigame.markerSpeed * delta;
+
+  // 端で反転
+  if (minigame.markerPosition >= 100) {
+    minigame.markerPosition = 100;
+    minigame.markerDirection = -1;
+    randomizeTarget();
+  } else if (minigame.markerPosition <= 0) {
+    minigame.markerPosition = 0;
+    minigame.markerDirection = 1;
+    randomizeTarget();
+  }
+
+  // マーカー位置更新
+  document.getElementById('heartbeat-marker').style.left = minigame.markerPosition + '%';
+
+  minigame.animationId = requestAnimationFrame(minigameLoop);
+}
+
+function randomizeTarget() {
+  var config = minigameDifficulty[minigame.difficulty];
+  var zoneWidth = config.targetWidth;
+
+  // バーストモードの判定
+  minigame.isBurst = Math.random() < config.burstChance;
+
+  // 新しいターゲット位置
+  minigame.targetStart = 15 + Math.random() * (70 - zoneWidth);
+  minigame.targetEnd = minigame.targetStart + zoneWidth;
+
+  updateMinigameUI();
+}
+
+function handleMinigameTap() {
+  if (!minigame.active) return;
+
+  var pos = minigame.markerPosition;
+  var inZone = pos >= minigame.targetStart && pos <= minigame.targetEnd;
+
+  var statusEl = document.getElementById('minigame-status');
+
+  if (inZone) {
+    // 成功
+    minigame.successCount++;
+    playSound('click');
+
+    if (minigame.isBurst) {
+      statusEl.textContent = '🔥 BURST! +1';
+      statusEl.className = 'minigame-status burst';
+    } else {
+      statusEl.textContent = '✓ GOOD!';
+      statusEl.className = 'minigame-status success';
+    }
+
+    // クリアチェック
+    if (minigame.successCount >= minigame.requiredSuccess) {
+      minigameSuccess();
+      return;
+    }
+
+    // ターゲット位置を変更
+    randomizeTarget();
+  } else {
+    // 失敗
+    minigame.lives--;
+    playSound('fail');
+    statusEl.textContent = '✗ MISS!';
+    statusEl.className = 'minigame-status fail';
+
+    if (minigame.lives <= 0) {
+      minigameFail();
+      return;
+    }
+  }
+
+  updateMinigameUI();
+
+  // ステータス表示をクリア
+  setTimeout(function() {
+    if (minigame.active) {
+      statusEl.textContent = '';
+    }
+  }, 300);
+}
+
+function minigameSuccess() {
+  minigame.active = false;
+  if (minigame.animationId) {
+    cancelAnimationFrame(minigame.animationId);
+  }
+
+  var statusEl = document.getElementById('minigame-status');
+  statusEl.textContent = '🎉 救助成功！';
+  statusEl.className = 'minigame-status success';
+
+  playSound('success');
+
+  // 少し待ってから閉じて救助完了
+  setTimeout(function() {
+    closeMinigame();
+    if (minigame.currentNpc) {
+      completeRescue(minigame.currentNpc);
+    }
+  }, 800);
+}
+
+function minigameFail() {
+  minigame.active = false;
+  if (minigame.animationId) {
+    cancelAnimationFrame(minigame.animationId);
+  }
+
+  var statusEl = document.getElementById('minigame-status');
+  statusEl.textContent = '💔 失敗... もう一度挑戦！';
+  statusEl.className = 'minigame-status fail';
+
+  // 少し待ってから閉じる（リトライ可能）
+  setTimeout(function() {
+    closeMinigame();
+  }, 1200);
+}
+
+function closeMinigame() {
+  minigame.active = false;
+  minigame.currentNpc = null;
+  if (minigame.animationId) {
+    cancelAnimationFrame(minigame.animationId);
+  }
+  document.getElementById('rescue-minigame').classList.remove('active');
+  G.interacting = false;
+  G.interactProgress = 0;
+}
+
+// ミニゲーム用キー入力
+document.addEventListener('keydown', function(e) {
+  if (!minigame.active) return;
+
+  var validKeys = ['Space', 'Enter', 'KeyJ', 'KeyF'];
+  if (validKeys.indexOf(e.code) !== -1) {
+    e.preventDefault();
+    handleMinigameTap();
+
+    // キービジュアルフィードバック
+    var keyId = e.code === 'Space' ? 'key-space' :
+                e.code === 'Enter' ? 'key-enter' :
+                e.code === 'KeyJ' ? 'key-j' : 'key-f';
+    var keyEl = document.getElementById(keyId);
+    if (keyEl) {
+      keyEl.classList.add('active');
+      setTimeout(function() { keyEl.classList.remove('active'); }, 100);
+    }
+  }
+
+  // ESCでキャンセル
+  if (e.code === 'Escape') {
+    e.preventDefault();
+    closeMinigame();
+  }
+});
+
+// キャンセルボタン
+document.getElementById('minigame-cancel').addEventListener('click', function(e) {
+  e.stopPropagation();
+  closeMinigame();
+});
+
+// ミニゲームオーバーレイのクリックでタップ
+document.getElementById('rescue-minigame').addEventListener('click', function(e) {
+  if (e.target.id === 'minigame-cancel') return;
+  handleMinigameTap();
+});
 
 // ============================================
 // Difficulty Scaling System
@@ -2835,6 +3193,8 @@ function createPanels() {
 
 document.addEventListener('keydown', function(e) {
   if (!G.playing) return;
+  // ミニゲーム中はゲーム操作を無効化
+  if (minigame.active) return;
   if (e.code === 'KeyW') keys.w = true;
   if (e.code === 'KeyA') keys.a = true;
   if (e.code === 'KeyS') keys.s = true;
@@ -3056,7 +3416,8 @@ function updateInteractionUI() {
         if (abilities.canRescueNpc) {
           // レスキュー：救助可能（救助完了時にヒントも取得）
           var coopNote = n.needsCoop && !abilities.canRescueFallenAlone ? '<p style="color:#ffa500">⚠️ 重傷者は2人で救助</p>' : '';
-          pr.innerHTML = '<h3>🚑 ' + tt + '研究員を発見！</h3>' + coopNote + '<div class="progress-bar"><div class="progress-bar-inner" style="width:' + (G.interacting ? G.interactProgress : 0) + '%"></div></div><p><kbd>E</kbd> 長押しで救助 ' + timeHint + '</p><p style="color:#00f5ff;font-size:.8rem">💡 救助するとヒントが得られる</p>';
+          var difficultyNote = n.npcType === 'fallen' ? '（難しい）' : n.npcType === 'sitting' ? '（普通）' : '（簡単）';
+          pr.innerHTML = '<h3>🚑 ' + tt + '研究員を発見！</h3>' + coopNote + '<p><kbd>E</kbd> で心拍安定化ミニゲーム開始 ' + difficultyNote + '</p><p style="color:#00f5ff;font-size:.8rem">💡 救助するとヒントが得られる</p>';
         } else {
           // 救助できない役割
           pr.innerHTML = '<h3>👤 ' + tt + '研究員を発見！</h3><p style="color:#ff6600">⚠️ レスキューを呼んで救助して！</p><p style="font-size:.85rem">レスキューが救助するとヒントが得られます</p>';
@@ -3146,13 +3507,12 @@ function processInteraction(delta) {
           return;
         }
       }
-      G.interacting = true;
-      var rescueSpeed = calculateInteractionSpeed(true);
-      // NPCタイプ別の救助時間（重傷者は長い）
-      // 救助時間: 重傷=約8秒, 負傷=約4秒, 軽傷=約2秒 (3人モード基準)
-      var typeMultiplier = n.npcType === 'fallen' ? 0.15 : (n.npcType === 'sitting' ? 0.3 : 0.6);
-      G.interactProgress += delta * rescueSpeed * typeMultiplier;
-      if (G.interactProgress >= 100) completeRescue(n);
+      // ミニゲームを開始（まだアクティブでない場合）
+      if (!minigame.active) {
+        startMinigame(n);
+      }
+      // ミニゲーム中は処理をスキップ（ミニゲームが救助完了を処理する）
+      return;
     } else {
       // 邪魔な研究員 - 情報員のみ会話可能
       if (n.talked) {
