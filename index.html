@@ -3689,6 +3689,14 @@ document.addEventListener('click', function(e) {
   var isModalOpen = codeModal && codeModal.style.display === 'flex';
   if (isModalOpen) return;
 
+  // 情報員ミニゲーム中はポインターロックを取得しない
+  var intelMinigame = document.getElementById('intel-minigame');
+  if (intelMinigame && intelMinigame.classList.contains('active')) return;
+
+  // 救助ミニゲーム中はポインターロックを取得しない
+  var rescueMinigame = document.getElementById('rescue-minigame');
+  if (rescueMinigame && rescueMinigame.classList.contains('active')) return;
+
   if (G.playing && !isPointerLocked && !isMobile) {
     document.body.requestPointerLock();
   }
