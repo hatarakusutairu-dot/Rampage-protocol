@@ -691,9 +691,12 @@ function handleMinigameTap() {
   if (!minigame.active) return;
 
   var pos = minigame.markerPosition;
-  // マーカー幅を考慮して判定に余裕を持たせる（±2%）
-  var tolerance = 2;
-  var inZone = pos >= (minigame.targetStart - tolerance) && pos <= (minigame.targetEnd + tolerance);
+  // 人間の反応時間を考慮した判定補正
+  var baseTolerance = 3;
+  var reactionCompensation = minigame.markerSpeed * 2.5;
+  var leftTol = baseTolerance + (minigame.markerDirection < 0 ? reactionCompensation : 0);
+  var rightTol = baseTolerance + (minigame.markerDirection > 0 ? reactionCompensation : 0);
+  var inZone = pos >= (minigame.targetStart - leftTol) && pos <= (minigame.targetEnd + rightTol);
 
   var statusEl = document.getElementById('minigame-status');
 
