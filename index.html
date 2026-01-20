@@ -4466,9 +4466,11 @@ function endGame(win) {
 // ============================================
 
 function animate() {
+  if (!clock) { console.error("clock is undefined!"); return; }
   requestAnimationFrame(animate);
 
   var delta = clock.getDelta();
+  if (G.playing && !G.over && Math.random() < 0.01) console.log("delta:", delta, "time:", G.time, "rampage:", G.rampage);
   var time = clock.getElapsedTime();
 
   if (G.playing && !G.over) {
