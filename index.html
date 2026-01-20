@@ -4507,10 +4507,8 @@ function animate() {
       endGame(false);
     }
     var prevRampage = G.rampage;
-    // 難易度補正付きの暴走レベル上昇（リーダーのみ計算、他はサーバーから同期）
-    if (myData.isLeader || !myData.teamId) {
-      G.rampage += calculateRampageIncrease(delta, G.rampage);
-    }
+    // 全員がローカルで暴走レベルを計算（同期遅延を避けるため）
+    G.rampage += calculateRampageIncrease(delta, G.rampage);
     // 暴走レベル80%突破時にアラーム
     if (prevRampage < 80 && G.rampage >= 80) {
       playSound('alarm');
