@@ -1927,10 +1927,11 @@ function startPlayerRefresh() {
 
 // ゲーム状態をSupabaseに送信（リーダーのみ）
 async function syncGameStateToServer() {
-  console.log("Leader sending:", G.time, G.rampage);
   if (!myData.isLeader || !myData.teamId) return;
   try {
-    await db.from('game_states').update({
+    // upsertを使用してレコードがなければ作成、あれば更新
+    await db.from('game_states').upsert({
+      team_id: myData.teamId,
       time_remaining: Math.floor(G.time),
       rampage_level: Math.floor(G.rampage),
       score: G.score,
@@ -1938,7 +1939,7 @@ async function syncGameStateToServer() {
       panel_a: G.panelA,
       panel_b: G.panelB,
       panel_main: G.panelMain
-    }).eq('team_id', myData.teamId);
+    }, { onConflict: 'team_id' });
   } catch (e) {
     console.error('ゲーム状態送信エラー:', e);
   }
