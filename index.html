@@ -278,15 +278,15 @@
     .heartbeat-zone{position:relative;width:320px;height:80px;background:rgba(0,0,0,.5);border:2px solid rgba(255,68,102,.4);border-radius:12px;margin:0 auto 20px;overflow:hidden}
     .target-zone{position:absolute;top:10px;bottom:10px;background:rgba(0,255,136,.25);border:2px solid #00ff88;border-radius:8px}
     .target-zone.burst{background:rgba(255,200,0,.25);border-color:#ffc800}
-    .heartbeat-marker{position:absolute;top:50%;width:4px;height:60px;background:#ff4466;border-radius:2px;transform:translateY(-50%);box-shadow:0 0 15px rgba(255,68,102,.8);transition:left 0.05s linear}
+    .heartbeat-marker{position:absolute;top:50%;width:6px;height:60px;background:#ff4466;border-radius:3px;transform:translateY(-50%);box-shadow:0 0 20px rgba(255,68,102,.9)}
     .minigame-status{font-family:Orbitron;font-size:1.2rem;margin-bottom:15px;min-height:30px}
     .minigame-status.success{color:#00ff88}
     .minigame-status.fail{color:#ff4466}
     .minigame-status.burst{color:#ffc800}
     .minigame-hint{color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:15px}
-    .minigame-keys{display:flex;justify-content:center;gap:10px}
-    .minigame-key{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-family:Orbitron;font-size:.9rem;color:#fff}
-    .minigame-key.active{background:rgba(255,68,102,.3);border-color:#ff4466}
+    .minigame-tap-btn{width:100%;padding:25px;font-size:2rem;font-family:Orbitron;font-weight:bold;color:#fff;background:linear-gradient(180deg,#ff4466,#cc2244);border:4px solid #ff6688;border-radius:16px;cursor:pointer;box-shadow:0 8px 0 #991133,0 12px 20px rgba(0,0,0,.4);transition:transform .05s,box-shadow .05s;user-select:none;-webkit-tap-highlight-color:transparent}
+    .minigame-tap-btn:active{transform:translateY(4px);box-shadow:0 4px 0 #991133,0 6px 10px rgba(0,0,0,.4)}
+    .minigame-keys{display:none}
     .minigame-result{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:Orbitron;font-size:2rem;opacity:0;transition:all .3s}
     .minigame-result.show{opacity:1}
     .minigame-lives{margin-bottom:15px}
@@ -372,7 +372,8 @@
         <div class="heartbeat-marker" id="heartbeat-marker"></div>
       </div>
       <div class="minigame-status" id="minigame-status"></div>
-      <div class="minigame-hint">緑のゾーンでタイミングよくキーを押せ！</div>
+      <div class="minigame-hint">緑のゾーンにマーカーが来たらタップ！</div>
+      <button class="minigame-tap-btn" id="minigame-tap-btn">💓 TAP!</button>
       <div class="minigame-keys">
         <div class="minigame-key" id="key-space">SPACE</div>
         <div class="minigame-key" id="key-enter">ENTER</div>
@@ -1149,7 +1150,16 @@ function handleIntelSuccess() {
   document.getElementById('intel-result-icon').textContent = '🎉';
   document.getElementById('intel-result-title').textContent = '情報収集成功！';
   document.getElementById('intel-result-title').className = 'intel-result-title success';
-  document.getElementById('intel-result-message').textContent = intelGame.questionSet.hint;
+  // 実際のゲームヒントを表示
+  var actualHint = 'ありがとう！助かったよ...';
+  if (intelGame.currentNpc && intelGame.currentNpc.hasHint) {
+    var mainHints = generateDistractionHints();
+    var hintData = mainHints[intelGame.currentNpc.distractionHintIndex];
+    if (hintData) {
+      actualHint = 'ありがとう！実は...' + hintData.hint;
+    }
+  }
+  document.getElementById('intel-result-message').textContent = actualHint;
 
   playSound('success');
 }
