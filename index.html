@@ -2068,8 +2068,15 @@ function syncFromGameState(gs) {
   if (gs.collected_hints) {
     loadTeamHints(gs.collected_hints);
   }
-  G.time = gs.time_remaining || G.time;
-  G.rampage = gs.rampage_level || G.rampage;
+  // 時間と暴走レベルは非リーダーのみサーバーから取得（リーダーはローカル計算）
+  if (!myData.isLeader) {
+    if (gs.time_remaining !== undefined && gs.time_remaining !== null) {
+      G.time = gs.time_remaining;
+    }
+    if (gs.rampage_level !== undefined && gs.rampage_level !== null) {
+      G.rampage = gs.rampage_level;
+    }
+  }
   G.score = gs.score || G.score;
 
   // パネル状態の同期
