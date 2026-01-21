@@ -2195,9 +2195,9 @@ function startPlayerRefresh() {
 async function syncGameStateToServer() {
   if (!myData.isLeader || !myData.teamId) return;
   try {
-    // まず更新を試みる
-    console.log("Sync attempt:", myData.teamId, G.time, G.rampage);
-    var result = await db.from('game_states').update({
+    // upsertを使用して確実に保存
+    var result = await db.from('game_states').upsert({
+      team_id: myData.teamId,
       time_remaining: Math.floor(G.time),
       rampage_level: Math.floor(G.rampage),
       score: G.score,
@@ -2205,21 +2205,9 @@ async function syncGameStateToServer() {
       panel_a: G.panelA,
       panel_b: G.panelB,
       panel_main: G.panelMain
-    }).eq('team_id', myData.teamId).select();
-    console.log('Update result:', result);
-    
-    // 更新できなかった場合は新規作成
-    if (!result.data || result.data.length === 0) {
-      await db.from('game_states').insert({
-        team_id: myData.teamId,
-        time_remaining: Math.floor(G.time),
-        rampage_level: Math.floor(G.rampage),
-        score: G.score,
-        rescued: G.rescued,
-        panel_a: G.panelA,
-        panel_b: G.panelB,
-        panel_main: G.panelMain
-      });
+    }, { onConflict: 'team_id' });
+    if (result.error) {
+      console.error('Game state upsert error:', result.error);
     }
   } catch (e) {
     console.error('ゲーム状態送信エラー:', e);
@@ -2230,12 +2218,15 @@ async function syncGameStateToServer() {
 async function syncPanelUnlock(panelId) {
   if (!myData.teamId) return;
   try {
-    var updateData = {};
+    var updateData = { team_id: myData.teamId };
     if (panelId === 'A') updateData.panel_a = true;
     else if (panelId === 'B') updateData.panel_b = true;
     else if (panelId === 'main') updateData.panel_main = true;
     console.log('Syncing panel unlock:', panelId);
-    await db.from('game_states').update(updateData).eq('team_id', myData.teamId);
+    var result = await db.from('game_states').upsert(updateData, { onConflict: 'team_id' });
+    if (result.error) {
+      console.error('Panel unlock upsert error:', result.error);
+    }
   } catch (e) {
     console.error('パネル解除同期エラー:', e);
   }
@@ -2408,10 +2399,17 @@ function syncFromGameState(gs) {
 async function syncNpcRescue(npcIndex) {
   if (!myData.teamId) return;
   try {
-    await db.from('npc_states').update({
+    // upsertを使用して確実に保存
+    var result = await db.from('npc_states').upsert({
+      team_id: myData.teamId,
+      npc_index: npcIndex,
       is_rescued: true,
       rescued_by: myData.playerId
-    }).eq('team_id', myData.teamId).eq('npc_index', npcIndex);
+    }, { onConflict: 'team_id,npc_index' });
+    if (result.error) {
+      console.error('NPC rescue upsert error:', result.error);
+    }
+    console.log('NPC rescue synced:', npcIndex);
   } catch (e) {
     console.error('NPC救助同期エラー:', e);
   }
