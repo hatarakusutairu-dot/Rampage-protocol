@@ -4182,21 +4182,27 @@ function updateInteractionUI() {
 
   if (near.type === 'panel') {
     var p = near.obj;
-    var can = p.panelId === 'main' ? (G.panelA && G.panelB) : true;
+    // パネル状態をG変数とパネルオブジェクトの両方で確認（同期遅延対策）
+    var panelADone = G.panelA || panels.some(function(pp) { return pp.panelId === 'A' && pp.done; });
+    var panelBDone = G.panelB || panels.some(function(pp) { return pp.panelId === 'B' && pp.done; });
+    var panelMainDone = G.panelMain || panels.some(function(pp) { return pp.panelId === 'main' && pp.done; });
+    var can = p.panelId === 'main' ? (panelADone && panelBDone) : true;
 
-    if (!can) {
+    // 現在のパネルが解除済みかどうか
+    var thisUnlocked = (p.panelId === 'A' && panelADone) || (p.panelId === 'B' && panelBDone) || (p.panelId === 'main' && panelMainDone);
+
+    if (thisUnlocked) {
+      // 解除済み
+      pr.innerHTML = '<h3>✅ 制御盤 ' + (p.panelId === 'main' ? 'メイン' : p.panelId) + '</h3><p style="color:#48bb78">解除済み</p>';
+    } else if (!can) {
+      // 主制御盤でA・Bが未解除
       pr.innerHTML = '<h3>🔒 主制御盤</h3><p>先に制御盤A・Bを解除してください</p>';
     } else if (!abilities.canOperatePanel) {
       // 指揮官以外は操作不可
-      pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p style="color:#ff6600">⚠️ 指揮官のみ操作可能</p><p>指揮官を呼んでください</p>';
+      pr.innerHTML = '<h3>🔧 制御盤 ' + (p.panelId === 'main' ? 'メイン' : p.panelId) + '</h3><p style="color:#ff6600">⚠️ 指揮官のみ操作可能</p><p>指揮官を呼んでください</p>';
     } else {
       // 指揮官：パズル→コード入力画面を表示
-      var unlocked = (p.panelId === 'A' && G.panelA) || (p.panelId === 'B' && G.panelB) || (p.panelId === 'main' && G.panelMain);
-      if (unlocked) {
-        pr.innerHTML = '<h3>✅ 制御盤 ' + p.panelId + '</h3><p style="color:#48bb78">解除済み</p>';
-      } else {
-        pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p><kbd>E</kbd> でパズル → コード入力</p>';
-      }
+      pr.innerHTML = '<h3>🔧 制御盤 ' + (p.panelId === 'main' ? 'メイン' : p.panelId) + '</h3><p><kbd>E</kbd> でパズル → コード入力</p>';
     }
   } else {
     var n = near.obj;
