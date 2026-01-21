@@ -1228,6 +1228,9 @@ function closeIntelMinigame(success) {
     var npc = intelGame.currentNpc;
     npc.talked = true;
 
+    // 暴走レベルを少し減少
+    G.rampage = Math.max(0, G.rampage - 2);
+
     if (npc.hasHint && !npc.hintObtained) {
       npc.hintObtained = true;
       G.score += 100;
@@ -4421,9 +4424,13 @@ function completeRescue(npc) {
   playRescueEffect(npc);
   playSound('success');
 
+  // 暴走レベルを少し減少（重傷者は多め）
+  var rampageReduce = npc.needsCoop ? 5 : (npc.npcType === 'sitting' ? 3 : 2);
+  G.rampage = Math.max(0, G.rampage - rampageReduce);
+
   var pts = npc.needsCoop ? 300 : (npc.npcType === 'sitting' ? 200 : 150);
   G.score += pts;
-  showBonus('+' + pts + ' 救助成功！', '#00ff88');
+  showBonus('+' + pts + ' 救助成功！ 暴走-' + rampageReduce + '%', '#00ff88');
   if (npc.needsCoop) G.coopBonus += 50;
 
   // ヒントを表示（救助NPCはパネルA,Bのヒントを持っている）
