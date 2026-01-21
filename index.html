@@ -149,6 +149,7 @@
     .team-card.finished-success{border-color:#00ff88}
     .team-card.finished-fail{border-color:#ff3333}
     @keyframes pulse-border{0%,100%{box-shadow:0 0 5px rgba(255,165,0,.5)}50%{box-shadow:0 0 15px rgba(255,165,0,.8)}}
+    @keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 10px rgba(0,255,136,.5)}50%{transform:scale(1.02);box-shadow:0 0 20px rgba(0,255,136,.8)}}
     .team-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
     .team-card-name{font-family:Orbitron;color:#fff;font-size:1.1rem}
     .team-card-code{color:rgba(255,255,255,.5);font-size:.8rem}
@@ -352,6 +353,7 @@
     .puzzle-status-value{color:#e2e8f0;font-weight:bold}
     .puzzle-area{background:#2d3748;border-radius:12px;padding:12px;margin-bottom:12px}
     .puzzle-grid{display:grid;gap:4px;aspect-ratio:1}
+    .puzzle-grid.size-2{grid-template-columns:repeat(2,1fr)}
     .puzzle-grid.size-3{grid-template-columns:repeat(3,1fr)}
     .puzzle-tile{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;cursor:pointer;transition:transform .1s,background .1s}
     .puzzle-tile.number{background:linear-gradient(145deg,#4a5568,#2d3748);color:#e2e8f0;border:2px solid #4a5568;box-shadow:0 3px 6px rgba(0,0,0,.3)}
@@ -3471,13 +3473,31 @@ async function refreshLobbyData() {
     var btn = document.getElementById('game-start-btn');
     if (allReady && myData.isLeader) {
       btn.disabled = false;
-      btn.textContent = 'ゲーム開始！';
+      btn.textContent = '🚀 ゲーム開始！';
+      btn.style.background = 'linear-gradient(135deg, #00ff88, #00cc66)';
+      btn.style.animation = 'pulse 1s infinite';
     } else if (allReady) {
       btn.disabled = true;
-      btn.textContent = 'リーダーの開始を待っています...';
+      btn.textContent = '⏳ リーダーの開始を待っています...';
+      btn.style.background = '';
+      btn.style.animation = '';
     } else {
       btn.disabled = true;
-      btn.textContent = '準備完了を待っています...';
+      btn.style.background = '';
+      btn.style.animation = '';
+      // 具体的に何が必要か表示
+      var needPlayers = players.length < myData.teamSize;
+      var noRole = players.some(function(p) { return !p.role; });
+      var notReady = players.some(function(p) { return p.role && !p.is_ready; });
+      if (needPlayers) {
+        btn.textContent = '👥 あと' + (myData.teamSize - players.length) + '人のメンバーを待機中...';
+      } else if (noRole) {
+        btn.textContent = '📋 役割を選択してください';
+      } else if (notReady) {
+        btn.textContent = '✋ 準備完了を押してください';
+      } else {
+        btn.textContent = '⏳ 準備完了を待っています...';
+      }
     }
 
     var st = document.getElementById('lobby-status');
