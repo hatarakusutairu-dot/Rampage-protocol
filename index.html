@@ -49,6 +49,7 @@
     .role-card{background:rgba(20,30,50,.95);border:2px solid rgba(255,255,255,.2);padding:20px;display:flex;align-items:center;gap:15px;cursor:pointer;border-radius:8px}
     .role-card.selected{border-color:#00ff88;background:rgba(0,255,136,.15)}
     .role-card.taken{opacity:.5;cursor:not-allowed}
+    .role-card.available{border-color:#ffa500;background:rgba(255,165,0,.15);animation:pulse-border 1.5s infinite}
     .role-icon{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem}
     .role-icon.commander{background:linear-gradient(135deg,#ffa500,#ff6600)}
     .role-icon.rescue{background:linear-gradient(135deg,#00ff88,#00cc66)}
@@ -3523,10 +3524,12 @@ function updateRoleCards(players) {
     }
   });
 
+  var teamFull = players.length >= myData.teamSize;
+
   document.querySelectorAll('.role-card').forEach(function(c) {
     var slotIndex = parseInt(c.dataset.slotIndex);
     var st = c.querySelector('.role-status');
-    c.classList.remove('selected', 'taken');
+    c.classList.remove('selected', 'taken', 'available');
 
     if (takenSlots[slotIndex]) {
       if (takenSlots[slotIndex].id === myData.playerId) {
@@ -3537,7 +3540,13 @@ function updateRoleCards(players) {
         st.textContent = takenSlots[slotIndex].name;
       }
     } else {
-      st.textContent = '待機中';
+      // メンバーが揃っていれば「選択可能」、そうでなければ「待機中」
+      if (teamFull) {
+        c.classList.add('available');
+        st.textContent = '👆 クリックして選択';
+      } else {
+        st.textContent = '待機中';
+      }
     }
   });
 }
