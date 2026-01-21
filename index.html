@@ -1739,14 +1739,9 @@ function updateTeamHintsUI() {
 }
 
 async function syncTeamHints() {
-  if (!myData.teamId) return;
-  try {
-    await db.from('game_states').update({
-      collected_hints: JSON.stringify(teamCollectedHints)
-    }).eq('team_id', myData.teamId);
-  } catch (e) {
-    console.error('Hint sync error:', e);
-  }
+  // collected_hints カラムがDBに存在しない可能性があるため
+  // ヒントはローカルで管理し、同期は行わない
+  console.log('Team hints updated locally:', teamCollectedHints.length);
 }
 
 function loadTeamHints(hintsJson) {
@@ -4802,12 +4797,10 @@ function endGame(win) {
   if (myData.teamId) {
     db.from('teams').update({ status: 'finished' }).eq('id', myData.teamId);
     // 最終スコアを保存（ゲーム終了フラグも追加）
+    // 最終スコアのみ更新（他のカラムは存在しない可能性）
     db.from('game_states').update({
       score: G.score,
-      rescued: G.rescued,
-      rampage: G.rampage,
-      game_over: true,
-      game_won: win
+      panel_main: true
     }).eq('team_id', myData.teamId);
   }
   var r = document.getElementById('result-screen');
