@@ -4435,17 +4435,9 @@ function completeRescue(npc) {
 
 // NPC ヒント取得状態を同期
 function syncNpcHintObtained(npcIndex) {
-  if (!myData.teamId) return;
-  db.from('npc_states').upsert({
-    team_id: myData.teamId,
-    npc_index: npcIndex,
-    hint_obtained: true,
-    hint_obtained_by: myData.playerId
-  }, { onConflict: 'team_id,npc_index' }).then(function() {
-    console.log('NPC hint synced:', npcIndex);
-  }).catch(function(e) {
-    console.error('NPC hint sync error:', e);
-  });
+  // ヒント取得は救助と同時に行われるので、syncNpcRescueで既に同期済み
+  // この関数は互換性のために残すが、実際の同期は不要
+  console.log('NPC hint obtained:', npcIndex, '(synced with rescue)');
 }
 
 // 制御盤コード入力画面を開く
