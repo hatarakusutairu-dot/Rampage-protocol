@@ -2204,16 +2204,20 @@ async function syncGameStateToServer() {
       panel_b: G.panelB,
       panel_main: G.panelMain
     };
-    // 更新を試みる
+    // 更新を試みる（.select()で結果を取得）
     var result = await db.from('game_states')
       .update(data)
-      .eq('team_id', myData.teamId);
+      .eq('team_id', myData.teamId)
+      .select();
 
-    // エラーがあれば新規作成を試みる
-    if (result.error) {
-      console.log('Update failed, trying insert:', result.error);
+    // 更新されたレコードがなければ新規作成
+    if (result.error || !result.data || result.data.length === 0) {
+      if (result.error) console.log('Update error:', result.error);
       data.team_id = myData.teamId;
-      await db.from('game_states').insert(data);
+      var insertResult = await db.from('game_states').insert(data);
+      if (insertResult.error) {
+        console.error('Insert also failed:', insertResult.error);
+      }
     }
   } catch (e) {
     console.error('ゲーム状態送信エラー:', e);
@@ -2266,7 +2270,7 @@ async function syncRescuedCountFromDB() {
     if (npcResult.data) {
       var rescuedCount = npcResult.data.filter(function(n) { return n.is_rescued; }).length;
       G.rescued = rescuedCount;
-      await db.from('game_states').update({ rescued: rescuedCount }).eq('team_id', myData.teamId);
+      // rescued カラムはDBに存在しないので更新しない
     }
   } catch (e) {
     console.error('救助数同期エラー:', e);
