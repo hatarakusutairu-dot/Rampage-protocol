@@ -3992,6 +3992,10 @@ document.addEventListener('click', function(e) {
   var rescueMinigame = document.getElementById('rescue-minigame');
   if (rescueMinigame && rescueMinigame.classList.contains('active')) return;
 
+  // スライドパズル中はポインターロックを取得しない
+  var slidePuzzleModal = document.getElementById('slide-puzzle-modal');
+  if (slidePuzzleModal && slidePuzzleModal.classList.contains('active')) return;
+
   if (G.playing && !isPointerLocked && !isMobile) {
     document.body.requestPointerLock();
   }
