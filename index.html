@@ -2200,7 +2200,6 @@ async function syncGameStateToServer() {
       time_remaining: Math.floor(G.time),
       rampage_level: Math.floor(G.rampage),
       score: G.score,
-      rescued: G.rescued,
       panel_a: G.panelA,
       panel_b: G.panelB,
       panel_main: G.panelMain
@@ -3030,7 +3029,7 @@ document.getElementById('create-team-btn').onclick = async function() {
     var team = r.data;
     var pr = await db.from('players').insert({ team_id: team.id, name: teamName, is_leader: true }).select().single();
     if (pr.error) throw pr.error;
-    await db.from('game_states').insert({ team_id: team.id, time_remaining: 1200, rampage_level: 30, score: 0, rescued: 0, panel_a: false, panel_b: false, panel_main: false });
+    await db.from('game_states').insert({ team_id: team.id, time_remaining: 1200, rampage_level: 30, score: 0, panel_a: false, panel_b: false, panel_main: false });
     var npc = [];
     for (var i = 0; i < 6; i++) npc.push({ team_id: team.id, npc_index: i });
     await db.from('npc_states').insert(npc);
