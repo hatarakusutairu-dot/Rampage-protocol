@@ -336,6 +336,43 @@
     .intel-warning{position:fixed;inset:0;background:rgba(185,28,28,.2);pointer-events:none;opacity:0;transition:opacity .3s}
     .intel-warning.show{opacity:1;animation:intel-pulse .5s ease-in-out}
     @keyframes intel-pulse{0%,100%{opacity:.2}50%{opacity:.4}}
+  
+    /* スライドパズルミニゲーム */
+    #slide-puzzle-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);display:none;justify-content:center;align-items:center;z-index:3500}
+    #slide-puzzle-modal.active{display:flex}
+    .puzzle-container{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+    .puzzle-header{text-align:center;margin-bottom:16px}
+    .puzzle-badge{display:inline-block;padding:4px 12px;border-radius:20px;color:#fff;font-size:12px;font-weight:bold;margin-bottom:8px}
+    .puzzle-badge.panel-a{background:#48bb78}
+    .puzzle-badge.panel-b{background:#ecc94b}
+    .puzzle-badge.panel-main{background:#f56565}
+    .puzzle-title{color:#fff;font-size:18px;margin-bottom:4px;font-family:Orbitron}
+    .puzzle-subtitle{color:#a0aec0;font-size:12px}
+    .puzzle-status{display:flex;justify-content:space-between;margin-bottom:12px;color:#a0aec0;font-size:13px}
+    .puzzle-status-value{color:#e2e8f0;font-weight:bold}
+    .puzzle-area{background:#2d3748;border-radius:12px;padding:12px;margin-bottom:12px}
+    .puzzle-grid{display:grid;gap:4px;aspect-ratio:1}
+    .puzzle-grid.size-3{grid-template-columns:repeat(3,1fr)}
+    .puzzle-tile{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;cursor:pointer;transition:transform .1s,background .1s}
+    .puzzle-tile.number{background:linear-gradient(145deg,#4a5568,#2d3748);color:#e2e8f0;border:2px solid #4a5568;box-shadow:0 3px 6px rgba(0,0,0,.3)}
+    .puzzle-tile.number:hover{background:linear-gradient(145deg,#5a6578,#3d4758);transform:scale(1.03)}
+    .puzzle-tile.empty{background:#1a202c;border:2px dashed #4a5568;cursor:default}
+    .puzzle-tile.correct{background:linear-gradient(145deg,#276749,#22543d);border-color:#48bb78}
+    .puzzle-btn-row{display:flex;gap:8px}
+    .puzzle-btn{flex:1;padding:10px;border:none;border-radius:8px;font-size:13px;cursor:pointer;transition:background .2s}
+    .puzzle-btn.cancel{background:#4a5568;color:#e2e8f0}
+    .puzzle-btn.cancel:hover{background:#718096}
+    .puzzle-btn.shuffle{background:#3182ce;color:#fff}
+    .puzzle-btn.shuffle:hover{background:#4299e1}
+    .puzzle-hint{color:#718096;font-size:11px;text-align:center;margin-top:10px}
+    .puzzle-complete{text-align:center;padding:20px}
+    .puzzle-complete-icon{font-size:48px;margin-bottom:12px}
+    .puzzle-complete-title{color:#68d391;font-size:20px;font-weight:bold;margin-bottom:8px}
+    .puzzle-complete-msg{color:#a0aec0;font-size:13px;margin-bottom:16px}
+    .puzzle-complete-btn{background:#4299e1;border:none;border-radius:8px;padding:12px 24px;color:#fff;font-size:14px;font-weight:bold;cursor:pointer}
+    @keyframes puzzle-flash{0%,100%{box-shadow:0 0 0 rgba(72,187,120,0)}50%{box-shadow:0 0 20px rgba(72,187,120,.6)}}
+    .puzzle-grid.complete{animation:puzzle-flash .5s ease 2}
+
   </style>
 </head>
 <body>
@@ -1214,6 +1251,222 @@ function closeIntelMinigame(success) {
 document.getElementById('intel-result-btn').addEventListener('click', function() {
   var success = document.getElementById('intel-result-title').classList.contains('success');
   closeIntelMinigame(success);
+});
+
+
+
+// ============================================
+// Slide Puzzle Minigame for Control Panels
+// ============================================
+var slidePuzzle = {
+  active: false,
+  currentPanel: null,
+  size: 3,
+  tiles: [],
+  emptyPos: { row: 2, col: 2 },
+  moveCount: 0,
+  startTime: null,
+  timerInterval: null,
+  isComplete: false,
+  shuffleMoves: 20
+};
+
+function startSlidePuzzle(panel) {
+  console.log("startSlidePuzzle called", panel);
+  slidePuzzle.active = true;
+  slidePuzzle.currentPanel = panel;
+  slidePuzzle.size = 3;
+  slidePuzzle.moveCount = 0;
+  slidePuzzle.isComplete = false;
+  slidePuzzle.shuffleMoves = panel.panelId === 'main' ? 30 : (panel.panelId === 'B' ? 25 : 20);
+  
+  // ポインターロック解除
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+  
+  // UI設定
+  var badge = document.getElementById('puzzle-badge');
+  badge.textContent = '制御盤' + (panel.panelId === 'main' ? 'メイン' : panel.panelId);
+  badge.className = 'puzzle-badge panel-' + (panel.panelId === 'main' ? 'main' : panel.panelId.toLowerCase());
+  
+  document.getElementById('puzzle-game-screen').style.display = 'block';
+  document.getElementById('puzzle-complete-screen').style.display = 'none';
+  document.getElementById('slide-puzzle-modal').classList.add('active');
+  
+  // タイル初期化とシャッフル
+  initPuzzleTiles();
+  shufflePuzzle();
+  renderPuzzleTiles();
+  startPuzzleTimer();
+}
+
+function initPuzzleTiles() {
+  slidePuzzle.tiles = [];
+  var num = 1;
+  for (var row = 0; row < slidePuzzle.size; row++) {
+    slidePuzzle.tiles[row] = [];
+    for (var col = 0; col < slidePuzzle.size; col++) {
+      if (row === slidePuzzle.size - 1 && col === slidePuzzle.size - 1) {
+        slidePuzzle.tiles[row][col] = 0;
+      } else {
+        slidePuzzle.tiles[row][col] = num++;
+      }
+    }
+  }
+  slidePuzzle.emptyPos = { row: slidePuzzle.size - 1, col: slidePuzzle.size - 1 };
+}
+
+function shufflePuzzle() {
+  var lastMove = null;
+  for (var i = 0; i < slidePuzzle.shuffleMoves; i++) {
+    var moves = getValidPuzzleMoves();
+    var filtered = moves.filter(function(m) {
+      if (!lastMove) return true;
+      return !(m.row === lastMove.row && m.col === lastMove.col);
+    });
+    var move = filtered[Math.floor(Math.random() * filtered.length)];
+    slidePuzzle.tiles[slidePuzzle.emptyPos.row][slidePuzzle.emptyPos.col] = slidePuzzle.tiles[move.row][move.col];
+    slidePuzzle.tiles[move.row][move.col] = 0;
+    lastMove = { row: slidePuzzle.emptyPos.row, col: slidePuzzle.emptyPos.col };
+    slidePuzzle.emptyPos = { row: move.row, col: move.col };
+  }
+  slidePuzzle.moveCount = 0;
+  slidePuzzle.startTime = Date.now();
+}
+
+function getValidPuzzleMoves() {
+  var moves = [];
+  var row = slidePuzzle.emptyPos.row;
+  var col = slidePuzzle.emptyPos.col;
+  if (row > 0) moves.push({ row: row - 1, col: col });
+  if (row < slidePuzzle.size - 1) moves.push({ row: row + 1, col: col });
+  if (col > 0) moves.push({ row: row, col: col - 1 });
+  if (col < slidePuzzle.size - 1) moves.push({ row: row, col: col + 1 });
+  return moves;
+}
+
+function renderPuzzleTiles() {
+  var grid = document.getElementById('puzzle-grid');
+  grid.innerHTML = '';
+  grid.classList.remove('complete');
+  
+  for (var row = 0; row < slidePuzzle.size; row++) {
+    for (var col = 0; col < slidePuzzle.size; col++) {
+      var value = slidePuzzle.tiles[row][col];
+      var tile = document.createElement('div');
+      
+      if (value === 0) {
+        tile.className = 'puzzle-tile empty';
+      } else {
+        tile.className = 'puzzle-tile number';
+        tile.textContent = value;
+        (function(r, c) {
+          tile.onclick = function() { onPuzzleTileClick(r, c); };
+        })(row, col);
+        
+        var correctValue = row * slidePuzzle.size + col + 1;
+        if (value === correctValue) {
+          tile.classList.add('correct');
+        }
+      }
+      grid.appendChild(tile);
+    }
+  }
+  document.getElementById('puzzle-moves').textContent = slidePuzzle.moveCount;
+}
+
+function onPuzzleTileClick(row, col) {
+  if (slidePuzzle.isComplete) return;
+  
+  var dRow = Math.abs(row - slidePuzzle.emptyPos.row);
+  var dCol = Math.abs(col - slidePuzzle.emptyPos.col);
+  
+  if ((dRow === 1 && dCol === 0) || (dRow === 0 && dCol === 1)) {
+    slidePuzzle.tiles[slidePuzzle.emptyPos.row][slidePuzzle.emptyPos.col] = slidePuzzle.tiles[row][col];
+    slidePuzzle.tiles[row][col] = 0;
+    slidePuzzle.emptyPos = { row: row, col: col };
+    slidePuzzle.moveCount++;
+    
+    playSound('click');
+    renderPuzzleTiles();
+    
+    if (checkPuzzleComplete()) {
+      handlePuzzleSuccess();
+    }
+  }
+}
+
+function checkPuzzleComplete() {
+  var num = 1;
+  for (var row = 0; row < slidePuzzle.size; row++) {
+    for (var col = 0; col < slidePuzzle.size; col++) {
+      if (row === slidePuzzle.size - 1 && col === slidePuzzle.size - 1) {
+        if (slidePuzzle.tiles[row][col] !== 0) return false;
+      } else {
+        if (slidePuzzle.tiles[row][col] !== num++) return false;
+      }
+    }
+  }
+  return true;
+}
+
+function startPuzzleTimer() {
+  if (slidePuzzle.timerInterval) clearInterval(slidePuzzle.timerInterval);
+  slidePuzzle.startTime = Date.now();
+  slidePuzzle.timerInterval = setInterval(function() {
+    if (slidePuzzle.isComplete) return;
+    var elapsed = Math.floor((Date.now() - slidePuzzle.startTime) / 1000);
+    var min = Math.floor(elapsed / 60);
+    var sec = elapsed % 60;
+    document.getElementById('puzzle-timer').textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+  }, 1000);
+}
+
+function handlePuzzleSuccess() {
+  slidePuzzle.isComplete = true;
+  clearInterval(slidePuzzle.timerInterval);
+  
+  document.getElementById('puzzle-grid').classList.add('complete');
+  playSound('success');
+  
+  var panelName = slidePuzzle.currentPanel.panelId === 'main' ? 'メイン' : slidePuzzle.currentPanel.panelId;
+  document.getElementById('puzzle-complete-msg').textContent = '制御盤' + panelName + 'の回路が修復された！';
+  
+  setTimeout(function() {
+    document.getElementById('puzzle-game-screen').style.display = 'none';
+    document.getElementById('puzzle-complete-screen').style.display = 'block';
+  }, 800);
+}
+
+function closeSlidePuzzle() {
+  slidePuzzle.active = false;
+  slidePuzzle.currentPanel = null;
+  if (slidePuzzle.timerInterval) clearInterval(slidePuzzle.timerInterval);
+  document.getElementById('slide-puzzle-modal').classList.remove('active');
+  G.interacting = false;
+}
+
+// パズルのイベントリスナー
+document.getElementById('puzzle-cancel').addEventListener('click', closeSlidePuzzle);
+document.getElementById('puzzle-shuffle').addEventListener('click', function() {
+  initPuzzleTiles();
+  shufflePuzzle();
+  renderPuzzleTiles();
+});
+document.getElementById('puzzle-continue').addEventListener('click', function() {
+  var panel = slidePuzzle.currentPanel;
+  closeSlidePuzzle();
+  if (panel) {
+    openCodeInputPanel(panel);
+  }
+});
+
+// ESCキーでキャンセル
+document.addEventListener('keydown', function(e) {
+  if (slidePuzzle.active && e.code === 'Escape') {
+    closeSlidePuzzle();
+  }
 });
 
 // ============================================
@@ -3902,8 +4155,13 @@ function updateInteractionUI() {
       // 指揮官以外は操作不可
       pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p style="color:#ff6600">⚠️ 指揮官のみ操作可能</p><p>指揮官を呼んでください</p>';
     } else {
-      // 指揮官：コード入力画面を表示
-      pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p><kbd>E</kbd> でコード入力画面を開く</p>';
+      // 指揮官：パズル→コード入力画面を表示
+      var unlocked = (p.panelId === 'A' && G.panelA) || (p.panelId === 'B' && G.panelB) || (p.panelId === 'main' && G.panelMain);
+      if (unlocked) {
+        pr.innerHTML = '<h3>✅ 制御盤 ' + p.panelId + '</h3><p style="color:#48bb78">解除済み</p>';
+      } else {
+        pr.innerHTML = '<h3>🔧 制御盤 ' + p.panelId + '</h3><p><kbd>E</kbd> でパズル → コード入力</p>';
+      }
     }
   } else {
     var n = near.obj;
@@ -3953,6 +4211,9 @@ function updateInteractionUI() {
 }
 
 function processInteraction(delta) {
+  if (keys.e && near) {
+    console.log('processInteraction called', near.type, near.obj ? near.obj.panelId : 'no panelId');
+  }
   if (!near || !keys.e) {
     G.interacting = false;
     G.interactProgress = 0;
@@ -3969,6 +4230,10 @@ function processInteraction(delta) {
       showCoopWarning('制御盤は指揮官のみ操作可能！');
       return;
     }
+    // 既に解除済みの場合はスキップ
+    if (p.panelId === 'A' && G.panelA) return;
+    if (p.panelId === 'B' && G.panelB) return;
+    if (p.panelId === 'main' && G.panelMain) return;
     // 主制御盤は制御盤A・Bが必要
     if (p.panelId === 'main' && !(G.panelA && G.panelB)) return;
     // 主制御盤は人数に応じた協力が必要
@@ -3980,8 +4245,9 @@ function processInteraction(delta) {
         return;
       }
     }
-    // コード入力画面を開く（Eキー1回押しで開く）
-    openCodeInputPanel(p);
+    // スライドパズルを開く（パズル完了後にコード入力画面が開く）
+    console.log("About to call startSlidePuzzle", p.panelId);
+    startSlidePuzzle(p);
     return;
   }
 
@@ -5093,5 +5359,39 @@ document.addEventListener('keydown', function(e) {
   }
 })();
   </script>
+
+  <!-- スライドパズルミニゲーム -->
+  <div id="slide-puzzle-modal">
+    <div class="puzzle-container">
+      <div id="puzzle-game-screen">
+        <div class="puzzle-header">
+          <div class="puzzle-badge" id="puzzle-badge">制御盤A</div>
+          <h2 class="puzzle-title">回路パネル修復</h2>
+          <p class="puzzle-subtitle">パネルをスライドして正しい配置に</p>
+        </div>
+        <div class="puzzle-status">
+          <div><span>移動: </span><span class="puzzle-status-value" id="puzzle-moves">0</span></div>
+          <div><span>時間: </span><span class="puzzle-status-value" id="puzzle-timer">0:00</span></div>
+        </div>
+        <div class="puzzle-area">
+          <div class="puzzle-grid size-3" id="puzzle-grid"></div>
+        </div>
+        <div class="puzzle-btn-row">
+          <button class="puzzle-btn cancel" id="puzzle-cancel">ESC キャンセル</button>
+          <button class="puzzle-btn shuffle" id="puzzle-shuffle">シャッフル</button>
+        </div>
+        <p class="puzzle-hint">空きマスの隣をクリック/タップしてスライド</p>
+      </div>
+      <div id="puzzle-complete-screen" style="display:none">
+        <div class="puzzle-complete">
+          <div class="puzzle-complete-icon">⚡</div>
+          <h2 class="puzzle-complete-title">回路修復完了！</h2>
+          <p class="puzzle-complete-msg" id="puzzle-complete-msg">制御盤が起動した</p>
+          <button class="puzzle-complete-btn" id="puzzle-continue">コード入力へ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
