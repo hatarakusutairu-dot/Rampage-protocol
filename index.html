@@ -1274,7 +1274,16 @@ var slidePuzzle = {
   shuffleMoves: 20
 };
 
+// パズルクリア済みのパネルを記録
+var puzzleCompletedPanels = { A: false, B: false, main: false };
+
 function startSlidePuzzle(panel) {
+  // 既にパズルクリア済みならコード入力へ直接進む
+  if (puzzleCompletedPanels[panel.panelId]) {
+    openCodeInputPanel(panel);
+    return;
+  }
+
   slidePuzzle.active = true;
   slidePuzzle.currentPanel = panel;
   slidePuzzle.size = 3;
@@ -1428,6 +1437,11 @@ function startPuzzleTimer() {
 function handlePuzzleSuccess() {
   slidePuzzle.isComplete = true;
   clearInterval(slidePuzzle.timerInterval);
+
+  // このパネルのパズルをクリア済みとして記録
+  if (slidePuzzle.currentPanel) {
+    puzzleCompletedPanels[slidePuzzle.currentPanel.panelId] = true;
+  }
   
   document.getElementById('puzzle-grid').classList.add('complete');
   playSound('success');
