@@ -1272,7 +1272,6 @@ var slidePuzzle = {
 };
 
 function startSlidePuzzle(panel) {
-  console.log("startSlidePuzzle called", panel);
   slidePuzzle.active = true;
   slidePuzzle.currentPanel = panel;
   slidePuzzle.size = 3;
@@ -1447,18 +1446,30 @@ function closeSlidePuzzle() {
   G.interacting = false;
 }
 
-// パズルのイベントリスナー
-document.getElementById('puzzle-cancel').addEventListener('click', closeSlidePuzzle);
-document.getElementById('puzzle-shuffle').addEventListener('click', function() {
-  initPuzzleTiles();
-  shufflePuzzle();
-  renderPuzzleTiles();
-});
-document.getElementById('puzzle-continue').addEventListener('click', function() {
-  var panel = slidePuzzle.currentPanel;
-  closeSlidePuzzle();
-  if (panel) {
-    openCodeInputPanel(panel);
+// パズルのイベントリスナー（DOMロード後に設定）
+document.addEventListener('DOMContentLoaded', function() {
+  var puzzleCancel = document.getElementById('puzzle-cancel');
+  var puzzleShuffle = document.getElementById('puzzle-shuffle');
+  var puzzleContinue = document.getElementById('puzzle-continue');
+
+  if (puzzleCancel) {
+    puzzleCancel.addEventListener('click', closeSlidePuzzle);
+  }
+  if (puzzleShuffle) {
+    puzzleShuffle.addEventListener('click', function() {
+      initPuzzleTiles();
+      shufflePuzzle();
+      renderPuzzleTiles();
+    });
+  }
+  if (puzzleContinue) {
+    puzzleContinue.addEventListener('click', function() {
+      var panel = slidePuzzle.currentPanel;
+      closeSlidePuzzle();
+      if (panel) {
+        openCodeInputPanel(panel);
+      }
+    });
   }
 });
 
@@ -4211,9 +4222,6 @@ function updateInteractionUI() {
 }
 
 function processInteraction(delta) {
-  if (keys.e && near) {
-    console.log('processInteraction called', near.type, near.obj ? near.obj.panelId : 'no panelId');
-  }
   if (!near || !keys.e) {
     G.interacting = false;
     G.interactProgress = 0;
@@ -4246,7 +4254,6 @@ function processInteraction(delta) {
       }
     }
     // スライドパズルを開く（パズル完了後にコード入力画面が開く）
-    console.log("About to call startSlidePuzzle", p.panelId);
     startSlidePuzzle(p);
     return;
   }
