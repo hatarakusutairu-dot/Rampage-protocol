@@ -2405,6 +2405,14 @@ function syncFromGameState(gs) {
     });
     document.getElementById('status-main').classList.add('done');
     document.getElementById('status-main').querySelector('span:last-child').textContent = '解除済';
+
+    // 他プレイヤーもクリアアニメーションを再生
+    showBonus('+300 主制御盤解除！クリア！', '#0ff');
+    playSound('success');
+    playClearAnimation(function() {
+      endGame(true);
+    });
+    return; // endGameで処理するのでここで終了
   }
 
   updateGameUI();
